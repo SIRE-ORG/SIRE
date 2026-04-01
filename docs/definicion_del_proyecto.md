@@ -8,7 +8,7 @@
 
 | Integrante | Rol | Dominio |
 |---|---|---|
-| **Daniel** | Tech Lead · Arquitecto · DevOps · Flutter Lead | Arquitectura general, Flutter (lógica, estado, navegación, integraciones), infraestructura, decisiones técnicas transversales |
+| **Daniel** | Tech Lead · Arquitecto · Flutter Lead | Arquitectura general, Flutter (lógica, estado, navegación, integraciones), infraestructura, decisiones técnicas transversales |
 | **Emilia** | Designer · Frontend Flutter | Diseño UX/UI en Figma, sistema de diseño, implementación de pantallas y widgets en Flutter |
 | **Cristóbal** | Backend Lead | Modelo de datos, API REST, autenticación, lógica de negocio, integraciones externas, Supabase |
 
