@@ -39,13 +39,13 @@ El repositorio tiene una carpeta `/docs` en la rama `dev` donde vive toda la doc
 ```
 docs/
 ├── definicion.md           ← documento de definición del proyecto
-├── api-contract.md         ← contrato de API entre Daniel y Cristóbal
+├── api-contract.md         ← contrato de API entre Daniel y Cristian
 ├── api-status.md           ← estado de implementación de endpoints
 ├── flujo-emilia.md         ← este documento
-├── flujo-cristobal.md      ← documento de flujo de Cristóbal
+├── flujo-cristian.md      ← documento de flujo de Cristian
 └── dudas/
     ├── emilia/             ← aquí dejas tus archivos de dudas
-    └── cristobal/          ← dudas de Cristóbal
+    └── cristian/          ← dudas de Cristian
 ```
 
 ### Cómo usar la carpeta de dudas

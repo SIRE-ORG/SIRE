@@ -10,11 +10,11 @@
 |---|---|---|
 | **Daniel** | Tech Lead · Arquitecto · Flutter Lead | Arquitectura general, Flutter (lógica, estado, navegación, integraciones), infraestructura, decisiones técnicas transversales |
 | **Emilia** | Designer · Frontend Flutter | Diseño UX/UI en Figma, sistema de diseño, implementación de pantallas y widgets en Flutter |
-| **Cristóbal** | Backend Lead | Modelo de datos, API REST, autenticación, lógica de negocio, integraciones externas, Supabase |
+| **Cristian** | Backend Lead | Modelo de datos, API REST, autenticación, lógica de negocio, integraciones externas, Supabase |
 
 ### Responsabilidades por módulo
 
-| Módulo | Daniel | Emilia | Cristóbal |
+| Módulo | Daniel | Emilia | Cristian |
 |---|---|---|---|
 | Feed y publicaciones | Integración API, lógica de zona y ordenamiento | Pantallas, componentes visuales, cards | Endpoints, modelo de datos, queries con filtros |
 | Reservas | Flujo de UI, estados en pantalla | Pantallas de reserva y estado | Lógica de negocio, estados, transiciones |
@@ -33,17 +33,17 @@
 |---|---|---|---|
 | Mobile | Flutter (Dart) | Daniel + Emilia | Multiplataforma, dominio del equipo |
 | Gestión de estado | Riverpod | Daniel | Tipado fuerte, arquitectura reactiva, compatible con capas |
-| Backend | Node.js + TypeScript | Cristóbal | Experiencia del equipo, ecosistema de integraciones superior en JS/TS |
-| Framework HTTP | Express o Fastify | Cristóbal | Por definir — Fastify tiene mejor rendimiento y soporte nativo de TS |
-| Base de datos | Supabase (PostgreSQL) | Cristóbal + Daniel | Auth gestionado, storage, Realtime, tier gratuito generoso |
-| ORM | Prisma | Cristóbal | Tipado fuerte con TS, migraciones versionadas, compatible con Supabase |
-| Autenticación | Supabase Auth | Cristóbal | Magic link, JWT, gestión de sesiones lista para usar |
-| Notificaciones in-app | Supabase Realtime | Cristóbal + Daniel | Suscripción en tiempo real a cambios en tablas, sin costo adicional |
+| Backend | Node.js + TypeScript | Cristian | Experiencia del equipo, ecosistema de integraciones superior en JS/TS |
+| Framework HTTP | Express o Fastify | Cristian | Por definir — Fastify tiene mejor rendimiento y soporte nativo de TS |
+| Base de datos | Supabase (PostgreSQL) | Cristian + Daniel | Auth gestionado, storage, Realtime, tier gratuito generoso |
+| ORM | Prisma | Cristian | Tipado fuerte con TS, migraciones versionadas, compatible con Supabase |
+| Autenticación | Supabase Auth | Cristian | Magic link, JWT, gestión de sesiones lista para usar |
+| Notificaciones in-app | Supabase Realtime | Cristian + Daniel | Suscripción en tiempo real a cambios en tablas, sin costo adicional |
 | Geolocalización | Google Geocoding API | Daniel | Detección automática de región desde coordenadas GPS |
-| Correo transaccional | Resend | Cristóbal | SDK nativo en TypeScript, tier gratuito suficiente para el MVP |
-| WhatsApp | wa.me deep link | Cristóbal | Sin complejidad de API de Meta, simula la funcionalidad correctamente |
+| Correo transaccional | Resend | Cristian | SDK nativo en TypeScript, tier gratuito suficiente para el MVP |
+| WhatsApp | wa.me deep link | Cristian | Sin complejidad de API de Meta, simula la funcionalidad correctamente |
 | Hosting backend | Railway o Render | Daniel | Instancias Node.js, tier gratuito viable, arranque rápido |
-| Almacenamiento de imágenes | Supabase Storage | Cristóbal | Integrado al stack, sin servicio adicional |
+| Almacenamiento de imágenes | Supabase Storage | Cristian | Integrado al stack, sin servicio adicional |
 
 ---
 
@@ -255,7 +255,7 @@ Reservation
 
 ### 7.1 Núcleo duro (excluyente para el MVP)
 
-| # | Funcionalidad | Daniel | Emilia | Cristóbal |
+| # | Funcionalidad | Daniel | Emilia | Cristian |
 |---|---|---|---|---|
 | 1 | Feed paginado filtrado por región via Google Geocoding API, con ordenamiento y filtros seleccionables | ✓ integración geo + lógica de ordenamiento + consumo API | ✓ pantalla feed + cards + controles de filtro | ✓ endpoint con filtros de zona y ordenamiento |
 | 2 | Vista de detalle de publicación | ✓ navegación + consumo API | ✓ pantalla de detalle | ✓ endpoint de detalle |
@@ -363,7 +363,7 @@ App
 ---
 
 #### Página-03 · Detalle de publicación
-**Responsable:** Emilia (diseño) · Daniel (consumo API, integración de agenda) · Cristóbal (endpoint de detalle + disponibilidad)
+**Responsable:** Emilia (diseño) · Daniel (consumo API, integración de agenda) · Cristian (endpoint de detalle + disponibilidad)
 
 **Contenido:**
 - Imagen del espacio o servicio (una en MVP)
@@ -378,7 +378,7 @@ App
 ---
 
 #### Página-04 · Formulario de reserva
-**Responsable:** Emilia (diseño) · Daniel (lógica de estado de cuenta + flujo post-reserva) · Cristóbal (endpoint de creación de reserva + usuario GUEST)
+**Responsable:** Emilia (diseño) · Daniel (lógica de estado de cuenta + flujo post-reserva) · Cristian (endpoint de creación de reserva + usuario GUEST)
 
 **Contenido:**
 - Resumen del slot seleccionado: publicación, fecha, hora
@@ -393,7 +393,7 @@ App
 ---
 
 #### Página-05 · Bottom sheet de creación de contraseña
-**Responsable:** Emilia (diseño) · Daniel (lógica de intercepción con Riverpod) · Cristóbal (`updateUser` via Supabase Auth)
+**Responsable:** Emilia (diseño) · Daniel (lógica de intercepción con Riverpod) · Cristian (`updateUser` via Supabase Auth)
 
 **Contenido:**
 - Confirmación de reserva exitosa
@@ -412,7 +412,7 @@ App
 ---
 
 #### Página-06 · Login
-**Responsable:** Emilia (diseño) · Daniel (lógica de auth con Riverpod) · Cristóbal (Supabase Auth)
+**Responsable:** Emilia (diseño) · Daniel (lógica de auth con Riverpod) · Cristian (Supabase Auth)
 
 **Contenido:**
 - Campo correo + contraseña
@@ -424,7 +424,7 @@ App
 ---
 
 #### Página-06b · Registro completo
-**Responsable:** Emilia (diseño) · Daniel (lógica) · Cristóbal (endpoint de registro + Supabase Auth)
+**Responsable:** Emilia (diseño) · Daniel (lógica) · Cristian (endpoint de registro + Supabase Auth)
 
 **Contenido:**
 - Nombre, correo, teléfono, contraseña
@@ -435,7 +435,7 @@ App
 ---
 
 #### Página-07 · Mis reservas (solicitante)
-**Responsable:** Emilia (diseño) · Daniel (consumo API) · Cristóbal (endpoint de reservas del usuario)
+**Responsable:** Emilia (diseño) · Daniel (consumo API) · Cristian (endpoint de reservas del usuario)
 
 **Contenido:**
 - Lista de reservas agrupadas por estado: pestaña "Activas" y pestaña "Historial"
@@ -447,7 +447,7 @@ App
 ---
 
 #### Página-08 · Detalle de reserva (solicitante)
-**Responsable:** Emilia (diseño) · Daniel (consumo API + acción de cancelar) · Cristóbal (endpoint de cancelación)
+**Responsable:** Emilia (diseño) · Daniel (consumo API + acción de cancelar) · Cristian (endpoint de cancelación)
 
 **Contenido:**
 - Información completa: publicación, fecha, hora, estado actual
@@ -474,7 +474,7 @@ App
 ---
 
 #### Página-10 · Mis publicaciones
-**Responsable:** Emilia (diseño) · Daniel (consumo API) · Cristóbal (endpoints de listado y estado)
+**Responsable:** Emilia (diseño) · Daniel (consumo API) · Cristian (endpoints de listado y estado)
 
 **Contenido:**
 - Lista de publicaciones del usuario con estado: activa o pausada
@@ -486,7 +486,7 @@ App
 ---
 
 #### Página-10b · Crear / Editar publicación
-**Responsable:** Emilia (diseño + UI del configurador de agenda) · Daniel (lógica del configurador + consumo API) · Cristóbal (endpoints CRUD + modelo de disponibilidad)
+**Responsable:** Emilia (diseño + UI del configurador de agenda) · Daniel (lógica del configurador + consumo API) · Cristian (endpoints CRUD + modelo de disponibilidad)
 
 **Contenido:**
 - Nombre del servicio, descripción, categoría
@@ -501,7 +501,7 @@ App
 ---
 
 #### Página-11 · Reservas recibidas (publicador)
-**Responsable:** Emilia (diseño) · Daniel (consumo API + suscripción Realtime) · Cristóbal (endpoint + Supabase Realtime)
+**Responsable:** Emilia (diseño) · Daniel (consumo API + suscripción Realtime) · Cristian (endpoint + Supabase Realtime)
 
 **Contenido:**
 - Lista de reservas recibidas ordenadas por estado (pendientes primero)
@@ -514,7 +514,7 @@ App
 ---
 
 #### Página-12 · Detalle de reserva (publicador)
-**Responsable:** Emilia (diseño) · Daniel (lógica de canales + deep link + consumo API) · Cristóbal (endpoints de actualización de estado + Resend + construcción de link wa.me)
+**Responsable:** Emilia (diseño) · Daniel (lógica de canales + deep link + consumo API) · Cristian (endpoints de actualización de estado + Resend + construcción de link wa.me)
 
 **Contenido:**
 - Datos del solicitante: Nombre, Correo, Teléfono
@@ -531,7 +531,7 @@ App
 ---
 
 #### Página-13 · Notificaciones
-**Responsable:** Emilia (diseño) · Daniel (lógica in-app + Riverpod) · Cristóbal (almacenamiento + Supabase Realtime)
+**Responsable:** Emilia (diseño) · Daniel (lógica in-app + Riverpod) · Cristian (almacenamiento + Supabase Realtime)
 
 **Contenido:**
 - Lista cronológica de notificaciones internas
@@ -544,7 +544,7 @@ App
 ---
 
 #### Página-14 · Perfil propio
-**Responsable:** Emilia (diseño) · Daniel (consumo API) · Cristóbal (endpoint de perfil)
+**Responsable:** Emilia (diseño) · Daniel (consumo API) · Cristian (endpoint de perfil)
 
 **Contenido:**
 - Avatar, nombre, datos de contacto
@@ -559,7 +559,7 @@ App
 ---
 
 #### Página-14b · Editar perfil
-**Responsable:** Emilia (diseño) · Daniel (consumo API) · Cristóbal (endpoint de actualización de perfil)
+**Responsable:** Emilia (diseño) · Daniel (consumo API) · Cristian (endpoint de actualización de perfil)
 
 **Contenido:**
 - Nombre, teléfono, avatar
@@ -568,7 +568,7 @@ App
 ---
 
 #### Página-15 · Perfil público (segunda capa)
-**Responsable:** Emilia (diseño) · Daniel (consumo API) · Cristóbal (endpoint público de perfil)
+**Responsable:** Emilia (diseño) · Daniel (consumo API) · Cristian (endpoint público de perfil)
 
 **Contenido:**
 - Nombre y avatar (sin datos de contacto privados)
@@ -599,13 +599,13 @@ App
 
 | Tarea | Responsable | Urgencia |
 |---|---|---|
-| Definir framework HTTP backend: Express vs Fastify | Cristóbal | Alta |
-| Crear proyecto en Supabase y configurar tablas base | Cristóbal + Daniel | Alta |
-| Contrato de API documentado: rutas, payloads, respuestas de éxito y error | Cristóbal + Daniel | Alta — antes de que cualquiera empiece a consumir endpoints |
+| Definir framework HTTP backend: Express vs Fastify | Cristian | Alta |
+| Crear proyecto en Supabase y configurar tablas base | Cristian + Daniel | Alta |
+| Contrato de API documentado: rutas, payloads, respuestas de éxito y error | Cristian + Daniel | Alta — antes de que cualquiera empiece a consumir endpoints |
 | Identidad visual: paleta, tipografía, logo o isotipo | Emilia | Alta — antes de comenzar la implementación de UI |
 | Estructura de carpetas del proyecto Flutter con Riverpod | Daniel | Alta |
 | Cuenta de Google Cloud para Geocoding API | Daniel | Media |
-| Cuenta de Resend | Cristóbal | Media |
+| Cuenta de Resend | Cristian | Media |
 
 ---
 
