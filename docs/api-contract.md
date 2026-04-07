@@ -4,12 +4,33 @@
 
 ---
 
+## Arquitectura de comunicación
+
+SIRE usa una arquitectura híbrida. Flutter no habla exclusivamente con el backend — consume Supabase directamente para lo que el SDK maneja de forma nativa, y usa el backend REST solo para la lógica de negocio que requiere validación, transacciones o comunicación externa.
+
+```
+Flutter
+  ├── Supabase SDK      → Auth (login, magic link, JWT, updateUser)
+  │                     → Realtime (suscripciones en tiempo real)
+  │                     → Storage (subida de imágenes)
+  └── Backend REST      → Lógica de negocio (reservas, publicaciones, slots)
+                        → Validación de permisos
+                        → Comunicación externa (Resend, wa.me)
+                        → Escritura en BD via Prisma
+
+Backend
+  └── Supabase          → Base de datos via Prisma
+                        → Verifica JWT de los requests entrantes
+```
+
+---
+
 ## Convenciones generales
 
-- Base URL: `https://[dominio-render]/api/v1`
+- Base URL backend: `https://[dominio-render]/api/v1`
 - Todos los requests y responses usan `Content-Type: application/json`
-- Los endpoints protegidos requieren header `Authorization: Bearer <jwt_token>`
-- Los IDs son UUIDs v4
+- Los endpoints protegidos requieren header `Authorization: Bearer <jwt_token>` — el JWT lo emite Supabase Auth y el backend lo verifica
+- Los IDs son UUIDs v4 generados por Supabase
 - Las fechas siguen el formato ISO 8601: `"2025-04-07T10:00:00Z"`
 - Los horarios de slots usan formato `"HH:MM"`: `"09:00"`, `"10:30"`
 
@@ -17,7 +38,7 @@
 
 ## Formato de errores
 
-Todos los errores siguen esta estructura:
+Todos los errores del backend siguen esta estructura:
 
 ```json
 {
@@ -32,45 +53,108 @@ Todos los errores siguen esta estructura:
 
 | Código | HTTP | Cuándo ocurre | Cómo lo maneja Flutter |
 |---|---|---|---|
-| `AUTH_INVALID_CREDENTIALS` | 401 | Login con contraseña incorrecta, o token JWT expirado | Redirige al login o solicita magic link |
 | `AUTH_EMAIL_ALREADY_EXISTS` | 409 | Formulario de reserva con correo que ya tiene cuenta ACTIVE | Redirige al login con mensaje explicativo |
-| `AUTH_EMAIL_NOT_VERIFIED` | 403 | Acción que requiere correo verificado (reservado para uso futuro, no bloquea en MVP) | Muestra prompt de reenvío de verificación |
-| `AUTH_UNAUTHORIZED` | 401 | Request a endpoint protegido sin token, con token malformado o expirado | Interceptado globalmente, redirige al login |
+| `AUTH_UNAUTHORIZED` | 401 | Request a endpoint protegido con token inválido o expirado | Interceptado globalmente — Supabase SDK refresca el token automáticamente antes de reintentar |
 | `SLOT_NOT_AVAILABLE` | 409 | Dos usuarios intentan reservar el mismo slot simultáneamente; el segundo en llegar recibe este error | Recarga los slots disponibles y muestra aviso |
 | `SLOT_NOT_FOUND` | 404 | El slotId no corresponde a la publicación y fecha; ocurre si la agenda fue modificada mientras el usuario tenía la pantalla abierta | Vuelve al calendario y recarga disponibilidad |
 | `PUBLICATION_NOT_FOUND` | 404 | La publicación fue eliminada o pausada mientras el usuario navegaba hacia ella | Vuelve al feed con aviso de no disponibilidad |
 | `RESERVATION_NOT_FOUND` | 404 | ID de reserva inexistente o de otro usuario | Vuelve a "Mis reservas" |
 | `RESERVATION_CANNOT_CANCEL` | 422 | Intento de cancelar una reserva que no está en estado `pending` | El botón de cancelar se deshabilita en el frontend si el estado no es `pending`; este código es red de seguridad |
 | `RESERVATION_CANNOT_UPDATE` | 422 | Transición de estado inválida (ej: completar una reserva ya rechazada) | Recarga el estado actual de la reserva |
-| `FORBIDDEN` | 403 | Usuario intenta operar sobre un recurso que no le pertenece (ej: editar publicación ajena, cambiar estado de reserva que no recibió) | Muestra error genérico, recarga el recurso |
+| `FORBIDDEN` | 403 | Usuario intenta operar sobre un recurso que no le pertenece | Muestra error genérico, recarga el recurso |
 | `VALIDATION_ERROR` | 400 | Campos faltantes, tipos incorrectos o valores fuera de rango en el body | Muestra errores de validación inline en el formulario |
 
 ---
 
-## Módulo: Autenticación
+## Supabase SDK — lo que Flutter maneja directamente
+
+Estos flujos no pasan por el backend. Flutter los ejecuta directamente contra Supabase Auth y Supabase Storage.
+
+### Autenticación via SDK
+
+```dart
+// Login con correo y contraseña
+await supabase.auth.signInWithPassword(email: email, password: password);
+
+// Magic link (fallback para GUEST sin sesión)
+await supabase.auth.signInWithOtp(email: email);
+
+// Establecer contraseña desde sesión activa (GUEST → ACTIVE en Supabase Auth)
+await supabase.auth.updateUser(UserAttributes(password: password));
+
+// Reenviar correo de verificación
+await supabase.auth.resend(type: OtpType.signup, email: email);
+
+// Datos del usuario autenticado (sin necesidad de endpoint)
+final user = supabase.auth.currentUser;
+
+// Cerrar sesión
+await supabase.auth.signOut();
+```
+
+**Refresh del JWT:** Supabase Auth lo maneja automáticamente. El SDK renueva el token antes de que expire sin que Flutter tenga que hacer nada. El backend verifica el JWT en cada request pero no gestiona el refresh.
+
+### Storage via SDK
+
+```dart
+// Subir imagen de publicación
+await supabase.storage.from('publications').upload(path, file);
+
+// Subir avatar de usuario
+await supabase.storage.from('avatars').upload(path, file);
+
+// Obtener URL pública
+final url = supabase.storage.from('publications').getPublicUrl(path);
+```
+
+### Realtime via SDK
+
+```dart
+// Suscripción a nuevas reservas recibidas (publicador)
+supabase.from('reservations')
+  .stream(primaryKey: ['id'])
+  .eq('publication_owner_id', userId)
+  .listen((data) { ... });
+
+// Suscripción a cambios de estado (solicitante)
+supabase.from('reservations')
+  .stream(primaryKey: ['id'])
+  .eq('requester_id', userId)
+  .listen((data) { ... });
+
+// Suscripción a notificaciones nuevas
+supabase.from('notifications')
+  .stream(primaryKey: ['id'])
+  .eq('user_id', userId)
+  .listen((data) { ... });
+```
+
+---
+
+## Módulo: Autenticación (backend)
 
 ### Descripción
 
-Gestiona el ciclo de vida de las cuentas de usuario. SIRE tiene dos estados de cuenta: `GUEST` (creada implícitamente desde el formulario de reserva, sin contraseña) y `ACTIVE` (con contraseña establecida). La autenticación se basa en JWT gestionado por Supabase Auth.
+El backend maneja únicamente lo que Supabase Auth no puede hacer por sí solo: crear el perfil extendido del usuario (nombre, teléfono, estado de cuenta) en la tabla `profiles` de la base de datos, y actualizar el `accountStatus` cuando el usuario GUEST establece su contraseña.
+
+El login, magic link, refresh de JWT, verificación de correo y logout son responsabilidad exclusiva del SDK de Supabase en el cliente Flutter.
 
 ### Flujos principales
 
-- **Registro implícito:** el formulario de reserva crea una cuenta GUEST sin interrumpir el flujo. Si el correo ya existe como GUEST, se reutiliza la cuenta. Si existe como ACTIVE, se redirige al login.
-- **Establecimiento de contraseña:** desde sesión activa, el usuario GUEST puede establecer su contraseña via `POST /auth/set-password`, que llama a `supabase.auth.updateUser({ password })` internamente y transiciona el estado a ACTIVE.
-- **Fallback sin sesión:** si el usuario GUEST cierra la app y regresa sin sesión activa, solicita un magic link via `POST /auth/request-magic-link`. Supabase Auth envía el link por Resend y al hacer clic se restaura la sesión, donde se le presenta el bottom sheet de contraseña.
-- **Verificación de correo:** se envía automáticamente al crear la cuenta. No bloquea el flujo de reserva en el MVP (opción B).
+- **Registro implícito:** Flutter llama a `POST /auth/register-guest` en el backend. El backend crea el usuario en Supabase Auth y el perfil en la tabla `profiles` en una sola transacción. Retorna el JWT generado por Supabase Auth.
+- **Establecimiento de contraseña:** Flutter llama a `supabase.auth.updateUser({ password })` directamente. Luego notifica al backend via `PATCH /auth/account-status` para que actualice el `accountStatus` en `profiles` a `ACTIVE`.
+- **Login, magic link, verificación:** Flutter los maneja directamente via SDK, sin pasar por el backend.
 
 ### Se comunica con
 
-- Supabase Auth (JWT, magic link, updateUser)
-- Resend (correo de verificación y magic link)
-- Módulo de Reservas (al crear cuenta GUEST desde el formulario de reserva)
+- Supabase Auth (crea el usuario en Supabase durante el registro GUEST)
+- Tabla `profiles` en la base de datos (almacena nombre, teléfono y accountStatus)
 
 ---
 
 ### POST /auth/register-guest
 
-Crea una cuenta en estado GUEST desde el formulario de reserva. Si el correo ya existe como GUEST, retorna la cuenta existente sin duplicar.
+Crea una cuenta GUEST. El backend crea el usuario en Supabase Auth y el perfil extendido en `profiles`. Si el correo ya existe como GUEST, retorna la cuenta existente sin duplicar.
 
 **Body:**
 
@@ -117,46 +201,11 @@ Crea una cuenta en estado GUEST desde el formulario de reserva. Si el correo ya 
 
 ---
 
-### POST /auth/login
+### PATCH /auth/account-status
 
-Autentica un usuario con correo y contraseña.
-
-**Body:**
-
-```json
-{
-  "email": "string",
-  "password": "string"
-}
-```
-
-**Response 200:**
-
-```json
-{
-  "userId": "uuid",
-  "name": "string",
-  "email": "string",
-  "accountStatus": "active",
-  "token": "jwt_token"
-}
-```
-
----
-
-### POST /auth/set-password
-
-Establece la contraseña de un usuario GUEST desde sesión activa. Transiciona el estado a ACTIVE.
+Actualiza el `accountStatus` en la tabla `profiles` a `ACTIVE`. Flutter llama a este endpoint después de que `supabase.auth.updateUser({ password })` se completa exitosamente.
 
 **Headers:** `Authorization: Bearer <jwt_token>`
-
-**Body:**
-
-```json
-{
-  "password": "string"
-}
-```
 
 **Response 200:**
 
@@ -168,47 +217,25 @@ Establece la contraseña de un usuario GUEST desde sesión activa. Transiciona e
 
 ---
 
-### POST /auth/request-magic-link
+## Módulo: Usuarios
 
-Envía un magic link al correo registrado. Usado como fallback cuando el usuario GUEST regresa sin sesión activa. Siempre retorna 200 para no exponer qué correos están registrados.
+### Descripción
 
-**Body:**
+Gestiona los perfiles extendidos de usuario almacenados en la tabla `profiles`. La información base de autenticación (correo, sesión) la gestiona Supabase Auth; este módulo maneja los datos adicionales (nombre, teléfono, avatar, accountStatus) y las vistas de perfil público.
 
-```json
-{
-  "email": "string"
-}
-```
+Los datos de contacto del solicitante se exponen al publicador únicamente dentro del detalle de la reserva recibida, no como endpoint separado.
 
-**Response 200:**
+### Se comunica con
 
-```json
-{
-  "message": "Si el correo está registrado, recibirás un link de acceso."
-}
-```
+- Supabase Auth (para validar el JWT e identificar al usuario)
+- Supabase Storage (URL del avatar)
+- Módulo de Reservas (el detalle de reserva recibida incluye datos del solicitante)
 
 ---
 
-### POST /auth/request-verification
+### GET /users/me
 
-Reenvía el correo de verificación al usuario autenticado.
-
-**Headers:** `Authorization: Bearer <jwt_token>`
-
-**Response 200:**
-
-```json
-{
-  "message": "Correo de verificación enviado"
-}
-```
-
----
-
-### GET /auth/me
-
-Retorna los datos del usuario autenticado.
+Retorna el perfil extendido del usuario autenticado. Complementa `supabase.auth.currentUser` con los datos almacenados en `profiles`.
 
 **Headers:** `Authorization: Bearer <jwt_token>`
 
@@ -229,23 +256,9 @@ Retorna los datos del usuario autenticado.
 
 ---
 
-## Módulo: Usuarios
-
-### Descripción
-
-Gestiona los perfiles de usuario. Existen dos vistas del perfil: la privada (accesible solo por el propio usuario) y la pública (accesible por cualquier usuario autenticado, sin datos de contacto). Los datos privados del solicitante — correo y teléfono — se exponen al publicador únicamente dentro del detalle de la reserva recibida, no como endpoint separado de usuario.
-
-### Se comunica con
-
-- Módulo de Autenticación (token JWT para identificar al usuario)
-- Módulo de Reservas (el detalle de reserva recibida incluye los datos del solicitante)
-- Supabase Storage (avatar del usuario)
-
----
-
 ### PUT /users/me
 
-Actualiza el perfil del usuario autenticado.
+Actualiza el perfil extendido del usuario autenticado.
 
 **Headers:** `Authorization: Bearer <jwt_token>`
 
@@ -274,7 +287,7 @@ Actualiza el perfil del usuario autenticado.
 
 ### GET /users/:userId/public
 
-Retorna el perfil público de un usuario. No expone datos de contacto. Los campos de segunda capa retornan `null` en el MVP.
+Retorna el perfil público de un usuario sin datos de contacto. Campos de segunda capa retornan `null` en el MVP.
 
 **Response 200:**
 
@@ -294,14 +307,14 @@ Retorna el perfil público de un usuario. No expone datos de contacto. Los campo
 
 ### Descripción
 
-El feed es la vista principal de la aplicación: una lista paginada de publicaciones filtradas por región. Es el único módulo completamente público — no requiere autenticación para ser consultado. La región se detecta automáticamente via Google Geocoding API en el cliente Flutter y se envía como parámetro al backend. El backend no hace geolocalización, solo filtra por el valor de región que recibe.
+Vista de descubrimiento público: lista paginada de publicaciones activas filtradas por región. No requiere autenticación. La región llega como parámetro desde Flutter — el backend no hace geolocalización, solo filtra.
 
-El feed es distinto al módulo de Publicaciones: el feed es la vista de descubrimiento público, mientras que Publicaciones gestiona el CRUD de las publicaciones propias del publicador.
+Distinto al módulo de Publicaciones: el feed es solo lectura y público; Publicaciones gestiona el CRUD del publicador autenticado.
 
 ### Se comunica con
 
-- Módulo de Publicaciones (comparten la entidad `Publication`)
-- Google Geocoding API (en el cliente Flutter, no en el backend)
+- Tabla `publications` en la base de datos
+- Google Geocoding API: en el cliente Flutter, no en el backend
 
 ---
 
@@ -353,21 +366,23 @@ Retorna el feed paginado filtrado por región.
 
 ### Descripción
 
-Gestiona el CRUD de publicaciones desde la perspectiva del publicador. Una publicación es la entidad central del sistema: contiene la información del servicio ofrecido, la configuración de la agenda inteligente y el estado de visibilidad. Solo usuarios con cuenta ACTIVE pueden crear o gestionar publicaciones.
+Gestiona el CRUD de publicaciones desde la perspectiva del publicador autenticado. Una publicación contiene la información del servicio, la configuración de agenda inteligente y el estado de visibilidad. Solo usuarios ACTIVE pueden crear o gestionar publicaciones.
 
-La agenda inteligente se almacena dentro de la publicación como un objeto `availability`. El backend calcula los slots disponibles para una fecha específica aplicando la lógica definida: respeta los `dayOverrides`, los días cerrados y filtra los slots que ya tienen reservas activas.
+La agenda inteligente vive como objeto `availability` dentro de la publicación. El backend calcula los slots disponibles para una fecha aplicando la lógica: respeta `dayOverrides`, días cerrados, y filtra slots con reservas activas.
+
+Las imágenes se suben directamente a Supabase Storage desde Flutter. El backend recibe solo la URL resultante.
 
 ### Se comunica con
 
-- Módulo de Reservas (para filtrar slots ya ocupados)
-- Supabase Storage (imagen de la publicación)
-- Feed (las publicaciones activas aparecen en el feed)
+- Módulo de Reservas (filtra slots ya ocupados al calcular disponibilidad)
+- Supabase Storage (recibe la URL de la imagen, no el archivo)
+- Feed (publica las publicaciones activas)
 
 ---
 
 ### GET /publications/:id
 
-Retorna el detalle completo de una publicación, incluyendo la configuración de agenda. Público, no requiere autenticación.
+Retorna el detalle completo de una publicación con su configuración de agenda. Público.
 
 **Response 200:**
 
@@ -406,7 +421,7 @@ Retorna el detalle completo de una publicación, incluyendo la configuración de
 
 ### GET /publications/:id/slots
 
-Retorna todos los slots del día para una fecha específica, marcando cuáles están disponibles y cuáles ocupados. Los slots ocupados se retornan para que Flutter pueda mostrarlos visualmente como no disponibles.
+Retorna todos los slots del día para una fecha. Los ocupados se incluyen para que Flutter los muestre visualmente como no disponibles.
 
 **Query params:**
 
@@ -441,7 +456,7 @@ Retorna todos los slots del día para una fecha específica, marcando cuáles es
 
 ### GET /publications/mine
 
-Retorna las publicaciones del usuario autenticado con su estado de visibilidad.
+Retorna las publicaciones del usuario autenticado.
 
 **Headers:** `Authorization: Bearer <jwt_token>`
 
@@ -540,7 +555,7 @@ Actualiza una publicación existente. Solo el dueño puede editarla.
 
 ### PATCH /publications/:id/status
 
-Activa o pausa una publicación. Pausar la oculta del feed sin eliminarla ni afectar las reservas existentes.
+Activa o pausa una publicación. Pausar la oculta del feed sin eliminarla ni afectar reservas existentes.
 
 **Headers:** `Authorization: Bearer <jwt_token>`
 
@@ -577,7 +592,7 @@ Elimina una publicación. Solo el dueño puede eliminarla.
 
 ### Descripción
 
-Gestiona el ciclo de vida completo de una reserva. Una reserva conecta a un solicitante con una publicación en un slot específico de fecha y hora. El estado de la reserva sigue una máquina de estados definida:
+Gestiona el ciclo de vida completo de una reserva. Conecta a un solicitante con una publicación en un slot específico. El estado sigue esta máquina de estados:
 
 ```
 PENDIENTE
@@ -587,23 +602,23 @@ PENDIENTE
     └── → FALLIDA       (acción del publicador)
 ```
 
-El publicador puede contactar al solicitante desde la misma app eligiendo el canal: correo via Resend o WhatsApp via deep link wa.me. Los datos de contacto del solicitante — nombre, correo y teléfono — están disponibles en el detalle de la reserva recibida, sin necesidad de un endpoint separado de usuario.
+El publicador contacta al solicitante eligiendo el canal desde la app. Los datos de contacto del solicitante están disponibles en el detalle de la reserva recibida.
 
-Las notificaciones de cambios de estado se propagan en tiempo real al cliente Flutter via Supabase Realtime, suscripto a cambios en la tabla `reservations`.
+Los cambios de estado se propagan en tiempo real via Supabase Realtime directamente desde Flutter, sin necesidad de polling al backend.
 
 ### Se comunica con
 
-- Módulo de Autenticación (identificación del solicitante y del publicador)
-- Módulo de Publicaciones (validación del slot y disponibilidad)
-- Módulo de Notificaciones (disparo de notificaciones internas)
-- Resend (correo al publicador al recibir reserva, correo al solicitante si elige ese canal)
-- Supabase Realtime (propagación de cambios de estado en tiempo real)
+- Módulo de Autenticación (identifica solicitante y publicador via JWT)
+- Módulo de Publicaciones (valida slot y disponibilidad)
+- Módulo de Notificaciones (crea notificaciones internas al cambiar estado)
+- Resend (correo al publicador al recibir reserva, y al solicitante si elige email)
+- Supabase Realtime (Flutter se suscribe directamente a cambios en `reservations`)
 
 ---
 
 ### POST /reservations
 
-Crea una reserva. Si el usuario no está autenticado, se incluyen los datos de guest en el body y se crea la cuenta implícitamente.
+Crea una reserva. Si el usuario no está autenticado, se crean los datos de guest en el body y el backend crea la cuenta GUEST implícitamente antes de crear la reserva.
 
 **Headers:** `Authorization: Bearer <jwt_token>` *(opcional)*
 
@@ -653,7 +668,7 @@ Retorna las reservas del usuario autenticado como solicitante.
 
 | Param | Tipo | Default | Descripción |
 |---|---|---|---|
-| `status` | string | — | Filtro opcional: `pending`, `completed`, `failed`, `cancelled`, `rejected` |
+| `status` | string | — | Filtro: `pending`, `completed`, `failed`, `cancelled`, `rejected` |
 | `page` | number | `1` | — |
 | `limit` | number | `20` | — |
 
@@ -687,7 +702,7 @@ Retorna las reservas del usuario autenticado como solicitante.
 
 ### GET /reservations/received
 
-Retorna las reservas recibidas por el publicador autenticado. Incluye los datos de contacto del solicitante para gestionar la comunicación.
+Retorna las reservas recibidas por el publicador autenticado, incluyendo datos de contacto del solicitante.
 
 **Headers:** `Authorization: Bearer <jwt_token>`
 
@@ -728,7 +743,7 @@ Retorna las reservas recibidas por el publicador autenticado. Incluye los datos 
 
 ### GET /reservations/:id
 
-Retorna el detalle completo de una reserva. Accesible por el solicitante o el publicador de esa reserva específica.
+Detalle completo de una reserva. Accesible por el solicitante o el publicador de esa reserva.
 
 **Headers:** `Authorization: Bearer <jwt_token>`
 
@@ -761,7 +776,7 @@ Retorna el detalle completo de una reserva. Accesible por el solicitante o el pu
 
 ### PATCH /reservations/:id/cancel
 
-Cancela una reserva. Solo el solicitante puede cancelar, y solo si el estado es `pending`.
+Cancela una reserva. Solo el solicitante puede cancelar y solo si el estado es `pending`.
 
 **Headers:** `Authorization: Bearer <jwt_token>`
 
@@ -778,7 +793,7 @@ Cancela una reserva. Solo el solicitante puede cancelar, y solo si el estado es 
 
 ### PATCH /reservations/:id/status
 
-Actualiza el estado de una reserva. Solo el publicador puede usarlo. Las transiciones válidas desde `pending` son `completed`, `failed` y `rejected`.
+Actualiza el estado de una reserva. Solo el publicador. Transiciones válidas desde `pending`: `completed`, `failed`, `rejected`.
 
 **Headers:** `Authorization: Bearer <jwt_token>`
 
@@ -803,7 +818,7 @@ Actualiza el estado de una reserva. Solo el publicador puede usarlo. Las transic
 
 ### POST /reservations/:id/contact
 
-Registra el canal de contacto elegido por el publicador y dispara la comunicación. Si el canal es `email`, Resend envía un correo al solicitante. Si el canal es `whatsapp`, el backend construye y retorna el deep link con el mensaje pre-redactado.
+Registra el canal elegido y dispara la comunicación. Con `email`, Resend envía correo al solicitante. Con `whatsapp`, el backend construye y retorna el deep link con mensaje pre-redactado.
 
 **Headers:** `Authorization: Bearer <jwt_token>`
 
@@ -839,24 +854,26 @@ Registra el canal de contacto elegido por el publicador y dispara la comunicaci�
 
 ### Descripción
 
-Gestiona las notificaciones internas de la plataforma. Las notificaciones se almacenan en base de datos y se propagan en tiempo real via Supabase Realtime al cliente Flutter mientras la app está activa. No hay notificaciones push nativas en el MVP.
+Gestiona las notificaciones internas almacenadas en la tabla `notifications`. El backend las crea cuando ocurren eventos relevantes en el módulo de Reservas. Flutter las recibe en tiempo real via Supabase Realtime (suscripción directa a la tabla `notifications`) y las consulta via estos endpoints para el historial y el conteo de no leídas.
 
-Los eventos que generan notificaciones son:
+No hay notificaciones push nativas en el MVP.
 
-- El publicador recibe una reserva nueva → `new_reservation`
-- El solicitante recibe una actualización de estado → `status_updated`
-- El publicador recibe una cancelación del solicitante → `reservation_cancelled`
+Eventos que generan notificaciones:
+
+- Nueva reserva recibida → `new_reservation` (para el publicador)
+- Estado de reserva actualizado → `status_updated` (para el solicitante)
+- Reserva cancelada por el solicitante → `reservation_cancelled` (para el publicador)
 
 ### Se comunica con
 
-- Módulo de Reservas (los cambios de estado disparan notificaciones)
-- Supabase Realtime (propagación al cliente Flutter en tiempo real)
+- Módulo de Reservas (los cambios de estado disparan la creación de notificaciones)
+- Supabase Realtime (Flutter se suscribe directamente, el backend solo escribe)
 
 ---
 
 ### GET /notifications
 
-Retorna las notificaciones del usuario autenticado en orden cronológico inverso.
+Retorna las notificaciones del usuario en orden cronológico inverso.
 
 **Headers:** `Authorization: Bearer <jwt_token>`
 
@@ -864,7 +881,7 @@ Retorna las notificaciones del usuario autenticado en orden cronológico inverso
 
 | Param | Tipo | Default | Descripción |
 |---|---|---|---|
-| `unreadOnly` | boolean | `false` | Solo notificaciones no leídas |
+| `unreadOnly` | boolean | `false` | Solo no leídas |
 | `page` | number | `1` | — |
 | `limit` | number | `20` | — |
 
@@ -928,27 +945,11 @@ Marca todas las notificaciones del usuario como leídas.
 
 ---
 
-## Supabase Realtime — suscripciones
-
-El cliente Flutter se suscribe directamente a Supabase Realtime para propagar cambios en tiempo real sin necesidad de polling.
-
-| Tabla | Evento | Filtro | Quién escucha | Para qué |
-|---|---|---|---|---|
-| `reservations` | `INSERT` | `publication.owner_id = userId` | Publicador | Nueva reserva recibida |
-| `reservations` | `UPDATE` | `requester_id = userId` | Solicitante | Cambio de estado por el publicador |
-| `reservations` | `UPDATE` | `publication.owner_id = userId` | Publicador | Cancelación por el solicitante |
-| `notifications` | `INSERT` | `user_id = userId` | Ambos | Indicador de notificaciones no leídas |
-
-*Nota: estas suscripciones solo están activas mientras la app está abierta. No reemplazan notificaciones push.*
-
----
-
 ## Pendientes por confirmar con Cristian
 
 - [ ] ¿El `slotId` lo genera el backend al calcular disponibilidad, o es un identificador construido desde `publicationId + date + startTime`?, dependiendo de eso lo consumiré de una forma u otra.
-- [ ] ¿Las categorías de publicación son un enum fijo en el backend o un campo de texto libre? Yo propongo Enum, validarías los tipos con Zod y me dejarías la definición de tipado de datos aqui mismo (en api-contract.md) para replicarlos en la capa de datos del front.
+- [ ] ¿Las categorías de publicación son un enum fijo en el backend o un campo de texto libre? Yo propongo Enum, validarías los tipos con Zod y me dejarías la definición de tipado de datos aquí mismo (en `api-contract.md`) para replicarlos en la capa de datos del front.
 - [ ] ¿El endpoint `POST /reservations/:id/contact` registra el evento en base de datos además de disparar la comunicación?, para saber cómo reaccionar desde el front, si con un observador o con refresco in-app.
-- [ ] ¿Cómo se maneja el refresh del JWT cuando expira — el cliente lo solicita activamente o Supabase Auth lo renueva automáticamente?, para saber cómo manejar el consumo de credenciales y también por la capa de seguridad.
-- [ ] Confirmar si Supabase Auth maneja el magic link y la verificación de correo directamente o si pasan por el backend como intermediario - sino tendrás que hacer un microservicio en el backend específico para eso.
+- [ ] Confirmar el flujo exacto de `PATCH /auth/account-status`: ¿el backend actualiza `profiles` directamente via Prisma, o conviene hacerlo via un trigger en Supabase que reaccione al cambio de contraseña en Supabase Auth? - El ORM puede encargarse pero sería manual, el trigger en supabase requeriría gestión.
 
 ---
