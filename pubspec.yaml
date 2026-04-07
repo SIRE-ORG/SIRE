@@ -1,5 +1,5 @@
 name: sire
-description: "A new Flutter project."
+description: "Sistema Integral de Reservas Estratégicas"
 publish_to: 'none'
 version: 0.1.0+1
 
@@ -10,10 +10,53 @@ dependencies:
   flutter:
     sdk: flutter
 
+  # Estado
+  flutter_riverpod: ^2.6.1
+  riverpod_annotation: ^2.6.1
+
+  # Navegación
+  go_router: ^14.6.2
+
+  # Supabase
+  supabase_flutter: ^2.8.4
+
+  # HTTP
+  dio: ^5.7.0
+
+  # Geolocalización
+  geolocator: ^13.0.2
+  geocoding: ^3.0.0
+
+  # Almacenamiento local (token, preferencias)
+  flutter_secure_storage: ^9.2.2
+  shared_preferences: ^2.3.3
+
+  # Imágenes
+  cached_network_image: ^3.4.1
+
+  # Variables de entorno
+  flutter_dotenv: ^5.2.1
+
+  # Utilidades
+  equatable: ^2.0.7
+  intl: ^0.19.0
+  uuid: ^4.5.1
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
 
+  # Generación de código para Riverpod
+  build_runner: ^2.4.13
+  riverpod_generator: ^2.6.1
+  custom_lint: ^0.7.0
+  riverpod_lint: ^2.6.1
+
 flutter:
   uses-material-design: true
+  assets:
+    - .env
+    - assets/images/
+    - assets/icons/
+    - assets/fonts/
