@@ -61,7 +61,7 @@ Los requisitos funcionales describen qué debe hacer el sistema. Se organizan po
 | RF-04.4 | El sistema debe redirigir al login si el correo ya tiene una cuenta ACTIVE al intentar reservar | MVP |
 | RF-04.5 | El sistema debe permitir al usuario GUEST establecer su contraseña desde la sesión activa via bottom sheet in-app | MVP |
 | RF-04.6 | El sistema debe transicionar el estado de la cuenta de GUEST a ACTIVE al establecer la contraseña | MVP |
-| RF-04.7 | El sistema debe ofrecer un magic link al correo como mecanismo de acceso para usuarios GUEST sin sesión activa | MVP |
+| RF-04.7 | El sistema debe enviar un enlace de acceso al correo registrado para usuarios GUEST sin sesión activa | MVP |
 | RF-04.8 | El sistema debe enviar un correo de verificación al crear una cuenta, sin bloquear el flujo de reserva | MVP |
 | RF-04.9 | El sistema debe permitir a los usuarios ACTIVE editar su nombre, teléfono y avatar | MVP |
 | RF-04.10 | El sistema debe exponer un perfil público de usuario sin datos de contacto | Segunda capa |
@@ -79,7 +79,7 @@ Los requisitos funcionales describen qué debe hacer el sistema. Se organizan po
 | RF-05.5 | El sistema debe permitir al publicador marcar una reserva como COMPLETADA, FALLIDA o RECHAZADA | MVP |
 | RF-05.6 | El sistema debe notificar al publicador en tiempo real cuando recibe una nueva reserva | MVP |
 | RF-05.7 | El sistema debe notificar al solicitante en tiempo real cuando el estado de su reserva cambia | MVP |
-| RF-05.8 | El sistema debe permitir al publicador contactar al solicitante por correo electrónico via Resend | MVP |
+| RF-05.8 | El sistema debe permitir al publicador contactar al solicitante por correo electrónico | MVP |
 | RF-05.9 | Flutter debe construir el deep link de WhatsApp localmente con los datos del solicitante | MVP |
 | RF-05.10 | El sistema debe habilitar puntuación mutua entre solicitante y publicador al completarse una reserva | Segunda capa |
 
@@ -94,7 +94,7 @@ Los requisitos funcionales describen qué debe hacer el sistema. Se organizan po
 | RF-06.3 | El sistema debe generar una notificación interna al publicador cuando el solicitante cancela su reserva | MVP |
 | RF-06.4 | El sistema debe mostrar un indicador de notificaciones no leídas visible desde cualquier pantalla | MVP |
 | RF-06.5 | El sistema debe permitir marcar notificaciones individuales o todas como leídas | MVP |
-| RF-06.6 | Las notificaciones deben propagarse en tiempo real via Supabase Realtime mientras la app está activa | MVP |
+| RF-06.6 | Las notificaciones deben propagarse mediante un mecanismo de tiempo real mientras la app está activa | MVP |
 
 ---
 
@@ -118,10 +118,10 @@ Los requisitos no funcionales describen cómo debe comportarse el sistema, indep
 
 | ID | Requisito |
 |---|---|
-| RNF-02.1 | Todos los endpoints protegidos deben validar el JWT emitido por Supabase Auth antes de procesar el request |
+| RNF-02.1 | Todos los endpoints protegidos deben validar el JWT emitido por servicio de Auth antes de procesar el request |
 | RNF-02.2 | Los datos sensibles del usuario (correo, teléfono) deben exponerse únicamente a las partes autorizadas: el propio usuario y el publicador de una reserva recibida |
-| RNF-02.3 | El JWT debe renovarse automáticamente via Supabase Auth sin intervención del usuario |
-| RNF-02.4 | Las contraseñas deben gestionarse exclusivamente a través de Supabase Auth, sin almacenarse en texto plano en ninguna capa |
+| RNF-02.3 | El JWT debe renovarse automáticamente de forma automática, sin intervención del usuario |
+| RNF-02.4 | Las contraseñas deben gestionarse exclusivamente a través a través del servicio de autenticación, sin almacenarse en texto plano en ninguna capa |
 | RNF-02.5 | El sistema debe cumplir con los principios de mínima recolección de datos y consentimiento explícito establecidos en la Ley 21.719 |
 
 ---
@@ -130,7 +130,7 @@ Los requisitos no funcionales describen cómo debe comportarse el sistema, indep
 
 | ID | Requisito |
 |---|---|
-| RNF-03.1 | El costo operativo de la infraestructura durante el semestre debe ser de $0, utilizando los tiers gratuitos de Supabase, Render, Resend y Google Geocoding API |
+| RNF-03.1 | El costo operativo de la infraestructura durante el semestre debe ser de $0, utilizando servicios en tiers gratuitos |
 | RNF-03.2 | El sistema debe operar sin soporte técnico activo una vez desplegado |
 | RNF-03.3 | Las notificaciones en tiempo real solo están activas mientras la app está abierta; no se requieren notificaciones push nativas en el MVP |
 
@@ -153,7 +153,7 @@ Los requisitos no funcionales describen cómo debe comportarse el sistema, indep
 |---|---|
 | RNF-05.1 | La aplicación móvil debe funcionar en iOS y Android desde una única base de código en Flutter |
 | RNF-05.2 | La aplicación debe compilar a Web (Flutter Web / WASM) para el despliegue en Vercel en el hito 6 |
-| RNF-05.3 | El backend debe ejecutarse en Node.js con TypeScript sobre Fastify, desplegado en Render |
+| RNF-05.3 | El backend debe poder desplegarse en un entorno de servidor estándar sin configuración propietaria |
 
 ---
 
