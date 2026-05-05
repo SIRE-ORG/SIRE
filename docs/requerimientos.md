@@ -1,4 +1,4 @@
-# SIRE — Requisitos del Sistema (compactados)
+# SIRE — Requisitos del Sistema
 
 ## Requisitos Funcionales
 
