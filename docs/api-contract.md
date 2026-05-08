@@ -34,6 +34,18 @@ Backend
 - Las fechas siguen el formato ISO 8601: `"2025-04-07T10:00:00Z"`
 - Los horarios de slots usan formato `"HH:MM"`: `"09:00"`, `"10:30"`
 
+
+---
+
+### Tipado de Datos: Categorías (Enum)
+Para garantizar la integridad de los filtros en el feed, la categoría de una publicación (`category`) no es texto libre. Debe ser estrictamente uno de los siguientes valores:
+- `DEPORTE` (Canchas de fútbol, tenis, basketball, etc.)
+- `EVENTOS` (Quinchos, salones, espacios para cumpleaños)
+- `RECREACION` (Bares, mesas de pool, juegos)
+- `OTROS` (Cualquier espacio que no encaje en los anteriores)
+
+*Nota para Flutter: Enviar cualquier valor fuera de este Enum en el POST/PUT de publicaciones retornará un error 400 VALIDATION_ERROR.*
+
 ---
 
 ## Formato de errores
@@ -135,14 +147,14 @@ supabase.from('notifications')
 
 ### Descripción
 
-El backend maneja únicamente lo que Supabase Auth no puede hacer por sí solo: crear el perfil extendido del usuario (nombre, teléfono, estado de cuenta) en la tabla `profiles` de la base de datos, y actualizar el `accountStatus` cuando el usuario GUEST establece su contraseña.
+El backend maneja únicamente lo que Supabase Auth no puede hacer por sí solo: crear el perfil extendido del usuario (nombre, teléfono, estado de cuenta) en la tabla `profiles` de la base de datos, y actualizar el `accountStatus` cuando el usuario GUEST establece su contraseña **automáticamente en la base de datos vía un Trigger**.
 
 El login, magic link, refresh de JWT, verificación de correo y logout son responsabilidad exclusiva del SDK de Supabase en el cliente Flutter.
 
 ### Flujos principales
 
 - **Registro implícito:** Flutter llama a `POST /auth/register-guest` en el backend. El backend crea el usuario en Supabase Auth y el perfil en la tabla `profiles` en una sola transacción. Retorna el JWT generado por Supabase Auth.
-- **Establecimiento de contraseña:** Flutter llama a `supabase.auth.updateUser({ password })` directamente. Luego notifica al backend via `PATCH /auth/account-status` para que actualice el `accountStatus` en `profiles` a `ACTIVE`.
+- **Establecimiento de contraseña:** Flutter llama a `supabase.auth.updateUser({ password })` directamente. Un Trigger de PostgreSQL en Supabase detecta el cambio y actualiza automáticamente el `accountStatus` a `ACTIVE` en la tabla `profiles`.
 - **Login, magic link, verificación:** Flutter los maneja directamente via SDK, sin pasar por el backend.
 
 ### Se comunica con
@@ -196,22 +208,6 @@ Crea una cuenta GUEST. El backend crea el usuario en Supabase Auth y el perfil e
     "code": "AUTH_EMAIL_ALREADY_EXISTS",
     "message": "Este correo ya tiene una cuenta activa. Inicia sesión para continuar."
   }
-}
-```
-
----
-
-### PATCH /auth/account-status
-
-Actualiza el `accountStatus` en la tabla `profiles` a `ACTIVE`. Flutter llama a este endpoint después de que `supabase.auth.updateUser({ password })` se completa exitosamente.
-
-**Headers:** `Authorization: Bearer <jwt_token>`
-
-**Response 200:**
-
-```json
-{
-  "accountStatus": "active"
 }
 ```
 
@@ -344,7 +340,7 @@ Retorna el feed paginado filtrado por región.
       "imageUrl": "string | null",
       "region": "string",
       "city": "string | null",
-      "category": "string",
+      "category": "Deporte | Eventos | Recreacion | Otros",
       "ownerName": "string",
       "ownerId": "uuid",
       "rating": null,
@@ -394,7 +390,7 @@ Retorna el detalle completo de una publicación con su configuración de agenda.
   "imageUrl": "string | null",
   "region": "string",
   "city": "string | null",
-  "category": "string",
+  "category": "Deporte | Eventos | Recreacion | Otros",
   "ownerId": "uuid",
   "ownerName": "string",
   "rating": null,
@@ -476,7 +472,7 @@ Retorna las publicaciones del usuario autenticado.
       "id": "uuid",
       "title": "string",
       "imageUrl": "string | null",
-      "category": "string",
+      "category": "Deporte | Eventos | Recreacion | Otros",
       "region": "string",
       "isActive": true,
       "createdAt": "ISO8601"
@@ -505,7 +501,7 @@ Crea una nueva publicación. Requiere cuenta ACTIVE.
 {
   "title": "string",
   "description": "string",
-  "category": "string",
+  "category": "Deporte | Eventos | Recreacion | Otros",
   "imageUrl": "string | null",
   "region": "string",
   "city": "string | null",
@@ -816,37 +812,21 @@ Actualiza el estado de una reserva. Solo el publicador. Transiciones válidas de
 
 ---
 
-### POST /reservations/:id/contact
+### POST /reservations/:id/contact-email
 
-Registra el canal elegido y dispara la comunicación. Con `email`, Resend envía correo al solicitante. Con `whatsapp`, el backend construye y retorna el deep link con mensaje pre-redactado.
+Dispara la comunicación por correo electrónico usando Resend. 
+
+*Nota: Este endpoint no registra el evento en la base de datos ni altera el estado de la reserva. El contacto por WhatsApp lo maneja Flutter nativamente via deep link utilizando el teléfono obtenido en el endpoint GET /reservations/received.*
 
 **Headers:** `Authorization: Bearer <jwt_token>`
 
-**Body:**
+**Response 200:**
 
 ```json
 {
-  "channel": "email | whatsapp"
+  "sent": true,
+  "message": "Correo enviado exitosamente al solicitante"
 }
-```
-
-**Response 200 — canal email:**
-
-```json
-{
-  "channel": "email",
-  "sent": true
-}
-```
-
-**Response 200 — canal whatsapp:**
-
-```json
-{
-  "channel": "whatsapp",
-  "deepLink": "https://wa.me/56912345678?text=Hola%20Juan..."
-}
-```
 
 ---
 
