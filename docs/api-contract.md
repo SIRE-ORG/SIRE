@@ -1,6 +1,17 @@
 # SIRE — Contrato de API
 
-*Borrador para revisión de Cristian*
+*Documento vivo. Las decisiones de arquitectura externa están consolidadas; cambios menores en payloads se actualizan inline al ocurrir.*
+
+---
+
+## Decisiones de arquitectura definidas
+
+Resueltas tras revisión con Cristian (2026-05-10):
+
+- **`slotId`:** identificador determinista construido por el backend como `publicationId + date + startTime`. Flutter lo recibe en `GET /publications/:id/slots` y lo reenvía tal cual en `POST /reservations`.
+- **`PublicationCategory`:** enum cerrado validado por Zod en el backend. Valores: `DEPORTE`, `EVENTOS`, `RECREACION`, `OTROS`. Cualquier otro string en `category` retorna `VALIDATION_ERROR`. Si se amplía el enum, Cristian actualiza este documento y notifica al equipo.
+- **`PATCH /auth/account-status`:** el backend actualiza `accountStatus = 'ACTIVE'` en la tabla `profiles` directamente vía Prisma, en respuesta al request de Flutter después de `supabase.auth.updateUser({ password })`. No hay trigger en Supabase Auth — el control de la transición vive en el código del backend.
+- **Contacto publicador → solicitante:** dividido en dos canales con manejo distinto. Email vía `POST /reservations/:id/contact` (fire-and-forget, dispara Resend, no persiste en BD). WhatsApp se construye **localmente en Flutter** usando `requester.phone` que viene en el detalle de la reserva — no requiere endpoint.
 
 ---
 
@@ -205,6 +216,8 @@ Crea una cuenta GUEST. El backend crea el usuario en Supabase Auth y el perfil e
 
 Actualiza el `accountStatus` en la tabla `profiles` a `ACTIVE`. Flutter llama a este endpoint después de que `supabase.auth.updateUser({ password })` se completa exitosamente.
 
+El backend actualiza el campo directamente vía Prisma (no hay trigger en Supabase Auth). Esto da control explícito del flujo en el código del backend a costa de que la operación sea no-atómica entre Supabase Auth y `profiles`. Si la red cae entre los dos pasos, el usuario tiene contraseña seteada en Supabase pero `accountStatus` sigue `guest`. Aceptado para MVP: `updateUser` es idempotente y el usuario puede reintentar.
+
 **Headers:** `Authorization: Bearer <jwt_token>`
 
 **Response 200:**
@@ -371,6 +384,10 @@ Gestiona el CRUD de publicaciones desde la perspectiva del publicador autenticad
 La agenda inteligente vive como objeto `availability` dentro de la publicación. El backend calcula los slots disponibles para una fecha aplicando la lógica: respeta `dayOverrides`, días cerrados, y filtra slots con reservas activas.
 
 Las imágenes se suben directamente a Supabase Storage desde Flutter. El backend recibe solo la URL resultante.
+
+**Categorías:** el campo `category` está restringido al enum `DEPORTE | EVENTOS | RECREACION | OTROS`. El backend valida con Zod y rechaza cualquier otro valor con `VALIDATION_ERROR`.
+
+**`slotId`:** los IDs de slot son deterministas, construidos por el backend como `publicationId + date + startTime`. Flutter los recibe vía `GET /publications/:id/slots` y los pasa tal cual en `POST /reservations` — no se intenta reconstruir ni validar la forma en el cliente.
 
 ### Se comunica con
 
@@ -818,7 +835,9 @@ Actualiza el estado de una reserva. Solo el publicador. Transiciones válidas de
 
 ### POST /reservations/:id/contact
 
-Registra el canal elegido y dispara la comunicación. Con `email`, Resend envía correo al solicitante. Con `whatsapp`, el backend construye y retorna el deep link con mensaje pre-redactado.
+Dispara un correo al solicitante vía Resend. Fire-and-forget: el endpoint **no persiste el evento en la base de datos** y retorna inmediatamente sin esperar confirmación de entrega de Resend.
+
+WhatsApp **no pasa por este endpoint** — Flutter construye el `wa.me/...` localmente usando `requester.phone` que viene en el detalle de la reserva (`GET /reservations/:id`).
 
 **Headers:** `Authorization: Bearer <jwt_token>`
 
@@ -826,11 +845,11 @@ Registra el canal elegido y dispara la comunicación. Con `email`, Resend envía
 
 ```json
 {
-  "channel": "email | whatsapp"
+  "channel": "email"
 }
 ```
 
-**Response 200 — canal email:**
+**Response 200:**
 
 ```json
 {
@@ -839,14 +858,7 @@ Registra el canal elegido y dispara la comunicación. Con `email`, Resend envía
 }
 ```
 
-**Response 200 — canal whatsapp:**
-
-```json
-{
-  "channel": "whatsapp",
-  "deepLink": "https://wa.me/56912345678?text=Hola%20Juan..."
-}
-```
+`sent: true` significa "dispatched a Resend"; no garantiza entrega final.
 
 ---
 
@@ -945,11 +957,8 @@ Marca todas las notificaciones del usuario como leídas.
 
 ---
 
-## Pendientes por confirmar con Cristian
+## Changelog del contrato
 
-- [ ] ¿El `slotId` lo genera el backend al calcular disponibilidad, o es un identificador construido desde `publicationId + date + startTime`?, dependiendo de eso lo consumiré de una forma u otra.
-- [ ] ¿Las categorías de publicación son un enum fijo en el backend o un campo de texto libre? Yo propongo Enum, validarías los tipos con Zod y me dejarías la definición de tipado de datos aquí mismo (en `api-contract.md`) para replicarlos en la capa de datos del front.
-- [ ] ¿El endpoint `POST /reservations/:id/contact` registra el evento en base de datos además de disparar la comunicación?, para saber cómo reaccionar desde el front, si con un observador o con refresco in-app.
-- [ ] Confirmar el flujo exacto de `PATCH /auth/account-status`: ¿el backend actualiza `profiles` directamente via Prisma, o conviene hacerlo via un trigger en Supabase que reaccione al cambio de contraseña en Supabase Auth? - El ORM puede encargarse pero sería manual, el trigger en supabase requeriría gestión.
+- **2026-05-10** — Resueltas 4 decisiones pendientes con Cristian. Ver sección **Decisiones de arquitectura definidas** al inicio del documento. WhatsApp removido de `POST /reservations/:id/contact`; ahora se construye en Flutter usando `requester.phone` del detalle de la reserva.
 
 ---
