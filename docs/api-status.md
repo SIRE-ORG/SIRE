@@ -121,3 +121,14 @@ Se levantó la arquitectura base con Fastify + Prisma ORM + Supabase PostgreSQL.
 | Conexión a Base de Datos | ✅ | Migraciones exitosas (`init-tablas-core`). Tablas físicas de `profiles`, `publications` y `reservations` ya existen en Supabase. |
 | Endpoint base de perfiles | ✅ | `GET /users/profiles` está operativo y trayendo datos reales (actualmente retorna `[]` porque la BD está limpia). |
 | Enum Categorías | ✅ | Congelado a nivel de BD en Prisma (`DEPORTE`, `EVENTOS`, `RECREACION`, `OTROS`). |
+
+## Publicaciones
+
+| Método | Ruta | Estado | Notas |
+|--------|------|--------|-------|
+| GET | /api/v1/publications | ✅ Listo | Público (Feed). Soporta filtro opcional por `region` via query param |
+| GET | /api/v1/publications/mine | ✅ Listo | Privado. Requiere pasar el ID de usuario en los headers |
+| POST | /api/v1/publications | ✅ Listo | Validación de categorías. Requiere estrictamente cuenta ACTIVE |
+| GET | /api/v1/publications/:id | ⏳ Pendiente | |
+| PUT | /api/v1/publications/:id | ⏳ Pendiente |  |
+| DELETE | /api/v1/publications/:id | ⏳ Pendiente |  |
