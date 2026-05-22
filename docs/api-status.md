@@ -122,6 +122,8 @@ Se levantó la arquitectura base con Fastify + Prisma ORM + Supabase PostgreSQL.
 | Endpoint base de perfiles | ✅ | `GET /users/profiles` está operativo y trayendo datos reales (actualmente retorna `[]` porque la BD está limpia). |
 | Enum Categorías | ✅ | Congelado a nivel de BD en Prisma (`DEPORTE`, `EVENTOS`, `RECREACION`, `OTROS`). |
 
+---
+
 ## Publicaciones
 
 | Método | Ruta | Estado | Notas |
