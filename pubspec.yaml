@@ -31,8 +31,9 @@ dependencies:
   flutter_secure_storage: ^9.2.2
   shared_preferences: ^2.3.3
 
-  # Imágenes
+  # Imágenes e Iconos
   cached_network_image: ^3.4.1
+  flutter_svg: ^2.3.0
 
   # Variables de entorno
   flutter_dotenv: ^5.2.1
@@ -57,11 +58,24 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  
   assets:
     - .env
     - assets/images/
     - assets/icons/
-    - assets/fonts/
+
+  fonts:
+    - family: SFPro
+      fonts:
+        - asset: assets/fonts/SF-Pro-Display-Regular.otf
+        - asset: assets/fonts/SF-Pro-Display-RegularItalic.otf
+          style: italic
+        - asset: assets/fonts/SF-Pro-Display-Medium.otf
+          weight: 500
+        - asset: assets/fonts/SF-Pro-Display-SemiBold.otf
+          weight: 600
+        - asset: assets/fonts/SF-Pro-Display-Bold.otf
+          weight: 700
 
 dart_pre_commit:
   format: true
