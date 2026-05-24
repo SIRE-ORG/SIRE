@@ -229,7 +229,7 @@ final myPublicationsNotifierProvider =
 typedef _$MyPublicationsNotifier =
     AutoDisposeAsyncNotifier<List<PublicationSummaryItem>>;
 String _$publicationFormNotifierHash() =>
-    r'b92813789e30fb70d0cd0c475e8469becae1f77c';
+    r'a4e1271c5b096336dd608f324fd32a99df7b8659';
 
 /// See also [PublicationFormNotifier].
 @ProviderFor(PublicationFormNotifier)
