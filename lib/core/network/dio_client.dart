@@ -21,6 +21,18 @@ class DioClient {
     return DioClient._(dio);
   }
 
+  static DioClient createSync() {
+    final dio = Dio(
+      BaseOptions(
+        baseUrl: ApiConstants.baseUrl,
+        contentType: 'application/json',
+        responseType: ResponseType.json,
+      ),
+    );
+    dio.interceptors.addAll([_AuthInterceptor(), _ErrorInterceptor()]);
+    return DioClient._(dio);
+  }
+
   Dio get dio => _dio;
 }
 

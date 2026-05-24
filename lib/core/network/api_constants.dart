@@ -11,6 +11,9 @@ class ApiConstants {
 
   // Users
   static const String usersMe = '/users/me';
+  // Temporal: lista todos los perfiles (usado por AuthRemoteDatasourceRealImpl
+  // para simular GET /users/me hasta que el backend lo implemente).
+  static const String usersProfiles = '/users/profiles';
 
   // Publications
   static const String publications = '/publications';
