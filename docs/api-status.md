@@ -135,6 +135,8 @@ Se levantó la arquitectura base con Fastify + Prisma ORM + Supabase PostgreSQL.
 | PUT | /api/v1/publications/:id | ⏳ Pendiente |  |
 | DELETE | /api/v1/publications/:id | ⏳ Pendiente |  |
 
+---
+
 ## Autenticación
 
 *Nota: Login y Logout son manejados directamente en Flutter vía Supabase Auth. El backend solo sincroniza perfiles.*
