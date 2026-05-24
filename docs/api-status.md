@@ -134,3 +134,13 @@ Se levantó la arquitectura base con Fastify + Prisma ORM + Supabase PostgreSQL.
 | GET | /api/v1/publications/:id | ⏳ Pendiente | |
 | PUT | /api/v1/publications/:id | ⏳ Pendiente |  |
 | DELETE | /api/v1/publications/:id | ⏳ Pendiente |  |
+
+## Autenticación
+
+*Nota: Login y Logout son manejados directamente en Flutter vía Supabase Auth. El backend solo sincroniza perfiles.*
+
+| Método | Ruta | Estado | Notas |
+|--------|------|--------|-------|
+| POST | /api/v1/auth/register-guest | ✅ Listo | Recibe ID de Supabase y crea perfil en estado `guest` |
+| PATCH | /api/v1/auth/account-status | ✅ Listo | Pasa el estado de la cuenta a `active` |
+| GET | /api/v1/auth/me | ✅ Listo | Devuelve los datos del perfil actual |
