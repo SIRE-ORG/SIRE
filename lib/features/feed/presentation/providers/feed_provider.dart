@@ -22,7 +22,9 @@ part 'feed_provider.g.dart';
 
 @riverpod
 FeedRemoteDatasource feedRemoteDatasource(Ref ref) =>
-    // TODO(sprint5): reemplazar por FeedRemoteDatasourceImpl cuando API_BASE_URL esté lista
+    // TODO: activar FeedRemoteDatasourceImpl cuando GET /feed esté implementado
+    // en el backend. Patrón: ApiFlags.useRealBackend ? FeedRemoteDatasourceImpl(...)
+    // : const FeedRemoteDatasourceMockImpl(). Ver claude/comentarios_backend.txt.
     const FeedRemoteDatasourceMockImpl();
 
 @riverpod

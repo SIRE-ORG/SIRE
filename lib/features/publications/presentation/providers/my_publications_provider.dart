@@ -26,7 +26,10 @@ part 'my_publications_provider.g.dart';
 
 @riverpod
 PublicationsRemoteDatasource publicationsRemoteDatasource(Ref ref) =>
-    // TODO(sprint5): reemplazar por PublicationsRemoteDatasourceImpl cuando API_BASE_URL esté lista
+    // TODO: activar PublicationsRemoteDatasourceImpl cuando los endpoints de
+    // publications estén implementados en el backend. Patrón: ApiFlags.useRealBackend
+    // ? PublicationsRemoteDatasourceImpl(...) : PublicationsRemoteDatasourceMockImpl().
+    // Ver claude/comentarios_backend.txt.
     PublicationsRemoteDatasourceMockImpl();
 
 @riverpod
