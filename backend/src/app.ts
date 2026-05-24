@@ -1,9 +1,11 @@
 import Fastify from 'fastify';
 import { userRoutes } from './routes/user.routes.js';
+import { publicationRoutes } from './routes/publication.routes.js';
 
 const app = Fastify({ logger: true });
 
 app.register(userRoutes, { prefix: '/api/v1/users' });
+app.register(publicationRoutes, { prefix: '/api/v1/publications' });
 
 const start = async () => {
     try {
