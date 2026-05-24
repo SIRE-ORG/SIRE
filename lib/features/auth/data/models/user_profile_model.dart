@@ -34,6 +34,28 @@ class UserProfileModel {
     );
   }
 
+  /// Mapea la forma del backend actual: GET /users/profiles (array sin auth).
+  /// Diferencias respecto al contrato futuro GET /users/me:
+  ///   - 'id' en lugar de 'userId'
+  ///   - 'name' puede ser null
+  ///   - 'emailVerified' no existe en el schema de Prisma; se inyecta desde
+  ///     Supabase (user.emailConfirmedAt != null).
+  factory UserProfileModel.fromBackendProfile(
+    Map<String, dynamic> json, {
+    required bool emailVerified,
+  }) {
+    return UserProfileModel(
+      userId: json['id'] as String,
+      name: (json['name'] as String?) ?? '',
+      email: json['email'] as String,
+      phone: json['phone'] as String?,
+      accountStatus: json['accountStatus'] as String,
+      emailVerified: emailVerified,
+      avatarUrl: json['avatarUrl'] as String?,
+      createdAt: json['createdAt'] as String,
+    );
+  }
+
   UserProfile toEntity() {
     return UserProfile(
       id: userId,

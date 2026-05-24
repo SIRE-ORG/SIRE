@@ -2,10 +2,14 @@ import 'dart:typed_data';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../../core/network/api_flags.dart';
+import '../../../../core/network/dio_client.dart';
 import '../../../../core/storage/local_storage_service.dart';
 import '../../data/datasources/auth_remote_datasource.dart';
 import '../../data/datasources/auth_remote_datasource_mock_impl.dart';
+import '../../data/datasources/auth_remote_datasource_real_impl.dart';
 import '../../data/datasources/auth_supabase_datasource.dart';
 import '../../data/datasources/auth_supabase_datasource_impl.dart';
 import '../../data/datasources/avatar_storage_datasource.dart';
@@ -33,9 +37,12 @@ AuthSupabaseDatasource authSupabaseDatasource(Ref ref) =>
     AuthSupabaseDatasourceImpl();
 
 @riverpod
-AuthRemoteDatasource authRemoteDatasource(Ref ref) =>
-    // TODO(sprint5): reemplazar por AuthRemoteDatasourceImpl cuando API_BASE_URL esté lista
-    AuthRemoteDatasourceMockImpl();
+AuthRemoteDatasource authRemoteDatasource(Ref ref) => ApiFlags.useRealBackend
+    ? AuthRemoteDatasourceRealImpl(
+        dio: DioClient.createSync().dio,
+        supabase: Supabase.instance.client,
+      )
+    : AuthRemoteDatasourceMockImpl();
 
 @riverpod
 AvatarStorageDatasource avatarStorageDatasource(Ref ref) =>
