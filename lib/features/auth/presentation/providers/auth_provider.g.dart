@@ -27,7 +27,7 @@ final authSupabaseDatasourceProvider =
 typedef AuthSupabaseDatasourceRef =
     AutoDisposeProviderRef<AuthSupabaseDatasource>;
 String _$authRemoteDatasourceHash() =>
-    r'da98801d4a8e5cde2b8bef7fb0ad1ccb217e41d2';
+    r'8ba426f99a95a7ce6728b5af63c3316bf5d3602a';
 
 /// See also [authRemoteDatasource].
 @ProviderFor(authRemoteDatasource)
