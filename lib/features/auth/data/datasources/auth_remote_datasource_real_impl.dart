@@ -9,14 +9,14 @@ import 'auth_remote_datasource.dart';
 
 /// Implementación real del datasource de auth contra el backend local.
 ///
-/// LIMITACIÓN TEMPORAL (backend v0): [getProfile] llama GET /users/profiles
-/// (devuelve todos los perfiles) y filtra por el email de la sesión Supabase,
-/// porque GET /users/me aún no existe en el backend. Cuando Cristian lo
-/// implemente, reemplazar el body de [getProfile] por la llamada directa a
-/// [ApiConstants.usersMe].
+/// LIMITACIÓN (backend v0): [getProfile] llama GET /users/profiles (todos los
+/// perfiles) y filtra por email de sesión Supabase, porque [ApiConstants.usersMe]
+/// (GET /auth/me) está implementado en auth.controller.ts pero NO registrado
+/// en app.ts. Cuando Cristian agregue authRoutes a app.ts, reemplazar el body
+/// de [getProfile] por la llamada directa a [ApiConstants.usersMe].
 ///
-/// Los demás métodos lanzan [ServerException] con ENDPOINT_NOT_AVAILABLE
-/// porque los endpoints correspondientes no están implementados en el backend.
+/// Los demás métodos lanzan [ServerException] ENDPOINT_NOT_AVAILABLE porque
+/// authRoutes no está montado en app.ts (ver claude/comentarios_backend.txt C).
 class AuthRemoteDatasourceRealImpl implements AuthRemoteDatasource {
   const AuthRemoteDatasourceRealImpl({
     required this.dio,
@@ -53,17 +53,19 @@ class AuthRemoteDatasourceRealImpl implements AuthRemoteDatasource {
     required String email,
     required String phone,
   }) {
+    // Implementado en auth.controller.ts pero authRoutes no está en app.ts.
     throw ServerException(
       code: 'ENDPOINT_NOT_AVAILABLE',
-      message: 'POST /auth/register-guest no implementado aún en el backend',
+      message: 'POST /auth/register-guest no registrado en app.ts aún',
     );
   }
 
   @override
   Future<void> updateAccountStatus() {
+    // Implementado en auth.controller.ts pero authRoutes no está en app.ts.
     throw ServerException(
       code: 'ENDPOINT_NOT_AVAILABLE',
-      message: 'PATCH /auth/account-status no implementado aún en el backend',
+      message: 'PATCH /auth/account-status no registrado en app.ts aún',
     );
   }
 
@@ -75,7 +77,7 @@ class AuthRemoteDatasourceRealImpl implements AuthRemoteDatasource {
   }) {
     throw ServerException(
       code: 'ENDPOINT_NOT_AVAILABLE',
-      message: 'PUT /users/me no implementado aún en el backend',
+      message: 'PUT /users/me no implementado en el backend',
     );
   }
 }

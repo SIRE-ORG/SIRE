@@ -1,10 +1,13 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../../../../core/network/api_flags.dart';
+import '../../../../core/network/dio_client.dart';
 import '../../../../core/storage/local_storage_service.dart';
 import '../../../publications/domain/entities/publication.dart';
 import '../../data/datasources/feed_remote_datasource.dart';
 import '../../data/datasources/feed_remote_datasource_mock_impl.dart';
+import '../../data/datasources/feed_remote_datasource_real_impl.dart';
 import '../../data/datasources/geo_datasource.dart';
 import '../../data/datasources/geo_datasource_impl.dart';
 import '../../data/repositories/feed_repository_impl.dart';
@@ -21,11 +24,9 @@ part 'feed_provider.g.dart';
 // ---------------------------------------------------------------------------
 
 @riverpod
-FeedRemoteDatasource feedRemoteDatasource(Ref ref) =>
-    // TODO: activar FeedRemoteDatasourceImpl cuando GET /feed esté implementado
-    // en el backend. Patrón: ApiFlags.useRealBackend ? FeedRemoteDatasourceImpl(...)
-    // : const FeedRemoteDatasourceMockImpl(). Ver claude/comentarios_backend.txt.
-    const FeedRemoteDatasourceMockImpl();
+FeedRemoteDatasource feedRemoteDatasource(Ref ref) => ApiFlags.useRealBackend
+    ? FeedRemoteDatasourceRealImpl(dio: DioClient.createSync().dio)
+    : const FeedRemoteDatasourceMockImpl();
 
 @riverpod
 GeoDatasource geoDatasource(Ref ref) => const GeoDatasourceImpl();

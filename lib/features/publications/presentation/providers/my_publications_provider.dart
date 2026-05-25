@@ -2,11 +2,15 @@ import 'dart:typed_data';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../../core/network/api_flags.dart';
+import '../../../../core/network/dio_client.dart';
 import '../../data/datasources/publication_image_datasource.dart';
 import '../../data/datasources/publication_image_datasource_impl.dart';
 import '../../data/datasources/publications_remote_datasource.dart';
 import '../../data/datasources/publications_remote_datasource_mock_impl.dart';
+import '../../data/datasources/publications_remote_datasource_real_impl.dart';
 import '../../data/repositories/publications_repository_impl.dart';
 import '../../domain/entities/publication.dart';
 import '../../domain/entities/publication_summary_item.dart';
@@ -26,11 +30,12 @@ part 'my_publications_provider.g.dart';
 
 @riverpod
 PublicationsRemoteDatasource publicationsRemoteDatasource(Ref ref) =>
-    // TODO: activar PublicationsRemoteDatasourceImpl cuando los endpoints de
-    // publications estén implementados en el backend. Patrón: ApiFlags.useRealBackend
-    // ? PublicationsRemoteDatasourceImpl(...) : PublicationsRemoteDatasourceMockImpl().
-    // Ver claude/comentarios_backend.txt.
-    PublicationsRemoteDatasourceMockImpl();
+    ApiFlags.useRealBackend
+    ? PublicationsRemoteDatasourceRealImpl(
+        dio: DioClient.createSync().dio,
+        supabase: Supabase.instance.client,
+      )
+    : PublicationsRemoteDatasourceMockImpl();
 
 @riverpod
 PublicationImageDatasource publicationImageDatasource(Ref ref) =>
