@@ -63,15 +63,35 @@ class ProfileScreen extends ConsumerWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('María González', style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold)),
+                    const Text(
+                      'María González',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                     const SizedBox(height: 4),
-                    const Text('maria@correo.com', style: TextStyle(color: Colors.white70, fontSize: 14)),
+                    const Text(
+                      'maria@correo.com',
+                      style: TextStyle(color: Colors.white70, fontSize: 14),
+                    ),
                     const SizedBox(height: 8),
                     Row(
                       children: [
-                        const Icon(Icons.location_on, color: Colors.white, size: 14),
+                        const Icon(
+                          Icons.location_on,
+                          color: Colors.white,
+                          size: 14,
+                        ),
                         const SizedBox(width: 4),
-                        Text('Temuco, La Araucanía', style: TextStyle(color: Colors.white.withOpacity(0.9), fontSize: 14)),
+                        Text(
+                          'Temuco, La Araucanía',
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.9),
+                            fontSize: 14,
+                          ),
+                        ),
                       ],
                     ),
                   ],
@@ -99,18 +119,30 @@ class ProfileScreen extends ConsumerWidget {
   Widget _buildPublisherStats() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-      children: [
-        _buildStatItem('4', 'Publicaciones'),
-      ],
+      children: [_buildStatItem('4', 'Publicaciones')],
     );
   }
 
   Widget _buildStatItem(String value, String label) {
     return Column(
       children: [
-        Text(value, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white)),
+        Text(
+          value,
+          style: const TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
+        ),
         const SizedBox(height: 4),
-        Text(label, style: const TextStyle(color: Colors.white70, fontSize: 14, fontWeight: FontWeight.w500)),
+        Text(
+          label,
+          style: const TextStyle(
+            color: Colors.white70,
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
       ],
     );
   }
@@ -119,41 +151,87 @@ class ProfileScreen extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('Modo de Uso', style: TextStyle(color: Color(0xFF64748B), fontSize: 12, fontWeight: FontWeight.bold)),
+        const Text(
+          'Modo de Uso',
+          style: TextStyle(
+            color: Color(0xFF64748B),
+            fontSize: 12,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         const SizedBox(height: 12),
         Container(
           padding: const EdgeInsets.all(4),
-          decoration: BoxDecoration(color: Colors.grey.shade200, borderRadius: BorderRadius.circular(12)),
+          decoration: BoxDecoration(
+            color: Colors.grey.shade200,
+            borderRadius: BorderRadius.circular(12),
+          ),
           child: Row(
             children: [
               Expanded(
                 child: GestureDetector(
-                  onTap: () => ref.read(isPublisherProvider.notifier).state = false,
+                  onTap: () =>
+                      ref.read(isPublisherProvider.notifier).state = false,
                   child: Container(
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     decoration: BoxDecoration(
                       color: !isPublisher ? Colors.white : Colors.transparent,
                       borderRadius: BorderRadius.circular(10),
-                      boxShadow: !isPublisher ? [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4)] : [],
+                      boxShadow: !isPublisher
+                          ? [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.05),
+                                blurRadius: 4,
+                              ),
+                            ]
+                          : [],
                     ),
                     child: Center(
-                      child: Text('Solicitante', style: TextStyle(color: !isPublisher ? const Color(0xFF1E70CD) : const Color(0xFF64748B), fontWeight: !isPublisher ? FontWeight.bold : FontWeight.normal)),
+                      child: Text(
+                        'Solicitante',
+                        style: TextStyle(
+                          color: !isPublisher
+                              ? const Color(0xFF1E70CD)
+                              : const Color(0xFF64748B),
+                          fontWeight: !isPublisher
+                              ? FontWeight.bold
+                              : FontWeight.normal,
+                        ),
+                      ),
                     ),
                   ),
                 ),
               ),
               Expanded(
                 child: GestureDetector(
-                  onTap: () => ref.read(isPublisherProvider.notifier).state = true,
+                  onTap: () =>
+                      ref.read(isPublisherProvider.notifier).state = true,
                   child: Container(
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     decoration: BoxDecoration(
                       color: isPublisher ? Colors.white : Colors.transparent,
                       borderRadius: BorderRadius.circular(10),
-                      boxShadow: isPublisher ? [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4)] : [],
+                      boxShadow: isPublisher
+                          ? [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.05),
+                                blurRadius: 4,
+                              ),
+                            ]
+                          : [],
                     ),
                     child: Center(
-                      child: Text('Publicador', style: TextStyle(color: isPublisher ? const Color(0xFF1E70CD) : const Color(0xFF64748B), fontWeight: isPublisher ? FontWeight.bold : FontWeight.normal)),
+                      child: Text(
+                        'Publicador',
+                        style: TextStyle(
+                          color: isPublisher
+                              ? const Color(0xFF1E70CD)
+                              : const Color(0xFF64748B),
+                          fontWeight: isPublisher
+                              ? FontWeight.bold
+                              : FontWeight.normal,
+                        ),
+                      ),
                     ),
                   ),
                 ),
@@ -168,38 +246,88 @@ class ProfileScreen extends ConsumerWidget {
   Widget _buildMenu(BuildContext context, bool isPublisher) {
     return Column(
       children: [
-        _buildMenuItem(Icons.edit_outlined, 'Editar perfil', 'Nombre, teléfono, foto', () => context.push('/profile/edit')),
+        _buildMenuItem(
+          Icons.edit_outlined,
+          'Editar perfil',
+          'Nombre, teléfono, foto',
+          () => context.push('/profile/edit'),
+        ),
         const SizedBox(height: 12),
         if (!isPublisher)
-          _buildMenuItem(Icons.calendar_today_outlined, 'Mis reservas', 'Ver historial completo', () => context.go('/my-reservations'))
+          _buildMenuItem(
+            Icons.calendar_today_outlined,
+            'Mis reservas',
+            'Ver historial completo',
+            () => context.go('/my-reservations'),
+          )
         else
-          _buildMenuItem(Icons.dashboard_outlined, 'Mis publicaciones', 'Ver publicaciones subidas', () => context.go('/dashboard')),
+          _buildMenuItem(
+            Icons.dashboard_outlined,
+            'Mis publicaciones',
+            'Ver publicaciones subidas',
+            () => context.go('/dashboard'),
+          ),
         const SizedBox(height: 12),
-        _buildMenuItem(Icons.logout, 'Cerrar sesión', '', () => context.go('/'), isLogout: true),
+        _buildMenuItem(
+          Icons.logout,
+          'Cerrar sesión',
+          '',
+          () => context.go('/'),
+          isLogout: true,
+        ),
       ],
     );
   }
 
-  Widget _buildMenuItem(IconData icon, String title, String subtitle, VoidCallback onTap, {bool isLogout = false}) {
+  Widget _buildMenuItem(
+    IconData icon,
+    String title,
+    String subtitle,
+    VoidCallback onTap, {
+    bool isLogout = false,
+  }) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.grey.shade200)),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.grey.shade200),
+        ),
         child: Row(
           children: [
             Container(
               padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(color: isLogout ? const Color(0xFFFFEBEE) : const Color(0xFFE3F2FD), borderRadius: BorderRadius.circular(8)),
-              child: Icon(icon, color: isLogout ? Colors.red : const Color(0xFF1E70CD), size: 20),
+              decoration: BoxDecoration(
+                color: isLogout
+                    ? const Color(0xFFFFEBEE)
+                    : const Color(0xFFE3F2FD),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(
+                icon,
+                color: isLogout ? Colors.red : const Color(0xFF1E70CD),
+                size: 20,
+              ),
             ),
             const SizedBox(width: 16),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title, style: TextStyle(fontWeight: FontWeight.bold, color: isLogout ? Colors.red : const Color(0xFF1E293B))),
-                  if (subtitle.isNotEmpty) Text(subtitle, style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: isLogout ? Colors.red : const Color(0xFF1E293B),
+                    ),
+                  ),
+                  if (subtitle.isNotEmpty)
+                    Text(
+                      subtitle,
+                      style: const TextStyle(color: Colors.grey, fontSize: 12),
+                    ),
                 ],
               ),
             ),
@@ -215,18 +343,36 @@ class ProfileScreen extends ConsumerWidget {
       child: Container(
         margin: const EdgeInsets.only(bottom: 16, left: 80, right: 80),
         height: 60,
-        decoration: BoxDecoration(color: const Color(0xFF1E70CD), borderRadius: BorderRadius.circular(30)),
+        decoration: BoxDecoration(
+          color: const Color(0xFF1E70CD),
+          borderRadius: BorderRadius.circular(30),
+        ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
-            InkWell(onTap: () => context.go('/feed'), child: const Icon(Icons.home_outlined, color: Colors.white)),
+            InkWell(
+              onTap: () => context.go('/feed'),
+              child: const Icon(Icons.home_outlined, color: Colors.white),
+            ),
             if (!isPublisher)
-              InkWell(onTap: () => context.go('/my-reservations'), child: const Icon(Icons.calendar_today_outlined, color: Colors.white))
+              InkWell(
+                onTap: () => context.go('/my-reservations'),
+                child: const Icon(
+                  Icons.calendar_today_outlined,
+                  color: Colors.white,
+                ),
+              )
             else
-              InkWell(onTap: () => context.go('/dashboard'), child: const Icon(Icons.bar_chart, color: Colors.white)),
+              InkWell(
+                onTap: () => context.go('/dashboard'),
+                child: const Icon(Icons.bar_chart, color: Colors.white),
+              ),
             Container(
               padding: const EdgeInsets.all(8),
-              decoration: const BoxDecoration(color: Colors.white24, shape: BoxShape.circle),
+              decoration: const BoxDecoration(
+                color: Colors.white24,
+                shape: BoxShape.circle,
+              ),
               child: const Icon(Icons.person, color: Colors.white),
             ),
           ],

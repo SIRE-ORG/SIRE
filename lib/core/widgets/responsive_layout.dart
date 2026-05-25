@@ -22,15 +22,13 @@ class ResponsiveLayout extends StatelessWidget {
             boxShadow: [
               if (MediaQuery.of(context).size.width > 450)
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
+                  color: Colors.black.withValues(alpha: 0.05),
                   blurRadius: 20,
                   offset: const Offset(0, 10),
                 ),
             ],
           ),
-          child: SafeArea(
-            child: child,
-          ),
+          child: SafeArea(child: child),
         ),
       ),
     );

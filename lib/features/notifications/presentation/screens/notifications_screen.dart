@@ -12,10 +12,21 @@ class NotificationsScreen extends StatelessWidget {
         backgroundColor: const Color(0xFF1E70CD),
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 20),
+          icon: const Icon(
+            Icons.arrow_back_ios_new,
+            color: Colors.white,
+            size: 20,
+          ),
           onPressed: () => context.pop(),
         ),
-        title: const Text('Notificaciones', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
+        title: const Text(
+          'Notificaciones',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 18,
+          ),
+        ),
         centerTitle: false,
       ),
       body: ListView(
@@ -23,7 +34,8 @@ class NotificationsScreen extends StatelessWidget {
         children: [
           _buildNotificationCard(
             title: 'Nueva reserva recibida',
-            description: 'Carlos Perez reservó Cancha de fútbol • Sab 2 may 13:00',
+            description:
+                'Carlos Perez reservó Cancha de fútbol • Sab 2 may 13:00',
             time: 'Hace 17 min',
             icon: Icons.calendar_today,
             color: const Color(0xFF1E70CD),
@@ -39,7 +51,8 @@ class NotificationsScreen extends StatelessWidget {
           const SizedBox(height: 12),
           _buildNotificationCard(
             title: 'Reserva completada',
-            description: 'Tu reserva en Consultorio de kinesiología fue completada.',
+            description:
+                'Tu reserva en Consultorio de kinesiología fue completada.',
             time: 'Mar 27 abr',
             icon: Icons.check_circle_outline,
             color: const Color(0xFF2E7D32),
@@ -101,7 +114,7 @@ class NotificationsScreen extends StatelessWidget {
                     Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: color.withOpacity(0.1),
+                        color: color.withValues(alpha: 0.1),
                         shape: BoxShape.circle,
                       ),
                       child: Icon(icon, color: color, size: 20),
@@ -111,11 +124,31 @@ class NotificationsScreen extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFF1E293B))),
+                          Text(
+                            title,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                              color: Color(0xFF1E293B),
+                            ),
+                          ),
                           const SizedBox(height: 4),
-                          Text(description, style: const TextStyle(color: Color(0xFF64748B), fontSize: 12, height: 1.3)),
+                          Text(
+                            description,
+                            style: const TextStyle(
+                              color: Color(0xFF64748B),
+                              fontSize: 12,
+                              height: 1.3,
+                            ),
+                          ),
                           const SizedBox(height: 8),
-                          Text(time, style: const TextStyle(color: Colors.grey, fontSize: 10)),
+                          Text(
+                            time,
+                            style: const TextStyle(
+                              color: Colors.grey,
+                              fontSize: 10,
+                            ),
+                          ),
                         ],
                       ),
                     ),

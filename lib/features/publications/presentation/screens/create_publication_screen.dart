@@ -7,7 +7,8 @@ class CreatePublicationScreen extends StatefulWidget {
   const CreatePublicationScreen({super.key});
 
   @override
-  State<CreatePublicationScreen> createState() => _CreatePublicationScreenState();
+  State<CreatePublicationScreen> createState() =>
+      _CreatePublicationScreenState();
 }
 
 class _CreatePublicationScreenState extends State<CreatePublicationScreen> {
@@ -32,10 +33,21 @@ class _CreatePublicationScreenState extends State<CreatePublicationScreen> {
         backgroundColor: const Color(0xFF1E70CD),
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 20),
+          icon: const Icon(
+            Icons.arrow_back_ios_new,
+            color: Colors.white,
+            size: 20,
+          ),
           onPressed: () => context.pop(),
         ),
-        title: const Text('Nueva publicación', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
+        title: const Text(
+          'Nueva publicación',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 18,
+          ),
+        ),
         centerTitle: false,
       ),
       body: SingleChildScrollView(
@@ -43,23 +55,53 @@ class _CreatePublicationScreenState extends State<CreatePublicationScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Crear publicación', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF1E293B))),
+            const Text(
+              'Crear publicación',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF1E293B),
+              ),
+            ),
             const SizedBox(height: 24),
-            const CustomTextField(label: 'Nombre del servicio', hintText: 'Ej: Cancha de fútbol'),
+            const CustomTextField(
+              label: 'Nombre del servicio',
+              hintText: 'Ej: Cancha de fútbol',
+            ),
             const SizedBox(height: 16),
-            const CustomTextField(label: 'Descripción', hintText: 'Describe el espacio o servicio...'),
+            const CustomTextField(
+              label: 'Descripción',
+              hintText: 'Describe el espacio o servicio...',
+            ),
             const SizedBox(height: 16),
             const CustomTextField(label: 'Categoría', hintText: 'Deporte'),
             const SizedBox(height: 16),
-            const CustomTextField(label: 'Imagen (URL)', hintText: 'https://...'),
+            const CustomTextField(
+              label: 'Imagen (URL)',
+              hintText: 'https://...',
+            ),
             const SizedBox(height: 16),
             const CustomTextField(label: 'Región', hintText: 'Temuco'),
             const SizedBox(height: 32),
             Container(height: 1, color: Colors.grey.shade300),
             const SizedBox(height: 24),
-            const Text('Agenda Inteligente', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF1E70CD))),
+            const Text(
+              'Agenda Inteligente',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF1E70CD),
+              ),
+            ),
             const SizedBox(height: 16),
-            const Text('Duración de cada slot', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF1E293B))),
+            const Text(
+              'Duración de cada slot',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF1E293B),
+              ),
+            ),
             const SizedBox(height: 12),
             Row(
               children: [
@@ -90,26 +132,54 @@ class _CreatePublicationScreenState extends State<CreatePublicationScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Horario para todos los días', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF1E293B))),
+                    const Text(
+                      'Horario para todos los días',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF1E293B),
+                      ),
+                    ),
                     const SizedBox(height: 12),
                     Row(
                       children: [
                         Expanded(
                           child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                            decoration: BoxDecoration(border: Border.all(color: Colors.grey.shade300), borderRadius: BorderRadius.circular(8)),
-                            child: const Text('09:00', style: TextStyle(fontSize: 14)),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 12,
+                            ),
+                            decoration: BoxDecoration(
+                              border: Border.all(color: Colors.grey.shade300),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Text(
+                              '09:00',
+                              style: TextStyle(fontSize: 14),
+                            ),
                           ),
                         ),
                         const Padding(
                           padding: EdgeInsets.symmetric(horizontal: 16),
-                          child: Text('hasta', style: TextStyle(color: Colors.grey, fontSize: 12)),
+                          child: Text(
+                            'hasta',
+                            style: TextStyle(color: Colors.grey, fontSize: 12),
+                          ),
                         ),
                         Expanded(
                           child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                            decoration: BoxDecoration(border: Border.all(color: Colors.grey.shade300), borderRadius: BorderRadius.circular(8)),
-                            child: const Text('18:00', style: TextStyle(fontSize: 14)),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 12,
+                            ),
+                            decoration: BoxDecoration(
+                              border: Border.all(color: Colors.grey.shade300),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Text(
+                              '18:00',
+                              style: TextStyle(fontSize: 14),
+                            ),
                           ),
                         ),
                       ],
@@ -151,7 +221,9 @@ class _CreatePublicationScreenState extends State<CreatePublicationScreen> {
                             child: Text(
                               day['name'],
                               style: TextStyle(
-                                color: day['disabled'] ? Colors.grey : const Color(0xFF1E293B),
+                                color: day['disabled']
+                                    ? Colors.grey
+                                    : const Color(0xFF1E293B),
                                 fontWeight: FontWeight.bold,
                                 fontSize: 12,
                               ),
@@ -159,16 +231,23 @@ class _CreatePublicationScreenState extends State<CreatePublicationScreen> {
                           ),
                           Expanded(
                             child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 12,
+                              ),
                               decoration: BoxDecoration(
-                                color: day['disabled'] ? Colors.grey.shade100 : Colors.white,
+                                color: day['disabled']
+                                    ? Colors.grey.shade100
+                                    : Colors.white,
                                 border: Border.all(color: Colors.grey.shade300),
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Text(
                                 day['start'],
                                 style: TextStyle(
-                                  color: day['disabled'] ? Colors.grey : Colors.black,
+                                  color: day['disabled']
+                                      ? Colors.grey
+                                      : Colors.black,
                                   fontSize: 12,
                                 ),
                               ),
@@ -176,20 +255,33 @@ class _CreatePublicationScreenState extends State<CreatePublicationScreen> {
                           ),
                           const Padding(
                             padding: EdgeInsets.symmetric(horizontal: 8),
-                            child: Text('hasta', style: TextStyle(color: Colors.grey, fontSize: 10)),
+                            child: Text(
+                              'hasta',
+                              style: TextStyle(
+                                color: Colors.grey,
+                                fontSize: 10,
+                              ),
+                            ),
                           ),
                           Expanded(
                             child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 12,
+                              ),
                               decoration: BoxDecoration(
-                                color: day['disabled'] ? Colors.grey.shade100 : Colors.white,
+                                color: day['disabled']
+                                    ? Colors.grey.shade100
+                                    : Colors.white,
                                 border: Border.all(color: Colors.grey.shade300),
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Text(
                                 day['end'],
                                 style: TextStyle(
-                                  color: day['disabled'] ? Colors.grey : Colors.black,
+                                  color: day['disabled']
+                                      ? Colors.grey
+                                      : Colors.black,
                                   fontSize: 12,
                                 ),
                               ),
@@ -202,7 +294,10 @@ class _CreatePublicationScreenState extends State<CreatePublicationScreen> {
                 ),
               ),
             const SizedBox(height: 32),
-            CustomButton(text: 'Guardar publicación', onPressed: () => context.pop()),
+            CustomButton(
+              text: 'Guardar publicación',
+              onPressed: () => context.pop(),
+            ),
             const SizedBox(height: 40),
           ],
         ),
@@ -220,13 +315,19 @@ class _CreatePublicationScreenState extends State<CreatePublicationScreen> {
           decoration: BoxDecoration(
             color: isSelected ? const Color(0xFFE3F2FD) : Colors.white,
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: isSelected ? const Color(0xFF1E70CD) : Colors.grey.shade300),
+            border: Border.all(
+              color: isSelected
+                  ? const Color(0xFF1E70CD)
+                  : Colors.grey.shade300,
+            ),
           ),
           child: Center(
             child: Text(
               '$minutes min',
               style: TextStyle(
-                color: isSelected ? const Color(0xFF1E70CD) : const Color(0xFF1E293B),
+                color: isSelected
+                    ? const Color(0xFF1E70CD)
+                    : const Color(0xFF1E293B),
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
               ),
             ),
@@ -246,7 +347,14 @@ class _CreatePublicationScreenState extends State<CreatePublicationScreen> {
           decoration: BoxDecoration(
             color: isSelected ? Colors.white : Colors.transparent,
             borderRadius: BorderRadius.circular(8),
-            boxShadow: isSelected ? [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4)] : [],
+            boxShadow: isSelected
+                ? [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.05),
+                      blurRadius: 4,
+                    ),
+                  ]
+                : [],
           ),
           child: Center(
             child: Text(

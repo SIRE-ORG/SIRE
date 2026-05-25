@@ -29,10 +29,7 @@ class LoginScreen extends StatelessWidget {
           child: Container(
             color: const Color(0xFF1E70CD),
             child: Center(
-              child: Image.asset(
-                'assets/images/Logo_SIRE.png',
-                width: 250,
-              ),
+              child: Image.asset('assets/images/Logo_SIRE.png', width: 250),
             ),
           ),
         ),
@@ -85,7 +82,7 @@ class LoginScreen extends StatelessWidget {
             borderRadius: BorderRadius.circular(16),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.05),
+                color: Colors.black.withValues(alpha: 0.05),
                 blurRadius: 10,
                 offset: const Offset(0, 4),
               ),
@@ -129,10 +126,7 @@ class LoginScreen extends StatelessWidget {
               const Center(
                 child: Text(
                   '¿No tienes cuenta?',
-                  style: TextStyle(
-                    color: Color(0xFF64748B),
-                    fontSize: 14,
-                  ),
+                  style: TextStyle(color: Color(0xFF64748B), fontSize: 14),
                 ),
               ),
               const SizedBox(height: 16),
