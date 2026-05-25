@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/widgets/custom_button.dart';
 import '../../../../core/widgets/custom_text_field.dart';
@@ -8,85 +8,102 @@ class RegisterScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          if (constraints.maxWidth > 800) {
-            return _buildDesktopLayout(context);
-          }
-          return _buildMobileLayout(context);
-        },
-      ),
-    );
-  }
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isWeb = constraints.maxWidth >= 800;
 
-  Widget _buildDesktopLayout(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          flex: 1,
-          child: Container(
-            color: const Color(0xFF1E70CD),
+        if (isWeb) {
+          return Scaffold(
+            backgroundColor: const Color(0xFFF5F5F5),
+            body: Row(
+              children: [
+                _buildLeftPanel(),
+                Expanded(
+                  child: Center(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.symmetric(vertical: 24),
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 450),
+                        child: _buildForm(context, isWeb: true),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
+
+        return Scaffold(
+          backgroundColor: const Color(0xFFF5F5F5),
+          appBar: AppBar(
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            leading: IconButton(
+              icon: const Icon(
+                Icons.arrow_back_ios_new,
+                color: Color(0xFF1E70CD),
+              ),
+              onPressed: () => context.pop(),
+            ),
+          ),
+          body: SafeArea(
             child: Center(
-              child: Image.asset('assets/images/Logo_SIRE.png', width: 250),
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(24.0),
+                child: _buildForm(context, isWeb: false),
+              ),
             ),
           ),
-        ),
-        Expanded(
-          flex: 1,
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 400),
-              child: _buildFormContent(context),
-            ),
-          ),
-        ),
-      ],
+        );
+      },
     );
   }
 
-  Widget _buildMobileLayout(BuildContext context) {
-    return SafeArea(
-      child: Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 40.0),
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 400),
-            child: _buildFormContent(context),
+  Widget _buildLeftPanel() {
+    return Expanded(
+      child: Container(
+        color: const Color(0xFF1E70CD),
+        child: Center(
+          child: Image.asset(
+            'assets/images/Logo_SIRE.png',
+            width: 250,
+            fit: BoxFit.contain,
           ),
         ),
       ),
     );
   }
 
-  Widget _buildFormContent(BuildContext context) {
+  Widget _buildForm(BuildContext context, {required bool isWeb}) {
     return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-        border: Border.all(color: const Color(0xFFE0E0E0)),
-      ),
+      padding: EdgeInsets.all(isWeb ? 40 : 24),
+      decoration: isWeb
+          ? BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.05),
+                  blurRadius: 20,
+                  offset: const Offset(0, 10),
+                ),
+              ],
+            )
+          : null,
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
             'Registrarse',
             style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
               color: Color(0xFF1E70CD),
+              fontSize: 28,
+              fontWeight: FontWeight.bold,
             ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 32),
           const CustomTextField(
             label: 'Nombre completo',
             hintText: 'Ej: María González',
@@ -116,11 +133,34 @@ class RegisterScreen extends StatelessWidget {
             isPassword: true,
           ),
           const SizedBox(height: 32),
-          CustomButton(
-            text: 'Crear cuenta',
-            onPressed: () {
-              context.go('/feed');
-            },
+          SizedBox(
+            width: double.infinity,
+            height: 50,
+            child: CustomButton(
+              text: 'Crear cuenta',
+              onPressed: () => context.go('/feed'),
+            ),
+          ),
+          const SizedBox(height: 24),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Text(
+                '¿Ya tienes cuenta?',
+                style: TextStyle(color: Colors.grey, fontSize: 14),
+              ),
+              TextButton(
+                onPressed: () => context.go('/login'),
+                child: const Text(
+                  'Iniciar sesión',
+                  style: TextStyle(
+                    color: Color(0xFF1E70CD),
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),
