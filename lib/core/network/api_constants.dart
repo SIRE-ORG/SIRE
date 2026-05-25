@@ -15,9 +15,16 @@ class ApiConstants {
   // para simular GET /users/me hasta que el backend lo implemente).
   static const String usersProfiles = '/users/profiles';
 
-  // Publications
+  // Publications (contrato futuro: GET /publications, GET /publications/mine)
   static const String publications = '/publications';
   static const String publicationsMine = '/publications/mine';
+  // Bug conocido en backend v0: publication.routes.ts registra '/publications'
+  // como ruta local pero el prefix en app.ts ya es '/api/v1/publications',
+  // resultando en paths efectivos /publications/publications[/mine].
+  // Documentado en claude/comentarios_backend.txt sección C.
+  static const String publicationsFeedLive = '/publications/publications';
+  static const String publicationsFeedMineLive =
+      '/publications/publications/mine';
 
   // Feed
   static const String feed = '/feed';

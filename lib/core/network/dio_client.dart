@@ -39,9 +39,11 @@ class DioClient {
 class _AuthInterceptor extends Interceptor {
   @override
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
-    final token = Supabase.instance.client.auth.currentSession?.accessToken;
-    if (token != null) {
-      options.headers['Authorization'] = 'Bearer $token';
+    final session = Supabase.instance.client.auth.currentSession;
+    if (session != null) {
+      options.headers['Authorization'] = 'Bearer ${session.accessToken}';
+      // El backend actual usa x-user-id para identificar al usuario (sin JWT).
+      options.headers['x-user-id'] = session.user.id;
     }
     handler.next(options);
   }
