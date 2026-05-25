@@ -7,6 +7,9 @@ import '../../features/auth/presentation/screens/register_screen.dart';
 import '../../features/auth/presentation/screens/forgot_password_screen.dart';
 import '../../features/feed/presentation/screens/feed_screen.dart';
 import '../../features/feed/presentation/screens/publication_detail_screen.dart';
+import '../../features/publications/presentation/screens/my_publications_screen.dart';
+import '../../features/publications/presentation/screens/create_publication_screen.dart';
+import '../../features/publications/presentation/screens/edit_publication_screen.dart';
 import '../../features/reservations/presentation/screens/my_reservations_screen.dart';
 import '../../features/reservations/presentation/screens/reservation_detail_screen.dart';
 import '../../features/reservations/presentation/screens/reservation_confirm_screen.dart';
@@ -16,9 +19,6 @@ import '../../features/notifications/presentation/screens/notifications_screen.d
 import '../../features/profile/presentation/screens/profile_screen.dart';
 import '../../features/profile/presentation/screens/edit_profile_screen.dart';
 import '../../features/publications/presentation/screens/dashboard_screen.dart';
-import '../../features/publications/presentation/screens/my_publications_screen.dart';
-import '../../features/publications/presentation/screens/create_publication_screen.dart';
-import '../../features/publications/presentation/screens/edit_publication_screen.dart';
 
 class AppRouter {
   AppRouter._();
@@ -46,7 +46,14 @@ class AppRouter {
       ),
       GoRoute(
         path: '/reservation/:id',
-        builder: (context, state) => ReservationDetailScreen(id: state.pathParameters['id']!),
+        builder: (context, state) => ReservationDetailScreen(
+          id: state.pathParameters['id']!,
+          title: state.uri.queryParameters['title'] ?? 'Cancha de fútbol sintética',
+          publisher: state.uri.queryParameters['publisher'] ?? 'Club Deportivo Temuco',
+          date: state.uri.queryParameters['date'] ?? 'Hoy',
+          time: state.uri.queryParameters['time'] ?? '11:00 - 12:00',
+          status: state.uri.queryParameters['status'] ?? 'Pendiente',
+        ),
       ),
       GoRoute(
         path: '/publication/:id/confirm',
@@ -72,9 +79,7 @@ class AppRouter {
       GoRoute(path: '/notifications', builder: (context, state) => const NotificationsScreen()),
       GoRoute(path: '/profile', builder: (context, state) => const ProfileScreen()),
       GoRoute(path: '/profile/edit', builder: (context, state) => const EditProfileScreen()),
-      GoRoute(path: '/activate-account', builder: (context, state) => _stub('Activación')),
+      GoRoute(path: '/activate-account', builder: (context, state) => Scaffold(body: Center(child: const Text('Activación')))),
     ],
   );
-
-  static Widget _stub(String name) => Scaffold(body: Center(child: Text(name)));
 }
