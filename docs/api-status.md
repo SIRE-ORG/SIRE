@@ -146,3 +146,14 @@ Se levantó la arquitectura base con Fastify + Prisma ORM + Supabase PostgreSQL.
 | POST | /api/v1/auth/register-guest | ✅ Listo | Recibe ID de Supabase y crea perfil en estado `guest` |
 | PATCH | /api/v1/auth/account-status | ✅ Listo | Pasa el estado de la cuenta a `active` |
 | GET | /api/v1/auth/me | ✅ Listo | Devuelve los datos del perfil actual |
+
+---
+
+## Reservas
+
+| Método | Ruta | Estado | Notas |
+|--------|------|--------|-------|
+| POST | /reservations | ✅ Listo | Asigna por defecto el Enum ReservationStatus.PENDING |
+| GET | /reservations/mine | ✅ Listo  | Obtiene el historial del usuario (x-user-id en headers) incluyendo los datos relacionales de la cancha |
+| PATCH | /reservations/:id/cancel | ⏳ Pendiente | |
+| PATCH | /reservations/:id/status | ⏳ Pendiente | Solo publicador |
