@@ -15,11 +15,11 @@ enum AccountStatus {
 }
 
 enum ReservationStatus {
-  pending
-  cancelled
-  rejected
-  completed
-  failed
+  PENDING
+  CANCELLED
+  REJECTED
+  COMPLETED
+  FAILED
 }
 
 // 3. Modelos
@@ -74,7 +74,7 @@ model Reservation {
   date      DateTime
   startTime String
   endTime   String
-  status    ReservationStatus @default(pending)
+  status    ReservationStatus @default(PENDING)
   createdAt DateTime          @default(now())
 
   // Llave Foránea: A qué publicación pertenece la reserva

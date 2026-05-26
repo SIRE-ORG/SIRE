@@ -53,9 +53,11 @@ export const getMyPublications = async (request: FastifyRequest, reply: FastifyR
 // POST /api/v1/publications -> Crear publicación (Requiere cuenta ACTIVE)
 export const createPublication = async (request: FastifyRequest, reply: FastifyReply) => {
     try {
-        const { title, description, category, imageUrl, region, city, availability, ownerId } = request.body as any;
+        const { title, description, category, imageUrl, region, city, availability } = request.body as any;
 
-        // 1. Validaciones básicas de presencia
+        const ownerId = request.headers['x-user-id'] as string;
+
+        // 1. Validaciones básicas
         if (!title || !category || !region || !availability || !ownerId) {
             return reply.status(400).send({
                 error: { code: 'VALIDATION_ERROR', message: 'Faltan campos obligatorios para crear la publicación' }

@@ -28,6 +28,7 @@ export const registerGuest = async (request: FastifyRequest, reply: FastifyReply
 
         return reply.status(201).send({ data: newProfile });
     } catch (error) {
+        console.error("ERROR DE PRISMA:", error);
         return reply.status(500).send({
             error: { code: 'INTERNAL_SERVER_ERROR', message: 'Error al registrar el usuario' }
         });
