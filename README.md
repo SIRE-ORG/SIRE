@@ -71,7 +71,7 @@ Antes de clonar e instalar el proyecto, asegúrate de tener instalado:
 - **Proyecto en Supabase** — la app se conecta a un proyecto Supabase para
   autenticación, base de datos PostgreSQL, almacenamiento de archivos y
   tiempo real.
-- **Dispositivo/emulador** — para ejecutar la app Flutter necesitás un
+- **Dispositivo/emulador** — para ejecutar la app Flutter necesitas un
   dispositivo Android/iOS conectado o un emulador configurado.
   Verifica con `flutter doctor`.
 
@@ -80,7 +80,7 @@ Antes de clonar e instalar el proyecto, asegúrate de tener instalado:
 ## Variables de entorno
 
 El proyecto usa dos archivos `.env` independientes. Ambos están excluidos
-de Git (`.gitignore`), por lo que debés crearlos a partir de las plantillas
+de Git (`.gitignore`), por lo que debes crearlos a partir de las plantillas
 `.env.example` provistas.
 
 ### Flutter (raíz del proyecto)
@@ -109,7 +109,7 @@ de Git (`.gitignore`), por lo que debés crearlos a partir de las plantillas
 **Dónde obtener los valores:**
 
 - Supabase Dashboard → Settings → Database → Connection string
-- Seleccioná la pestaña "Prisma" para ver tanto `DATABASE_URL` como `DIRECT_URL`
+- Selecciona la pestaña "Prisma" para ver tanto `DATABASE_URL` como `DIRECT_URL`
 
 ---
 
@@ -206,7 +206,7 @@ migraciones a la base de datos.
 
 ### Opción 2: Instalación manual paso a paso
 
-Si preferís control granular sobre cada etapa, seguí estos pasos en orden:
+Si prefieres control granular sobre cada etapa, sigue estos pasos en orden:
 
 #### 1. Clonar el repositorio
 
@@ -344,7 +344,7 @@ en la terminal de Flutter, el backend se cierra automáticamente.
 scripts\run_dev.bat
 ```
 
-El backend se abre en una ventana separada. Al cerrar Flutter, **recordá
+El backend se abre en una ventana separada. Al cerrar Flutter, **recuerda
 cerrar manualmente la ventana del backend** (titulada "SIRE Backend — Fastify :3000").
 
 ### Orden de inicio
@@ -362,7 +362,7 @@ cerrar manualmente la ventana del backend** (titulada "SIRE Backend — Fastify 
 | `build_runner` falla | Conflicto de archivos `.g.dart` | `dart run build_runner clean && dart run build_runner build --delete-conflicting-outputs` |
 | Backend no arranca | `backend/.env` no configurado | Copiar `backend/.env.example` → `backend/.env` y completar `DATABASE_URL` |
 | `prisma migrate dev` falla | IP no whitelisteada en Supabase | Supabase Dashboard → Settings → Database → agregar IPv4 |
-| App no se conecta al backend | `API_BASE_URL` incorrecta en `.env` | Verificar IP y puerto; si usás emulador Android, usar `10.0.2.2` en vez de `localhost` |
+| App no se conecta al backend | `API_BASE_URL` incorrecta en `.env` | Verificar IP y puerto; si usas emulador Android, usar `10.0.2.2` en vez de `localhost` |
 | `dart analyze` reporta errores | Código con errores de compilación | Revisar los mensajes de `dart analyze`; pueden ser advertencias que no bloquean la ejecución |
 
 ---
