@@ -156,4 +156,4 @@ Se levantó la arquitectura base con Fastify + Prisma ORM + Supabase PostgreSQL.
 | POST | /reservations | ✅ Listo | Asigna por defecto el Enum ReservationStatus.PENDING |
 | GET | /reservations/mine | ✅ Listo  | Obtiene el historial del usuario (x-user-id en headers) incluyendo los datos relacionales de la cancha |
 | PATCH | /reservations/:id/cancel | ⏳ Pendiente | |
-| PATCH | /reservations/:id/status | ⏳ Pendiente | Solo publicador |
+| PATCH | /reservations/:id/status | ✅ Listo  | Solo publicador |

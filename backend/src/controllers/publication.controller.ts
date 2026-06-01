@@ -57,14 +57,12 @@ export const createPublication = async (request: FastifyRequest, reply: FastifyR
 
         const ownerId = request.headers['x-user-id'] as string;
 
-        // 1. Validaciones básicas
         if (!title || !category || !region || !availability || !ownerId) {
             return reply.status(400).send({
                 error: { code: 'VALIDATION_ERROR', message: 'Faltan campos obligatorios para crear la publicación' }
             });
         }
 
-        // 2. Validación del Enum cerrado de categorías
         if (!ALLOWED_CATEGORIES.includes(category)) {
             return reply.status(400).send({
                 error: {
@@ -74,7 +72,6 @@ export const createPublication = async (request: FastifyRequest, reply: FastifyR
             });
         }
 
-        // 3. Validación: Cuenta debe ser ACTIVE
         const userProfile = await prisma.profile.findUnique({
             where: { id: ownerId },
             select: { accountStatus: true }
@@ -95,7 +92,6 @@ export const createPublication = async (request: FastifyRequest, reply: FastifyR
             });
         }
 
-        // 4. Si pasa las validaciones, se crea la publicación
         const newPublication = await prisma.publication.create({
             data: {
                 title,

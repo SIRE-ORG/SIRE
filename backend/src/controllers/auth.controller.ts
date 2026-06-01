@@ -18,7 +18,7 @@ export const registerGuest = async (request: FastifyRequest, reply: FastifyReply
 
         const newProfile = await prisma.profile.create({
             data: {
-                id, //Se guarda el mismo ID que genero Supabase
+                id,
                 email,
                 name,
                 phone,
@@ -46,7 +46,6 @@ export const updateAccountStatus = async (request: FastifyRequest, reply: Fastif
             });
         }
 
-        //El contrato exige que el endpoint actualice a ACTIVE
         const updateProfile = await prisma.profile.update({
             where: { id: userId },
             data: { accountStatus: AccountStatus.active }

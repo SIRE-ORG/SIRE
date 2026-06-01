@@ -9,14 +9,12 @@ export const createReservation = async (request: FastifyRequest, reply: FastifyR
         const { publicationId, date, startTime, endTime } = request.body as any;
         const solicitanteId = request.headers['x-user-id'] as string;
 
-        // 1. Validaciones básicas
         if (!publicationId || !date || !startTime || !endTime || !solicitanteId) {
             return reply.status(400).send({
                 error: { code: 'VALIDATION_ERROR', message: 'Faltan campos obligatorios para crear la reserva' }
             });
         }
 
-        // 2. Crear la reserva usando el Enum correcto de Prisma
         const newReservation = await prisma.reservation.create({
             data: {
                 publicationId,
@@ -70,6 +68,60 @@ export const getMyReservations = async (request: FastifyRequest, reply: FastifyR
         console.error("ERROR OBTENIENDO RESERVAS:", error);
         return reply.status(500).send({
             error: { code: 'INTERNAL_SERVER_ERROR', message: 'Error al obtener las reservas' }
+        });
+    }
+};
+
+// PATCH /api/v1/reservations/:id/status -> Aceptar o rechazar una reserva
+export const updateReservationStatus = async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+        const { id } = request.params as { id: string };
+        const { status } = request.body as { status: ReservationStatus };
+        const userId = request.headers['x-user-id'] as string;
+
+        if (!userId) {
+            return reply.status(401).send({
+                error: { code: 'UNAUTHORIZED', message: 'Se requiere el header x-user-id' }
+            });
+        }
+
+        const existingReservation = await prisma.reservation.findUnique({
+            where: { id },
+            include: { publication: true }
+        });
+
+        if (!existingReservation) {
+            return reply.status(404).send({
+                error: { code: 'NOT_FOUND', message: 'La reserva no existe' }
+            });
+        }
+
+        if (existingReservation.publication.ownerId !== userId) {
+            return reply.status(403).send({
+                error: { code: 'FORBIDDEN', message: 'Solo el administrador del recinto puede gestionar esta reserva' }
+            });
+        }
+
+        if (!Object.values(ReservationStatus).includes(status)) {
+            return reply.status(400).send({
+                error: { code: 'VALIDATION_ERROR', message: `El estado '${status}' no es válido.` }
+            });
+        }
+
+        const updatedReservation = await prisma.reservation.update({
+            where: { id },
+            data: { status }
+        });
+
+        return reply.status(200).send({
+            message: `Reserva actualizada a estado ${status}`,
+            data: updatedReservation
+        });
+
+    } catch (error) {
+        console.error("ERROR ACTUALIZANDO RESERVA:", error);
+        return reply.status(500).send({
+            error: { code: 'INTERNAL_SERVER_ERROR', message: 'Error al cambiar el estado de la reserva' }
         });
     }
 };
