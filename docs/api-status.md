@@ -131,9 +131,9 @@ Se levantó la arquitectura base con Fastify + Prisma ORM + Supabase PostgreSQL.
 | GET | /api/v1/publications | ✅ Listo | Público (Feed). Soporta filtro opcional por `region` via query param |
 | GET | /api/v1/publications/mine | ✅ Listo | Privado. Requiere pasar el ID de usuario en los headers |
 | POST | /api/v1/publications | ✅ Listo | Validación de categorías. Requiere estrictamente cuenta ACTIVE |
-| GET | /api/v1/publications/:id | ⏳ Pendiente | |
-| PUT | /api/v1/publications/:id | ⏳ Pendiente |  |
-| DELETE | /api/v1/publications/:id | ⏳ Pendiente |  |
+| GET | /api/v1/publications/:id | ✅ Listo | |
+| PUT | /api/v1/publications/:id | ✅ Listo |  |
+| DELETE | /api/v1/publications/:id | ✅ Listo |  |
 
 ---
 
