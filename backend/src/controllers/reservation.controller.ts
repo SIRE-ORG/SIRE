@@ -24,7 +24,7 @@ export const createReservation = async (request: FastifyRequest, reply: FastifyR
                 date,
                 startTime,
                 endTime,
-                status: ReservationStatus.PENDING
+                status: ReservationStatus.pending
             }
         });
 

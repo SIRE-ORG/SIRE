@@ -15,11 +15,11 @@ enum AccountStatus {
 }
 
 enum ReservationStatus {
-  PENDING
-  CANCELLED
-  REJECTED
-  COMPLETED
-  FAILED
+  pending
+  cancelled
+  rejected
+  completed
+  failed
 }
 
 // 3. Modelos
