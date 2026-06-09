@@ -127,7 +127,7 @@ export const getPublicationById = async (request: FastifyRequest, reply: Fastify
         const publication = await prisma.publication.findUnique({
             where: { id },
             include: {
-                owner: { select: { fullName: true, avatarUrl: true } }
+                owner: { select: { name: true, avatarUrl: true } }
             }
         });
 

@@ -143,6 +143,16 @@ Se levantó la arquitectura base con Fastify + Prisma ORM + Supabase PostgreSQL.
 
 | Método | Ruta | Estado | Notas |
 |--------|------|--------|-------|
-| POST | /api/v1/auth/register-guest | ✅ Listo | Recibe ID de Supabase y crea perfil en estado `guest` |
+| POST | /api/v1/auth/register-guest | ✅ Listo | Recibe ID de Supabase y crea perfil en estado `guest`. Rutas de auth ya registradas en `app.ts` |
 | PATCH | /api/v1/auth/account-status | ✅ Listo | Pasa el estado de la cuenta a `active` |
-| GET | /api/v1/auth/me | ✅ Listo | Devuelve los datos del perfil actual |
+| GET | /api/v1/auth/me | ✅ Listo | Devuelve el perfil actual buscándolo por `id` (header `x-user-id`) |
+
+---
+
+## Reservas
+
+| Método | Ruta | Estado | Notas |
+|--------|------|--------|-------|
+| POST | /api/v1/reservations | ✅ Listo | Crea la solicitud en estado `pending`. Requiere header `x-user-id` (solicitante) |
+| GET | /api/v1/reservations/mine | ✅ Listo | Reservas del solicitante. Incluye datos de la publicación |
+| PATCH | /api/v1/reservations/:id/status | ✅ Listo | Solo el dueño de la publicación acepta/rechaza. Valida el estado contra el enum (minúsculas) |
