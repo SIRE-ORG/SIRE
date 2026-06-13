@@ -56,6 +56,10 @@ dev_dependencies:
   dart_pre_commit: ^6.0.0
   husky: ^0.1.7
 
+  # Testing de integración (capa de datos contra HTTP simulado)
+  mocktail: ^1.0.4
+  http_mock_adapter: ^0.6.1
+
 flutter:
   uses-material-design: true
   
