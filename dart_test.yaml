@@ -1,0 +1,7 @@
+tags:
+  backend:
+    # Costura B: requiere backend levantado y SIRE_BACKEND_URL definido.
+  regresion-contrato:
+    # Tests que documentan una desviación de contrato conocida y quedan rojos
+    # a propósito hasta que el backend la corrija. Un job bloqueante de CI debe
+    # excluirlos con --exclude-tags regresion-contrato.
