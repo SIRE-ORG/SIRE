@@ -11,7 +11,10 @@ export const getPublications = async (request: FastifyRequest, reply: FastifyRep
         const { region } = request.query as { region?: string };
 
         const publications = await prisma.publication.findMany({
-            where: region ? { region: { equals: region, mode: 'insensitive' } } : {},
+            where: {
+                isActive: true,
+                ...(region ? { region: { equals: region, mode: 'insensitive' } } : {})
+            },
             include: {
                 owner: {
                     select: { name: true, phone: true }
