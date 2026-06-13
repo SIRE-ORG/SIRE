@@ -68,6 +68,8 @@ class AppExceptionFactory {
       return NetworkException();
     }
 
-    return ServerException(code: 'UNKNOWN', message: e.message ?? '');
+    // 5xx y cualquier otro status: se conserva el code/message que haya
+    // enviado el backend en vez de aplanarlo a UNKNOWN.
+    return ServerException(code: code, message: message);
   }
 }

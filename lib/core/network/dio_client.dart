@@ -9,17 +9,7 @@ class DioClient {
 
   DioClient._(this._dio);
 
-  static Future<DioClient> create() async {
-    final dio = Dio(
-      BaseOptions(
-        baseUrl: ApiConstants.baseUrl,
-        contentType: 'application/json',
-        responseType: ResponseType.json,
-      ),
-    );
-    dio.interceptors.addAll([_AuthInterceptor(), _ErrorInterceptor()]);
-    return DioClient._(dio);
-  }
+  static Future<DioClient> create() async => createSync();
 
   static DioClient createSync() {
     final dio = Dio(
@@ -29,17 +19,29 @@ class DioClient {
         responseType: ResponseType.json,
       ),
     );
-    dio.interceptors.addAll([_AuthInterceptor(), _ErrorInterceptor()]);
+    dio.interceptors.addAll([AuthInterceptor(), ErrorInterceptor()]);
     return DioClient._(dio);
   }
 
   Dio get dio => _dio;
 }
 
-class _AuthInterceptor extends Interceptor {
+/// Inyecta la identidad de la sesión Supabase en cada request.
+///
+/// [sessionReader] es la costura que permite montar el interceptor en pruebas
+/// sin inicializar Supabase; en producción lee Supabase.instance.
+class AuthInterceptor extends Interceptor {
+  AuthInterceptor({Session? Function()? sessionReader})
+    : _sessionReader = sessionReader ?? _supabaseSession;
+
+  final Session? Function() _sessionReader;
+
+  static Session? _supabaseSession() =>
+      Supabase.instance.client.auth.currentSession;
+
   @override
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
-    final session = Supabase.instance.client.auth.currentSession;
+    final session = _sessionReader();
     if (session != null) {
       options.headers['Authorization'] = 'Bearer ${session.accessToken}';
       // El backend actual usa x-user-id para identificar al usuario (sin JWT).
@@ -49,7 +51,9 @@ class _AuthInterceptor extends Interceptor {
   }
 }
 
-class _ErrorInterceptor extends Interceptor {
+/// Traduce todo error de transporte a un [AppException] tipado, conservando
+/// la respuesta original para quien necesite inspeccionarla.
+class ErrorInterceptor extends Interceptor {
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) {
     handler.reject(

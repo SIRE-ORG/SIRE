@@ -8,6 +8,7 @@ class ApiConstants {
   // Auth
   static const String authRegisterGuest = '/auth/register-guest';
   static const String authAccountStatus = '/auth/account-status';
+  static const String authMe = '/auth/me';
 
   // Users
   static const String usersMe = '/users/me';
@@ -25,6 +26,10 @@ class ApiConstants {
   static const String publicationsFeedLive = '/publications/publications';
   static const String publicationsFeedMineLive =
       '/publications/publications/mine';
+  // Las rutas por id NO arrastran el doble segmento: publication.routes.ts
+  // las registra como '/:id' directamente bajo el prefix /api/v1/publications.
+  // Al corregirse el bug C hay que unificar este formato con los de arriba.
+  static String publicationByIdLive(String id) => '/publications/$id';
 
   // Feed
   static const String feed = '/feed';
