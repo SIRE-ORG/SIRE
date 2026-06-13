@@ -7,7 +7,7 @@
   "scripts": {
     "build": "npx tsc",
     "start": "node dist/app.ts",
-    "dev": "tsx watch src/app.ts",
+    "dev": "tsx watch src/app.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
