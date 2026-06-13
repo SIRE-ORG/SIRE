@@ -102,7 +102,9 @@ class AvailabilityConfigModel {
 
   factory AvailabilityConfigModel.fromJson(Map<String, dynamic> json) {
     return AvailabilityConfigModel(
-      slotDurationMinutes: json['slotDurationMinutes'] as int,
+      // Tolerante a respuestas sin availability: una publicación con agenda
+      // ausente no debe tumbar el mapeo de toda la respuesta.
+      slotDurationMinutes: json['slotDurationMinutes'] as int? ?? 60,
       sameScheduleAllDays: json['sameScheduleAllDays'] as bool? ?? true,
       defaultSchedules: ((json['defaultSchedules'] as List?) ?? const [])
           .map((e) => DayScheduleModel.fromJson(e as Map<String, dynamic>))

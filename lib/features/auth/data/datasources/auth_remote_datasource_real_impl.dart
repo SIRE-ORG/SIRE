@@ -9,14 +9,20 @@ import 'auth_remote_datasource.dart';
 
 /// Implementación real del datasource de auth contra el backend local.
 ///
-/// LIMITACIÓN (backend v0): [getProfile] llama GET /users/profiles (todos los
-/// perfiles) y filtra por email de sesión Supabase, porque [ApiConstants.usersMe]
-/// (GET /auth/me) está implementado en auth.controller.ts pero NO registrado
-/// en app.ts. Cuando Cristian agregue authRoutes a app.ts, reemplazar el body
-/// de [getProfile] por la llamada directa a [ApiConstants.usersMe].
+/// Endpoints disponibles (backend en dev, authRoutes registrado en app.ts):
+///   GET   /auth/me             → [getProfile]
+///   PATCH /auth/account-status → [updateAccountStatus]
 ///
-/// Los demás métodos lanzan [ServerException] ENDPOINT_NOT_AVAILABLE porque
-/// authRoutes no está montado en app.ts (ver claude/comentarios_backend.txt C).
+/// [registerGuest] sigue como error controlado: la ruta existe pero su
+/// contrato difiere del documentado — espera el id de un usuario Supabase ya
+/// creado (no lo crea, contra lo que dice api-contract.md) y responde
+/// {data: profile} sin token ni userCreated. Hallazgo H3 en
+/// claude/diseno_pruebas_calidad_hito3.md §8.3.
+///
+/// [updateProfile] sigue sin endpoint (PUT /users/me no existe).
+///
+/// Auth: el [AuthInterceptor] de [DioClient] inyecta x-user-id desde la
+/// sesión Supabase; el backend identifica al usuario con ese header.
 class AuthRemoteDatasourceRealImpl implements AuthRemoteDatasource {
   const AuthRemoteDatasourceRealImpl({
     required this.dio,
@@ -31,18 +37,13 @@ class AuthRemoteDatasourceRealImpl implements AuthRemoteDatasource {
     final user = supabase.auth.currentUser;
     if (user == null) throw UnauthorizedException();
 
-    final response = await dio.get(ApiConstants.usersProfiles);
-    final list = (response.data as List).cast<Map<String, dynamic>>();
-
-    late final Map<String, dynamic> match;
-    try {
-      match = list.firstWhere((p) => (p['email'] as String?) == user.email);
-    } on StateError {
-      throw NotFoundException(code: 'PROFILE_NOT_FOUND');
-    }
+    final response = await dio.get(ApiConstants.authMe);
+    final json =
+        (response.data as Map<String, dynamic>)['data'] as Map<String, dynamic>;
 
     return UserProfileModel.fromBackendProfile(
-      match,
+      json,
+      // emailVerified no existe en el schema de Prisma; se deriva de Supabase.
       emailVerified: user.emailConfirmedAt != null,
     );
   }
@@ -53,20 +54,20 @@ class AuthRemoteDatasourceRealImpl implements AuthRemoteDatasource {
     required String email,
     required String phone,
   }) {
-    // Implementado en auth.controller.ts pero authRoutes no está en app.ts.
     throw ServerException(
       code: 'ENDPOINT_NOT_AVAILABLE',
-      message: 'POST /auth/register-guest no registrado en app.ts aún',
+      message:
+          'POST /auth/register-guest difiere del contrato (requiere id de '
+          'Supabase ya creado); flujo de invitado no integrable aún',
     );
   }
 
   @override
-  Future<void> updateAccountStatus() {
-    // Implementado en auth.controller.ts pero authRoutes no está en app.ts.
-    throw ServerException(
-      code: 'ENDPOINT_NOT_AVAILABLE',
-      message: 'PATCH /auth/account-status no registrado en app.ts aún',
-    );
+  Future<void> updateAccountStatus() async {
+    final user = supabase.auth.currentUser;
+    if (user == null) throw UnauthorizedException();
+
+    await dio.patch(ApiConstants.authAccountStatus);
   }
 
   @override

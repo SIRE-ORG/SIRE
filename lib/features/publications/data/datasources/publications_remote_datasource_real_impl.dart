@@ -11,18 +11,22 @@ import 'publications_remote_datasource.dart';
 
 /// Implementación real de [PublicationsRemoteDatasource] contra el backend local.
 ///
-/// Endpoints disponibles (backend v0, post-merge cristian/endpoint-auth):
-///   GET  /publications/publications/mine  → [getMyPublications]
-///   POST /publications/publications        → [createPublication]
+/// Endpoints disponibles (backend en dev, post-merge crud-publicaciones-v2):
+///   GET    /publications/publications/mine  → [getMyPublications]
+///   POST   /publications/publications       → [createPublication]
+///   GET    /publications/:id                → [getPublicationDetail]
+///   PUT    /publications/:id                → [updatePublication]
+///   DELETE /publications/:id                → [deletePublication]
 ///
-/// Métodos no disponibles aún (lanzan [ServerException] ENDPOINT_NOT_AVAILABLE):
-///   getPublicationDetail, updatePublication, togglePublicationStatus, deletePublication
+/// [togglePublicationStatus] se resuelve vía PUT /:id con {isActive} porque
+/// PATCH /:id/status no existe en el backend (desviación de contrato anotada
+/// en claude/diseno_pruebas_calidad_hito3.md §8.1).
 ///
-/// Auth: el [_AuthInterceptor] de [DioClient] inyecta automáticamente
+/// Auth: el [AuthInterceptor] de [DioClient] inyecta automáticamente
 /// x-user-id desde la sesión Supabase, que es el mecanismo que usa el backend.
 ///
-/// PATH: usa [ApiConstants.publicationsFeedMineLive] / [publicationsFeedLive]
-/// por el bug de double-segment documentado en claude/comentarios_backend.txt C.
+/// PATH: feed/mine/create usan el doble segmento (bug C, claude/
+/// comentarios_backend.txt); las rutas por id van en un solo segmento.
 class PublicationsRemoteDatasourceRealImpl
     implements PublicationsRemoteDatasource {
   const PublicationsRemoteDatasourceRealImpl({
@@ -72,44 +76,48 @@ class PublicationsRemoteDatasourceRealImpl
   }
 
   @override
-  Future<PublicationDetailModel> getPublicationDetail({required String id}) {
-    throw ServerException(
-      code: 'ENDPOINT_NOT_AVAILABLE',
-      message: 'GET /publications/:id no implementado en el backend',
-    );
+  Future<PublicationDetailModel> getPublicationDetail({
+    required String id,
+  }) async {
+    final response = await dio.get(ApiConstants.publicationByIdLive(id));
+    final json =
+        (response.data as Map<String, dynamic>)['data'] as Map<String, dynamic>;
+    return _mapToDetail(json);
   }
 
   @override
   Future<PublicationDetailModel> updatePublication({
     required String id,
     required UpdatePublicationRequestModel body,
-  }) {
-    throw ServerException(
-      code: 'ENDPOINT_NOT_AVAILABLE',
-      message: 'PUT /publications/:id no implementado en el backend',
+  }) async {
+    final response = await dio.put(
+      ApiConstants.publicationByIdLive(id),
+      data: body.toJson(),
     );
+    final json =
+        (response.data as Map<String, dynamic>)['data'] as Map<String, dynamic>;
+    return _mapToDetail(json);
   }
 
   @override
   Future<void> togglePublicationStatus({
     required String id,
     required bool isActive,
-  }) {
-    throw ServerException(
-      code: 'ENDPOINT_NOT_AVAILABLE',
-      message: 'PATCH /publications/:id/status no implementado en el backend',
+  }) async {
+    await dio.put(
+      ApiConstants.publicationByIdLive(id),
+      data: {'isActive': isActive},
     );
   }
 
   @override
-  Future<void> deletePublication({required String id}) {
-    throw ServerException(
-      code: 'ENDPOINT_NOT_AVAILABLE',
-      message: 'DELETE /publications/:id no implementado en el backend',
-    );
+  Future<void> deletePublication({required String id}) async {
+    await dio.delete(ApiConstants.publicationByIdLive(id));
   }
 
   PublicationDetailModel _mapToDetail(Map<String, dynamic> json) {
+    // GET /:id incluye owner {name, avatarUrl}; create/update no lo incluyen.
+    final owner = (json['owner'] as Map?)?.cast<String, dynamic>() ?? const {};
     return PublicationDetailModel(
       id: json['id'] as String,
       title: json['title'] as String,
@@ -119,7 +127,7 @@ class PublicationsRemoteDatasourceRealImpl
       city: json['city'] as String?,
       category: json['category'] as String? ?? 'OTROS',
       ownerId: json['ownerId'] as String? ?? '',
-      ownerName: '',
+      ownerName: owner['name'] as String? ?? '',
       rating: null,
       isActive: json['isActive'] as bool? ?? true,
       availability: AvailabilityConfigModel.fromJson(
