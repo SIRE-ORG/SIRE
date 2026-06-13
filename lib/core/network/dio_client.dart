@@ -15,7 +15,11 @@ class DioClient {
     final dio = Dio(
       BaseOptions(
         baseUrl: ApiConstants.baseUrl,
-        contentType: 'application/json',
+        // NO fijar contentType global: Dio ya pone application/json cuando hay
+        // body Map/List. Forzarlo hace que requests SIN body (PATCH
+        // /auth/account-status, DELETE /publications/:id) manden el header con
+        // cuerpo vacío, y Fastify los rechaza con 400 FST_ERR_CTP_EMPTY_JSON_BODY
+        // (hallazgo H7). Sin el header global, esos endpoints sin body funcionan.
         responseType: ResponseType.json,
       ),
     );
