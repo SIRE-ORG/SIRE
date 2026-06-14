@@ -1,8 +1,3 @@
-// PI-PROV-02 / PI-PROV-03 — Providers del feed con la fuente de datos
-// sustituida. El FeedNotifier.build() lee la región cacheada de
-// FlutterSecureStorage, por lo que esta suite requiere binding de widgets y
-// mock de secure storage.
-
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -13,24 +8,19 @@ import 'package:sire/features/feed/data/models/feed_response_model.dart';
 import 'package:sire/features/feed/data/models/publication_summary_model.dart';
 import 'package:sire/features/feed/presentation/providers/feed_provider.dart';
 import 'package:sire/features/publications/domain/entities/publication.dart';
-
 import '../../../../helpers/test_doubles.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   setUp(() {
-    // Región cacheada para que build() NUNCA llame al GeoDatasource.
     FlutterSecureStorage.setMockInitialValues({'last_region': 'Araucania'});
   });
 
-  /// Crea un [ProviderContainer] con los datasources sustituidos.
   ProviderContainer containerCon(FeedRemoteDatasource datasource) {
     final container = ProviderContainer(
       overrides: [
         feedRemoteDatasourceProvider.overrideWithValue(datasource),
-        // Defensa: si el cache de región fallara, la prueba falla con
-        // StateError claro en vez de un error oscuro de canal de plataforma.
         geoDatasourceProvider.overrideWithValue(const UnusedGeoDatasource()),
       ],
     );
@@ -38,9 +28,8 @@ void main() {
     return container;
   }
 
-  group('PI-PROV-01: carga → datos', () {
-    test('el notifier entrega FeedPage con entidades mapeadas y región del '
-        'cache', () async {
+  group('PI-PROV-01: carga -> datos', () {
+    test('estado inicial AsyncLoading y pasa a AsyncData al resolver la peticion', () async {
       final container = containerCon(
         StubFeedRemoteDatasource(
           response: FeedResponseModel(
@@ -66,10 +55,13 @@ void main() {
 
       final sub = container.listen(feedNotifierProvider, (_, _) {});
 
-      expect(container.read(feedNotifierProvider).isLoading, isTrue);
+      expect(container.read(feedNotifierProvider), isA<AsyncLoading>());
 
       final page = await container.read(feedNotifierProvider.future);
 
+      final finalState = container.read(feedNotifierProvider);
+      expect(finalState, isA<AsyncData>());
+      
       expect(page.items.single.category, PublicationCategory.deporte);
       expect(page.currentRegion, 'Araucania');
 
@@ -77,22 +69,19 @@ void main() {
     });
   });
 
-  group('PI-PROV-02: error del repositorio → AsyncError', () {
-    test(
-      'el error se propaga como estado sin excepción sin capturar',
-      () async {
-        final container = containerCon(
-          StubFeedRemoteDatasource(error: NetworkException()),
-        );
+  group('PI-PROV-02: error del repositorio -> AsyncError', () {
+    test('el error se propaga como estado sin excepcion sin capturar', () async {
+      final container = containerCon(
+        StubFeedRemoteDatasource(error: NetworkException()),
+      );
 
-        await expectLater(
-          container.read(feedNotifierProvider.future),
-          throwsA(isA<NetworkException>()),
-        );
+      await expectLater(
+        container.read(feedNotifierProvider.future),
+        throwsA(isA<NetworkException>()),
+      );
 
-        expect(container.read(feedNotifierProvider).hasError, isTrue);
-      },
-    );
+      expect(container.read(feedNotifierProvider).hasError, isTrue);
+    });
   });
 
   group('PI-PROV-03: flag por defecto selecciona el mock', () {
