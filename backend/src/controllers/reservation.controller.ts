@@ -125,3 +125,55 @@ export const updateReservationStatus = async (request: FastifyRequest, reply: Fa
         });
     }
 };
+
+// PATCH /api/v1/reservations/:id/cancel -> Cancelar una reserva
+export const cancelReservation = async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+        const { id } = request.params as { id: string };
+        const userId = request.headers['x-user-id'] as string;
+
+        if (!userId) {
+            return reply.status(401).send({
+                error: { code: 'UNAUTHORIZED', message: 'Se requiere el header x-user-id' }
+            });
+        }
+
+        const existingReservation = await prisma.reservation.findUnique({
+            where: { id }
+        });
+
+        if (!existingReservation) {
+            return reply.status(404).send({
+                error: { code: 'NOT_FOUND', message: 'La reserva no existe' }
+            });
+        }
+
+        if (existingReservation.solicitanteId !== userId) {
+            return reply.status(403).send({
+                error: { code: 'FORBIDDEN', message: 'No puedes cancelar una reserva que no solicitaste' }
+            });
+        }
+
+        if (existingReservation.status !== ReservationStatus.pending) {
+            return reply.status(400).send({
+                error: { code: 'BAD_REQUEST', message: 'Solo puedes cancelar reservas que estén en estado pendiente' }
+            });
+        }
+
+        const cancelledReservation = await prisma.reservation.update({
+            where: { id },
+            data: { status: ReservationStatus.cancelled }
+        });
+
+        return reply.status(200).send({
+            message: 'Reserva cancelada exitosamente',
+            data: cancelledReservation
+        });
+
+    } catch (error) {
+        console.error("ERROR CANCELANDO RESERVA:", error);
+        return reply.status(500).send({
+            error: { code: 'INTERNAL_SERVER_ERROR', message: 'Error al cancelar la reserva' }
+        });
+    }
+};
