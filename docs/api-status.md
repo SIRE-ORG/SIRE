@@ -156,3 +156,4 @@ Se levantó la arquitectura base con Fastify + Prisma ORM + Supabase PostgreSQL.
 | POST | /api/v1/reservations | ✅ Listo | Crea la solicitud en estado `pending`. Requiere header `x-user-id` (solicitante) |
 | GET | /api/v1/reservations/mine | ✅ Listo | Reservas del solicitante. Incluye datos de la publicación |
 | PATCH | /api/v1/reservations/:id/status | ✅ Listo | Solo el dueño de la publicación acepta/rechaza. Valida el estado contra el enum (minúsculas) |
+PATCH | /api/v1/reservations/:id/cancel | ✅ Listo | |
