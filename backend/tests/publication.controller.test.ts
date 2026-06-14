@@ -8,7 +8,7 @@ import {
     deletePublication
 } from '../src/controllers/publication.controller';
 
-const prismaMock = {
+const prismaMock = vi.hoisted(() => ({
     publication: {
         findMany: vi.fn(),
         findUnique: vi.fn(),
@@ -19,10 +19,10 @@ const prismaMock = {
     profile: {
         findUnique: vi.fn(),
     }
-};
+}));
 
 vi.mock('@prisma/client', () => ({
-    PrismaClient: vi.fn(() => prismaMock),
+    PrismaClient: class { constructor() { return prismaMock; } },
     AccountStatus: { guest: 'guest', active: 'active' }
 }));
 
@@ -130,7 +130,7 @@ describe('Módulo 2: Publicaciones', () => {
     });
 
     //MÓDULO 4: EXCEPCIONES GLOBALES
-    it('Excepciones: Debería retornar 500 si la BD falla al obtener publicaciones', async () => {
+    it('Excepciones: Debería retornar 500 si Prisma falla al obtener publicaciones', async () => {
         prismaMock.publication.findMany.mockRejectedValue(new Error('Caída de BD'));
         await getPublications(mockRequest, mockReply);
         expect(mockReply.status).toHaveBeenCalledWith(500);

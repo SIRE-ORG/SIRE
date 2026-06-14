@@ -1,16 +1,16 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { registerGuest, updateAccountStatus, getMe } from '../src/controllers/auth.controller';
 
-const prismaMock = {
+const prismaMock = vi.hoisted(() => ({
     profile: {
         create: vi.fn(),
         update: vi.fn(),
         findUnique: vi.fn(),
     }
-};
+}));
 
 vi.mock('@prisma/client', () => ({
-    PrismaClient: vi.fn(() => prismaMock),
+    PrismaClient: class { constructor() { return prismaMock; } },
     AccountStatus: { guest: 'guest', active: 'active' }
 }));
 
