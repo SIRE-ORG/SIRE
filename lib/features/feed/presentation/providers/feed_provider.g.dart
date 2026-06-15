@@ -7,7 +7,7 @@ part of 'feed_provider.dart';
 // **************************************************************************
 
 String _$feedRemoteDatasourceHash() =>
-    r'266e0484d4423a1565a6c67fba8a8fe2b3b10216';
+    r'a8147dd9594b80a72982eba9bfa39bcb8bad8cad';
 
 /// See also [feedRemoteDatasource].
 @ProviderFor(feedRemoteDatasource)
