@@ -10,5 +10,5 @@ export async function reservationRoutes(app: FastifyInstance) {
     app.post('/', createReservation);
     app.get('/mine', getMyReservations);
     app.patch('/:id/status', updateReservationStatus);
-    app.delete('/:id', cancelReservation);
+    app.delete('/:id/cancel', cancelReservation);
 }
