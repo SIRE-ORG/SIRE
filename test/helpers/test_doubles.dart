@@ -10,6 +10,9 @@ import 'package:sire/features/publications/data/datasources/publications_remote_
 import 'package:sire/features/publications/data/models/create_publication_request_model.dart';
 import 'package:sire/features/publications/data/models/publication_detail_model.dart';
 import 'package:sire/features/publications/data/models/update_publication_request_model.dart';
+import 'package:sire/features/reservations/data/datasources/reservations_remote_datasource.dart';
+import 'package:sire/features/reservations/data/models/create_reservation_request_model.dart';
+import 'package:sire/features/reservations/data/models/reservation_model.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 // ---------------------------------------------------------------------------
@@ -129,5 +132,47 @@ class StubPublicationsRemoteDatasource implements PublicationsRemoteDatasource {
 
   @override
   Future<void> deletePublication({required String id}) =>
+      throw UnimplementedError();
+}
+
+// ---------------------------------------------------------------------------
+// Reservations — fakes de datasources
+// ---------------------------------------------------------------------------
+
+/// ReservationsRemoteDatasource controlable para pruebas de providers.
+/// Solo implementa lo que esas pruebas ejercitan; el resto no debe llamarse.
+class StubReservationsRemoteDatasource implements ReservationsRemoteDatasource {
+  const StubReservationsRemoteDatasource({this.myResponse, this.error});
+
+  final List<ReservationModel>? myResponse;
+  final Object? error;
+
+  @override
+  Future<ReservationModel> createReservation({
+    required CreateReservationRequestModel body,
+  }) => throw UnimplementedError();
+
+  @override
+  Future<List<ReservationModel>> getMyReservations() async {
+    if (error != null) throw error!;
+    return myResponse!;
+  }
+
+  @override
+  Future<ReservationModel> updateReservationStatus({
+    required String id,
+    required String status,
+  }) => throw UnimplementedError();
+
+  @override
+  Future<ReservationModel> cancelReservation({required String id}) =>
+      throw UnimplementedError();
+
+  @override
+  Future<List<ReservationModel>> getReceivedReservations() =>
+      throw UnimplementedError();
+
+  @override
+  Future<ReservationModel> getReservationDetail({required String id}) =>
       throw UnimplementedError();
 }

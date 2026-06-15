@@ -31,6 +31,12 @@ const _fixtureEmail = 'pi-test@sire.cl';
 const _fixtureId = 'aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa'; // UUID v4 fijo
 const _fixtureName = '[PI-TEST] owner';
 
+// Solicitante: identidad fija adicional para pruebas de reservas.
+const _fixtureSolicitanteEmail = 'pi-test-solicitante@sire.cl';
+const _fixtureSolicitanteId =
+    'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbbbb'; // UUID v4 fijo
+const _fixtureSolicitanteName = '[PI-TEST] solicitante';
+
 void main() {
   if (_backendUrl.isEmpty) {
     test(
@@ -47,7 +53,9 @@ void main() {
   late Dio dio;
   late String regionPrueba;
   String? ownerId;
+  String? solicitanteId;
   final creadas = <String>[];
+  final reservasCreadas = <String>[];
 
   setUpAll(() async {
     dio = Dio(
@@ -105,9 +113,61 @@ void main() {
     } catch (_) {
       ownerId = null;
     }
+
+    // ——— Siembra del solicitante (para pruebas de reservas) ———
+    try {
+      await dio.post(
+        ApiConstants.authRegisterGuest,
+        data: {
+          'id': _fixtureSolicitanteId,
+          'email': _fixtureSolicitanteEmail,
+          'name': _fixtureSolicitanteName,
+        },
+      );
+    } catch (_) {
+      /* ya existe */
+    }
+
+    try {
+      await dio.patch(
+        ApiConstants.authAccountStatus,
+        options: Options(headers: {'x-user-id': _fixtureSolicitanteId}),
+      );
+    } catch (_) {
+      /* best-effort */
+    }
+
+    try {
+      final r = await dio.get(ApiConstants.usersProfiles);
+      final perfiles = (r.data as List).cast<Map<String, dynamic>>();
+      final fixture = perfiles.cast<Map<String, dynamic>?>().firstWhere(
+        (p) => p?['email'] == _fixtureSolicitanteEmail,
+        orElse: () => null,
+      );
+      solicitanteId = fixture?['id'] as String?;
+    } catch (_) {
+      solicitanteId = null;
+    }
   });
 
   tearDownAll(() async {
+    // Limpieza best-effort de reservas: marcar como cancelled/failed
+    // (no hay DELETE /reservations/:id; FK impide borrar la publicación
+    // mientras tenga reservas activas).
+    if (ownerId != null) {
+      for (final id in reservasCreadas) {
+        try {
+          await dio.patch(
+            ApiConstants.reservationStatus(id),
+            data: {'status': 'cancelled'},
+            options: Options(headers: {'x-user-id': ownerId}),
+          );
+        } catch (_) {
+          // Best-effort.
+        }
+      }
+    }
+
     // Limpieza best-effort: borrar todas las publicaciones creadas.
     if (ownerId == null) return;
     for (final id in creadas) {
@@ -415,6 +475,158 @@ void main() {
         options: Options(headers: {'x-user-id': ownerId}),
       );
       creadas.remove(id);
+    },
+  );
+
+  // -------------------------------------------------------------------------
+  // PI-RES-01 — crear reserva y listar las mías
+  // -------------------------------------------------------------------------
+
+  // tag regresion-contrato: hoy rojo por H10 (POST /reservations da 500 en el
+  // backend). Pasará a verde cuando Cristian destrabe el INSERT; quitar el tag.
+  test(
+    'PI-RES-01 — crear reserva (POST /reservations) y recuperarla en '
+    '/mine con include de publication',
+    tags: ['regresion-contrato'],
+    () async {
+      // Sembrar una publicación del owner para reservar contra ella.
+      final pubId = await crearPublicacion(sufijo: 'res');
+      if (pubId.isEmpty || solicitanteId == null) return;
+
+      // POST /reservations con header del solicitante.
+      final r = await dio.post(
+        ApiConstants.reservations,
+        data: {
+          'publicationId': pubId,
+          'date': '2026-12-25',
+          'startTime': '10:00',
+          'endTime': '11:00',
+        },
+        options: Options(headers: {'x-user-id': solicitanteId}),
+      );
+      expect(r.statusCode, 201);
+      final data = r.data['data'] as Map<String, dynamic>;
+      expect(data['status'], 'pending');
+      expect(data['publicationId'], pubId);
+      final resId = data['id'] as String;
+      reservasCreadas.add(resId);
+
+      // GET /mine del solicitante debe incluir la reserva recién creada.
+      final mine = await dio.get(
+        ApiConstants.reservationsMine,
+        options: Options(headers: {'x-user-id': solicitanteId}),
+      );
+      expect(mine.statusCode, 200);
+      final mineData = (mine.data['data'] as List).cast<Map<String, dynamic>>();
+      final creada = mineData.firstWhere((r) => r['id'] == resId);
+      expect(creada['status'], 'pending');
+      // Include de publication aplanado.
+      expect(creada['publication'], isNotNull);
+      expect(creada['publication']['title'], isNotNull);
+      expect(creada['publication']['city'], isNotNull);
+    },
+  );
+
+  // -------------------------------------------------------------------------
+  // PI-RES-02 (H8, rojo esperado) — cancelar reserva
+  // -------------------------------------------------------------------------
+
+  test(
+    'PI-RES-02 (H8, rojo esperado): PATCH /:id/cancel con solicitante',
+    tags: ['regresion-contrato'],
+    () async {
+      final pubId = await crearPublicacion(sufijo: 'h8');
+      if (pubId.isEmpty || solicitanteId == null) return;
+
+      // Crear reserva.
+      final r = await dio.post(
+        ApiConstants.reservations,
+        data: {
+          'publicationId': pubId,
+          'date': '2026-12-26',
+          'startTime': '10:00',
+          'endTime': '11:00',
+        },
+        options: Options(headers: {'x-user-id': solicitanteId}),
+      );
+      final resId = (r.data['data'] as Map)['id'] as String;
+      reservasCreadas.add(resId);
+
+      // H8: la ruta cancel no está registrada; el backend responde 404.
+      // Este test queda rojo como evidencia documentada de la regresión.
+      try {
+        final cancel = await dio.patch(
+          ApiConstants.reservationCancel(resId),
+          options: Options(headers: {'x-user-id': solicitanteId}),
+        );
+        // Si la ruta llega a registrarse (fix H8), el test pasa a verde.
+        expect(cancel.statusCode, 200);
+        final cancelData = cancel.data['data'] as Map<String, dynamic>;
+        expect(cancelData['status'], 'cancelled');
+      } on DioException catch (e) {
+        // H8 vigente: 404 esperado.
+        expect(
+          e.response?.statusCode,
+          404,
+          reason:
+              'H8: la ruta PATCH /reservations/:id/cancel no está '
+              'registrada en el backend. Este test quedará rojo hasta que '
+              'se registre la ruta.',
+        );
+      }
+    },
+  );
+
+  // -------------------------------------------------------------------------
+  // PI-RES-03 — dueño actualiza estado; seguridad cruzada
+  // -------------------------------------------------------------------------
+
+  // tag regresion-contrato: hoy rojo por H10 (no se puede crear la reserva
+  // base por el 500 de POST /reservations). Quitar el tag cuando se arregle.
+  test(
+    'PI-RES-03 — dueño actualiza estado de reserva; no-dueño recibe 403',
+    tags: ['regresion-contrato'],
+    () async {
+      final pubId = await crearPublicacion(sufijo: 'perm');
+      if (pubId.isEmpty || ownerId == null || solicitanteId == null) return;
+
+      // Crear reserva como solicitante.
+      final r = await dio.post(
+        ApiConstants.reservations,
+        data: {
+          'publicationId': pubId,
+          'date': '2026-12-27',
+          'startTime': '10:00',
+          'endTime': '11:00',
+        },
+        options: Options(headers: {'x-user-id': solicitanteId}),
+      );
+      final resId = (r.data['data'] as Map)['id'] as String;
+      reservasCreadas.add(resId);
+
+      // Dueño (owner) PATCH /:id/status → 200.
+      final actualizada = await dio.patch(
+        ApiConstants.reservationStatus(resId),
+        data: {'status': 'rejected'},
+        options: Options(headers: {'x-user-id': ownerId}),
+      );
+      expect(actualizada.statusCode, 200);
+      final data = actualizada.data['data'] as Map<String, dynamic>;
+      expect(data['status'], 'rejected');
+
+      // Cruzado: solicitante (no dueño) PATCH /:id/status → 403.
+      try {
+        await dio.patch(
+          ApiConstants.reservationStatus(resId),
+          data: {'status': 'completed'},
+          options: Options(headers: {'x-user-id': solicitanteId}),
+        );
+        fail('Se esperaba 403');
+      } on DioException catch (e) {
+        expect(e.response?.statusCode, 403);
+        expect(e.error, isA<ServerException>());
+        expect((e.error as ServerException).code, 'FORBIDDEN');
+      }
     },
   );
 }

@@ -56,6 +56,32 @@ Map<String, dynamic> profileJson({
   'createdAt': '2026-05-10T00:00:00.000Z',
 };
 
+/// Reserva como la devuelve GET /reservations/mine (publication incluido)
+/// o POST /reservations (sin publication) según [withPublication].
+Map<String, dynamic> reservationJson({
+  String id = 'res-1',
+  String publicationId = 'pub-1',
+  String date = '2026-06-20',
+  String startTime = '10:00',
+  String endTime = '11:00',
+  String status = 'pending',
+  bool withPublication = true,
+}) => {
+  'id': id,
+  'publicationId': publicationId,
+  'date': date,
+  'startTime': startTime,
+  'endTime': endTime,
+  'status': status,
+  'createdAt': '2026-06-15T12:00:00.000Z',
+  if (withPublication)
+    'publication': {
+      'title': 'Cancha Los Alerces',
+      'city': 'Temuco',
+      'imageUrl': null,
+    },
+};
+
 /// Cuerpo de error estándar del contrato.
 Map<String, dynamic> errorBody(
   String code,
