@@ -4,23 +4,22 @@ import 'package:go_router/go_router.dart';
 import 'package:sire/features/auth/presentation/screens/location_screen.dart';
 
 void main() {
-  GoRouter _buildRouter() {
+  GoRouter buildRouter() {
     return GoRouter(
       initialLocation: '/location',
       routes: [
-        GoRoute(
-          path: '/location',
-          builder: (_, __) => const LocationScreen(),
-        ),
+        GoRoute(path: '/location', builder: (_, _) => const LocationScreen()),
         GoRoute(
           path: '/feed',
-          builder: (_, __) => const Scaffold(body: Text('Pantalla Feed')),
+          builder: (_, _) => const Scaffold(body: Text('Pantalla Feed')),
         ),
       ],
     );
   }
 
-  testWidgets('LocationScreen muestra contenido principal', (WidgetTester tester) async {
+  testWidgets('LocationScreen muestra contenido principal', (
+    WidgetTester tester,
+  ) async {
     final originalOnError = FlutterError.onError;
     FlutterError.onError = (FlutterErrorDetails details) {
       if (details.exceptionAsString().contains('overflowed')) return;
@@ -30,7 +29,7 @@ void main() {
     tester.view.physicalSize = const Size(1080, 2400);
     tester.view.devicePixelRatio = 1.0;
 
-    await tester.pumpWidget(MaterialApp.router(routerConfig: _buildRouter()));
+    await tester.pumpWidget(MaterialApp.router(routerConfig: buildRouter()));
     await tester.pump();
 
     expect(find.text('¿Dónde estás?'), findsOneWidget);
@@ -44,7 +43,9 @@ void main() {
     });
   });
 
-  testWidgets('LocationScreen navega a /feed al pulsar Permitir ubicación', (WidgetTester tester) async {
+  testWidgets('LocationScreen navega a /feed al pulsar Permitir ubicación', (
+    WidgetTester tester,
+  ) async {
     final originalOnError = FlutterError.onError;
     FlutterError.onError = (FlutterErrorDetails details) {
       if (details.exceptionAsString().contains('overflowed')) return;
@@ -54,7 +55,7 @@ void main() {
     tester.view.physicalSize = const Size(1080, 2400);
     tester.view.devicePixelRatio = 1.0;
 
-    await tester.pumpWidget(MaterialApp.router(routerConfig: _buildRouter()));
+    await tester.pumpWidget(MaterialApp.router(routerConfig: buildRouter()));
     await tester.pump();
 
     await tester.tap(find.text('Permitir ubicación'));
@@ -69,7 +70,9 @@ void main() {
     });
   });
 
-  testWidgets('LocationScreen navega a /feed al pulsar selección manual', (WidgetTester tester) async {
+  testWidgets('LocationScreen navega a /feed al pulsar selección manual', (
+    WidgetTester tester,
+  ) async {
     final originalOnError = FlutterError.onError;
     FlutterError.onError = (FlutterErrorDetails details) {
       if (details.exceptionAsString().contains('overflowed')) return;
@@ -79,7 +82,7 @@ void main() {
     tester.view.physicalSize = const Size(1080, 2400);
     tester.view.devicePixelRatio = 1.0;
 
-    await tester.pumpWidget(MaterialApp.router(routerConfig: _buildRouter()));
+    await tester.pumpWidget(MaterialApp.router(routerConfig: buildRouter()));
     await tester.pump();
 
     await tester.tap(find.text('Seleccionar ubicación manualmente'));
@@ -94,7 +97,9 @@ void main() {
     });
   });
 
-  testWidgets('LocationScreen muestra aviso de privacidad', (WidgetTester tester) async {
+  testWidgets('LocationScreen muestra aviso de privacidad', (
+    WidgetTester tester,
+  ) async {
     final originalOnError = FlutterError.onError;
     FlutterError.onError = (FlutterErrorDetails details) {
       if (details.exceptionAsString().contains('overflowed')) return;
@@ -104,7 +109,7 @@ void main() {
     tester.view.physicalSize = const Size(1080, 2400);
     tester.view.devicePixelRatio = 1.0;
 
-    await tester.pumpWidget(MaterialApp.router(routerConfig: _buildRouter()));
+    await tester.pumpWidget(MaterialApp.router(routerConfig: buildRouter()));
     await tester.pump();
 
     expect(

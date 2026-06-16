@@ -10,7 +10,9 @@ import 'package:sire/features/publications/presentation/screens/create_publicati
 import 'package:sire/features/publications/presentation/screens/dashboard_screen.dart';
 
 void main() {
-  testWidgets('Renderizado general de pantallas y navegacion', (WidgetTester tester) async {
+  testWidgets('Renderizado general de pantallas y navegacion', (
+    WidgetTester tester,
+  ) async {
     final originalOnError = FlutterError.onError;
     FlutterError.onError = (FlutterErrorDetails details) {
       if (details.exceptionAsString().contains('overflowed')) return;
@@ -21,16 +23,18 @@ void main() {
     final mockRouter = GoRouter(
       initialLocation: '/1',
       routes: [
-        GoRoute(path: '/1', builder: (_, __) => const NotificationsScreen()),
-        GoRoute(path: '/2', builder: (_, __) => const ProfileScreen()),
-        GoRoute(path: '/3', builder: (_, __) => const MyReservationsScreen()),
-        GoRoute(path: '/4', builder: (_, __) => const MyPublicationsScreen()),
-        GoRoute(path: '/5', builder: (_, __) => const CreatePublicationScreen()),
-        GoRoute(path: '/6', builder: (_, __) => const DashboardScreen()),
+        GoRoute(path: '/1', builder: (_, _) => const NotificationsScreen()),
+        GoRoute(path: '/2', builder: (_, _) => const ProfileScreen()),
+        GoRoute(path: '/3', builder: (_, _) => const MyReservationsScreen()),
+        GoRoute(path: '/4', builder: (_, _) => const MyPublicationsScreen()),
+        GoRoute(path: '/5', builder: (_, _) => const CreatePublicationScreen()),
+        GoRoute(path: '/6', builder: (_, _) => const DashboardScreen()),
       ],
     );
 
-    await tester.pumpWidget(ProviderScope(child: MaterialApp.router(routerConfig: mockRouter)));
+    await tester.pumpWidget(
+      ProviderScope(child: MaterialApp.router(routerConfig: mockRouter)),
+    );
     await tester.pumpAndSettle();
 
     mockRouter.go('/2');

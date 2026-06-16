@@ -5,36 +5,38 @@ import 'package:go_router/go_router.dart';
 import 'package:sire/features/publications/presentation/screens/create_publication_screen.dart';
 
 void main() {
-  Widget _buildSubject({Size size = const Size(1080, 2400)}) {
+  Widget buildSubject({Size size = const Size(1080, 2400)}) {
     final mockRouter = GoRouter(
       initialLocation: '/create-publication',
       routes: [
         GoRoute(
           path: '/create-publication',
-          builder: (_, __) => const CreatePublicationScreen(),
+          builder: (_, _) => const CreatePublicationScreen(),
         ),
         GoRoute(
           path: '/feed',
-          builder: (_, __) => const Scaffold(body: Text('Feed')),
+          builder: (_, _) => const Scaffold(body: Text('Feed')),
         ),
         GoRoute(
           path: '/dashboard',
-          builder: (_, __) => const Scaffold(body: Text('Dashboard')),
+          builder: (_, _) => const Scaffold(body: Text('Dashboard')),
         ),
         GoRoute(
           path: '/profile',
-          builder: (_, __) => const Scaffold(body: Text('Perfil')),
+          builder: (_, _) => const Scaffold(body: Text('Perfil')),
         ),
         GoRoute(
           path: '/my-reservations',
-          builder: (_, __) => const Scaffold(body: Text('Reservas')),
+          builder: (_, _) => const Scaffold(body: Text('Reservas')),
         ),
       ],
     );
     return ProviderScope(child: MaterialApp.router(routerConfig: mockRouter));
   }
 
-  testWidgets('CreatePublicationScreen muestra título del formulario', (WidgetTester tester) async {
+  testWidgets('CreatePublicationScreen muestra título del formulario', (
+    WidgetTester tester,
+  ) async {
     final originalOnError = FlutterError.onError;
     FlutterError.onError = (FlutterErrorDetails details) {
       if (details.exceptionAsString().contains('overflowed')) return;
@@ -43,7 +45,7 @@ void main() {
     tester.view.physicalSize = const Size(1080, 2400);
     tester.view.devicePixelRatio = 1.0;
 
-    await tester.pumpWidget(_buildSubject());
+    await tester.pumpWidget(buildSubject());
     await tester.pumpAndSettle();
 
     expect(find.text('Crear publicación'), findsWidgets);
@@ -55,7 +57,9 @@ void main() {
     });
   });
 
-  testWidgets('CreatePublicationScreen muestra campos del formulario', (WidgetTester tester) async {
+  testWidgets('CreatePublicationScreen muestra campos del formulario', (
+    WidgetTester tester,
+  ) async {
     final originalOnError = FlutterError.onError;
     FlutterError.onError = (FlutterErrorDetails details) {
       if (details.exceptionAsString().contains('overflowed')) return;
@@ -64,7 +68,7 @@ void main() {
     tester.view.physicalSize = const Size(1080, 2400);
     tester.view.devicePixelRatio = 1.0;
 
-    await tester.pumpWidget(_buildSubject());
+    await tester.pumpWidget(buildSubject());
     await tester.pumpAndSettle();
 
     expect(find.text('Nombre del servicio'), findsOneWidget);
@@ -79,7 +83,9 @@ void main() {
     });
   });
 
-  testWidgets('CreatePublicationScreen muestra sección Agenda Inteligente', (WidgetTester tester) async {
+  testWidgets('CreatePublicationScreen muestra sección Agenda Inteligente', (
+    WidgetTester tester,
+  ) async {
     final originalOnError = FlutterError.onError;
     FlutterError.onError = (FlutterErrorDetails details) {
       if (details.exceptionAsString().contains('overflowed')) return;
@@ -88,7 +94,7 @@ void main() {
     tester.view.physicalSize = const Size(1080, 2400);
     tester.view.devicePixelRatio = 1.0;
 
-    await tester.pumpWidget(_buildSubject());
+    await tester.pumpWidget(buildSubject());
     await tester.pumpAndSettle();
 
     expect(find.text('Agenda Inteligente'), findsOneWidget);
@@ -104,7 +110,9 @@ void main() {
     });
   });
 
-  testWidgets('CreatePublicationScreen muestra opciones de tipo de horario', (WidgetTester tester) async {
+  testWidgets('CreatePublicationScreen muestra opciones de tipo de horario', (
+    WidgetTester tester,
+  ) async {
     final originalOnError = FlutterError.onError;
     FlutterError.onError = (FlutterErrorDetails details) {
       if (details.exceptionAsString().contains('overflowed')) return;
@@ -113,7 +121,7 @@ void main() {
     tester.view.physicalSize = const Size(1080, 2400);
     tester.view.devicePixelRatio = 1.0;
 
-    await tester.pumpWidget(_buildSubject());
+    await tester.pumpWidget(buildSubject());
     await tester.pumpAndSettle();
 
     expect(find.text('Mismo horario todos los días'), findsOneWidget);
@@ -127,7 +135,9 @@ void main() {
     });
   });
 
-  testWidgets('CreatePublicationScreen toca opción 60 min', (WidgetTester tester) async {
+  testWidgets('CreatePublicationScreen toca opción 60 min', (
+    WidgetTester tester,
+  ) async {
     final originalOnError = FlutterError.onError;
     FlutterError.onError = (FlutterErrorDetails details) {
       if (details.exceptionAsString().contains('overflowed')) return;
@@ -136,7 +146,7 @@ void main() {
     tester.view.physicalSize = const Size(1080, 2400);
     tester.view.devicePixelRatio = 1.0;
 
-    await tester.pumpWidget(_buildSubject());
+    await tester.pumpWidget(buildSubject());
     await tester.pumpAndSettle();
 
     await tester.tap(find.text('60 min'));
@@ -151,7 +161,38 @@ void main() {
     });
   });
 
-  testWidgets('CreatePublicationScreen toca Personalizar por día muestra días', (WidgetTester tester) async {
+  testWidgets(
+    'CreatePublicationScreen toca Personalizar por día muestra días',
+    (WidgetTester tester) async {
+      final originalOnError = FlutterError.onError;
+      FlutterError.onError = (FlutterErrorDetails details) {
+        if (details.exceptionAsString().contains('overflowed')) return;
+        originalOnError?.call(details);
+      };
+      tester.view.physicalSize = const Size(1080, 2400);
+      tester.view.devicePixelRatio = 1.0;
+
+      await tester.pumpWidget(buildSubject());
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Personalizar por día'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Lunes'), findsOneWidget);
+      expect(find.text('Martes'), findsOneWidget);
+      expect(find.text('Sábado'), findsOneWidget);
+
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+        FlutterError.onError = originalOnError;
+      });
+    },
+  );
+
+  testWidgets('CreatePublicationScreen muestra botón Guardar publicación', (
+    WidgetTester tester,
+  ) async {
     final originalOnError = FlutterError.onError;
     FlutterError.onError = (FlutterErrorDetails details) {
       if (details.exceptionAsString().contains('overflowed')) return;
@@ -160,33 +201,7 @@ void main() {
     tester.view.physicalSize = const Size(1080, 2400);
     tester.view.devicePixelRatio = 1.0;
 
-    await tester.pumpWidget(_buildSubject());
-    await tester.pumpAndSettle();
-
-    await tester.tap(find.text('Personalizar por día'));
-    await tester.pumpAndSettle();
-
-    expect(find.text('Lunes'), findsOneWidget);
-    expect(find.text('Martes'), findsOneWidget);
-    expect(find.text('Sábado'), findsOneWidget);
-
-    addTearDown(() {
-      tester.view.resetPhysicalSize();
-      tester.view.resetDevicePixelRatio();
-      FlutterError.onError = originalOnError;
-    });
-  });
-
-  testWidgets('CreatePublicationScreen muestra botón Guardar publicación', (WidgetTester tester) async {
-    final originalOnError = FlutterError.onError;
-    FlutterError.onError = (FlutterErrorDetails details) {
-      if (details.exceptionAsString().contains('overflowed')) return;
-      originalOnError?.call(details);
-    };
-    tester.view.physicalSize = const Size(1080, 2400);
-    tester.view.devicePixelRatio = 1.0;
-
-    await tester.pumpWidget(_buildSubject());
+    await tester.pumpWidget(buildSubject());
     await tester.pumpAndSettle();
 
     expect(find.text('Guardar publicación'), findsOneWidget);
@@ -198,7 +213,9 @@ void main() {
     });
   });
 
-  testWidgets('CreatePublicationScreen layout móvil muestra AppBar', (WidgetTester tester) async {
+  testWidgets('CreatePublicationScreen layout móvil muestra AppBar', (
+    WidgetTester tester,
+  ) async {
     final originalOnError = FlutterError.onError;
     FlutterError.onError = (FlutterErrorDetails details) {
       if (details.exceptionAsString().contains('overflowed')) return;
@@ -207,7 +224,7 @@ void main() {
     tester.view.physicalSize = const Size(390, 844);
     tester.view.devicePixelRatio = 1.0;
 
-    await tester.pumpWidget(_buildSubject(size: const Size(390, 844)));
+    await tester.pumpWidget(buildSubject(size: const Size(390, 844)));
     await tester.pumpAndSettle();
 
     expect(find.byType(AppBar), findsOneWidget);
@@ -220,7 +237,9 @@ void main() {
     });
   });
 
-  testWidgets('CreatePublicationScreen toca 90 min actualiza selección', (WidgetTester tester) async {
+  testWidgets('CreatePublicationScreen toca 90 min actualiza selección', (
+    WidgetTester tester,
+  ) async {
     final originalOnError = FlutterError.onError;
     FlutterError.onError = (FlutterErrorDetails details) {
       if (details.exceptionAsString().contains('overflowed')) return;
@@ -229,7 +248,7 @@ void main() {
     tester.view.physicalSize = const Size(1080, 2400);
     tester.view.devicePixelRatio = 1.0;
 
-    await tester.pumpWidget(_buildSubject());
+    await tester.pumpWidget(buildSubject());
     await tester.pumpAndSettle();
 
     await tester.tap(find.text('90 min'));

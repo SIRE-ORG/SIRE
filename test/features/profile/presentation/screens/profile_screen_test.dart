@@ -6,41 +6,38 @@ import 'package:sire/features/profile/presentation/screens/profile_screen.dart';
 import 'package:sire/core/providers/role_provider.dart';
 
 void main() {
-  Widget _buildSubject({bool isPublisher = false}) {
+  Widget buildSubject({bool isPublisher = false}) {
     final mockRouter = GoRouter(
       initialLocation: '/profile',
       routes: [
-        GoRoute(
-          path: '/profile',
-          builder: (_, __) => const ProfileScreen(),
-        ),
+        GoRoute(path: '/profile', builder: (_, _) => const ProfileScreen()),
         GoRoute(
           path: '/feed',
-          builder: (_, __) => const Scaffold(body: Text('Feed')),
+          builder: (_, _) => const Scaffold(body: Text('Feed')),
         ),
         GoRoute(
           path: '/my-reservations',
-          builder: (_, __) => const Scaffold(body: Text('Mis Reservas')),
+          builder: (_, _) => const Scaffold(body: Text('Mis Reservas')),
         ),
         GoRoute(
           path: '/dashboard',
-          builder: (_, __) => const Scaffold(body: Text('Dashboard')),
+          builder: (_, _) => const Scaffold(body: Text('Dashboard')),
         ),
         GoRoute(
           path: '/edit-profile',
-          builder: (_, __) => const Scaffold(body: Text('Editar Perfil')),
+          builder: (_, _) => const Scaffold(body: Text('Editar Perfil')),
         ),
       ],
     );
     return ProviderScope(
-      overrides: [
-        isPublisherProvider.overrideWith((ref) => isPublisher),
-      ],
+      overrides: [isPublisherProvider.overrideWith((ref) => isPublisher)],
       child: MaterialApp.router(routerConfig: mockRouter),
     );
   }
 
-  testWidgets('ProfileScreen muestra nombre de usuario', (WidgetTester tester) async {
+  testWidgets('ProfileScreen muestra nombre de usuario', (
+    WidgetTester tester,
+  ) async {
     final originalOnError = FlutterError.onError;
     FlutterError.onError = (FlutterErrorDetails details) {
       if (details.exceptionAsString().contains('overflowed')) return;
@@ -48,7 +45,7 @@ void main() {
     };
     tester.view.physicalSize = const Size(1080, 2400);
 
-    await tester.pumpWidget(_buildSubject());
+    await tester.pumpWidget(buildSubject());
     await tester.pumpAndSettle();
 
     expect(find.text('María González'), findsWidgets);
@@ -59,7 +56,9 @@ void main() {
     });
   });
 
-  testWidgets('ProfileScreen muestra correo electrónico', (WidgetTester tester) async {
+  testWidgets('ProfileScreen muestra correo electrónico', (
+    WidgetTester tester,
+  ) async {
     final originalOnError = FlutterError.onError;
     FlutterError.onError = (FlutterErrorDetails details) {
       if (details.exceptionAsString().contains('overflowed')) return;
@@ -67,7 +66,7 @@ void main() {
     };
     tester.view.physicalSize = const Size(1080, 2400);
 
-    await tester.pumpWidget(_buildSubject());
+    await tester.pumpWidget(buildSubject());
     await tester.pumpAndSettle();
 
     expect(find.text('maria@correo.com'), findsWidgets);
@@ -78,7 +77,9 @@ void main() {
     });
   });
 
-  testWidgets('ProfileScreen muestra sección Editar Perfil', (WidgetTester tester) async {
+  testWidgets('ProfileScreen muestra sección Editar Perfil', (
+    WidgetTester tester,
+  ) async {
     final originalOnError = FlutterError.onError;
     FlutterError.onError = (FlutterErrorDetails details) {
       if (details.exceptionAsString().contains('overflowed')) return;
@@ -86,7 +87,7 @@ void main() {
     };
     tester.view.physicalSize = const Size(1080, 2400);
 
-    await tester.pumpWidget(_buildSubject());
+    await tester.pumpWidget(buildSubject());
     await tester.pumpAndSettle();
 
     expect(find.text('Editar perfil'), findsOneWidget);
@@ -97,7 +98,9 @@ void main() {
     });
   });
 
-  testWidgets('ProfileScreen muestra toggle de Publicador', (WidgetTester tester) async {
+  testWidgets('ProfileScreen muestra toggle de Publicador', (
+    WidgetTester tester,
+  ) async {
     final originalOnError = FlutterError.onError;
     FlutterError.onError = (FlutterErrorDetails details) {
       if (details.exceptionAsString().contains('overflowed')) return;
@@ -105,7 +108,7 @@ void main() {
     };
     tester.view.physicalSize = const Size(1080, 2400);
 
-    await tester.pumpWidget(_buildSubject());
+    await tester.pumpWidget(buildSubject());
     await tester.pumpAndSettle();
 
     expect(find.text('Publicador'), findsWidgets);
@@ -116,7 +119,9 @@ void main() {
     });
   });
 
-  testWidgets('ProfileScreen muestra opción Cerrar sesión', (WidgetTester tester) async {
+  testWidgets('ProfileScreen muestra opción Cerrar sesión', (
+    WidgetTester tester,
+  ) async {
     final originalOnError = FlutterError.onError;
     FlutterError.onError = (FlutterErrorDetails details) {
       if (details.exceptionAsString().contains('overflowed')) return;
@@ -124,7 +129,7 @@ void main() {
     };
     tester.view.physicalSize = const Size(1080, 2400);
 
-    await tester.pumpWidget(_buildSubject());
+    await tester.pumpWidget(buildSubject());
     await tester.pumpAndSettle();
 
     expect(find.text('Cerrar sesión'), findsOneWidget);
@@ -135,7 +140,9 @@ void main() {
     });
   });
 
-  testWidgets('ProfileScreen muestra tabs Solicitante y Publicador', (WidgetTester tester) async {
+  testWidgets('ProfileScreen muestra tabs Solicitante y Publicador', (
+    WidgetTester tester,
+  ) async {
     final originalOnError = FlutterError.onError;
     FlutterError.onError = (FlutterErrorDetails details) {
       if (details.exceptionAsString().contains('overflowed')) return;
@@ -143,7 +150,7 @@ void main() {
     };
     tester.view.physicalSize = const Size(1080, 2400);
 
-    await tester.pumpWidget(_buildSubject());
+    await tester.pumpWidget(buildSubject());
     await tester.pumpAndSettle();
 
     expect(find.text('Solicitante'), findsOneWidget);
@@ -155,7 +162,9 @@ void main() {
     });
   });
 
-  testWidgets('ProfileScreen interacción con tab Publicador cambia estado', (WidgetTester tester) async {
+  testWidgets('ProfileScreen interacción con tab Publicador cambia estado', (
+    WidgetTester tester,
+  ) async {
     final originalOnError = FlutterError.onError;
     FlutterError.onError = (FlutterErrorDetails details) {
       if (details.exceptionAsString().contains('overflowed')) return;
@@ -163,7 +172,7 @@ void main() {
     };
     tester.view.physicalSize = const Size(1080, 2400);
 
-    await tester.pumpWidget(_buildSubject());
+    await tester.pumpWidget(buildSubject());
     await tester.pumpAndSettle();
 
     await tester.tap(find.text('Publicador').first);

@@ -4,25 +4,9 @@ import 'package:go_router/go_router.dart';
 import 'package:sire/features/auth/presentation/screens/forgot_password_screen.dart';
 
 void main() {
-  GoRouter _buildRouter() {
-    return GoRouter(
-      initialLocation: '/prev',
-      routes: [
-        GoRoute(
-          path: '/prev',
-          builder: (_, __) => const Scaffold(body: Text('Pantalla anterior')),
-          routes: [
-            GoRoute(
-              path: 'forgot-password',
-              builder: (_, __) => const ForgotPasswordScreen(),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  testWidgets('ForgotPasswordScreen renderiza la UI móvil', (WidgetTester tester) async {
+  testWidgets('ForgotPasswordScreen renderiza la UI móvil', (
+    WidgetTester tester,
+  ) async {
     final originalOnError = FlutterError.onError;
     FlutterError.onError = (FlutterErrorDetails details) {
       if (details.exceptionAsString().contains('overflowed')) return;
@@ -36,7 +20,7 @@ void main() {
       routes: [
         GoRoute(
           path: '/forgot-password',
-          builder: (_, __) => const ForgotPasswordScreen(),
+          builder: (_, _) => const ForgotPasswordScreen(),
         ),
       ],
     );
@@ -55,7 +39,9 @@ void main() {
     });
   });
 
-  testWidgets('ForgotPasswordScreen muestra instrucción de correo', (WidgetTester tester) async {
+  testWidgets('ForgotPasswordScreen muestra instrucción de correo', (
+    WidgetTester tester,
+  ) async {
     final originalOnError = FlutterError.onError;
     FlutterError.onError = (FlutterErrorDetails details) {
       if (details.exceptionAsString().contains('overflowed')) return;
@@ -69,7 +55,7 @@ void main() {
       routes: [
         GoRoute(
           path: '/forgot-password',
-          builder: (_, __) => const ForgotPasswordScreen(),
+          builder: (_, _) => const ForgotPasswordScreen(),
         ),
       ],
     );
@@ -89,7 +75,9 @@ void main() {
     });
   });
 
-  testWidgets('ForgotPasswordScreen permite ingresar correo', (WidgetTester tester) async {
+  testWidgets('ForgotPasswordScreen permite ingresar correo', (
+    WidgetTester tester,
+  ) async {
     final originalOnError = FlutterError.onError;
     FlutterError.onError = (FlutterErrorDetails details) {
       if (details.exceptionAsString().contains('overflowed')) return;
@@ -103,7 +91,7 @@ void main() {
       routes: [
         GoRoute(
           path: '/forgot-password',
-          builder: (_, __) => const ForgotPasswordScreen(),
+          builder: (_, _) => const ForgotPasswordScreen(),
         ),
       ],
     );

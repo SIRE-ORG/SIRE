@@ -5,36 +5,38 @@ import 'package:go_router/go_router.dart';
 import 'package:sire/features/reservations/presentation/screens/my_reservations_screen.dart';
 
 void main() {
-  Widget _buildSubject() {
+  Widget buildSubject() {
     final mockRouter = GoRouter(
       initialLocation: '/my-reservations',
       routes: [
         GoRoute(
           path: '/my-reservations',
-          builder: (_, __) => const MyReservationsScreen(),
+          builder: (_, _) => const MyReservationsScreen(),
         ),
         GoRoute(
           path: '/feed',
-          builder: (_, __) => const Scaffold(body: Text('Feed')),
+          builder: (_, _) => const Scaffold(body: Text('Feed')),
         ),
         GoRoute(
           path: '/profile',
-          builder: (_, __) => const Scaffold(body: Text('Perfil')),
+          builder: (_, _) => const Scaffold(body: Text('Perfil')),
         ),
         GoRoute(
           path: '/dashboard',
-          builder: (_, __) => const Scaffold(body: Text('Dashboard')),
+          builder: (_, _) => const Scaffold(body: Text('Dashboard')),
         ),
         GoRoute(
           path: '/reservation/:id',
-          builder: (_, __) => const Scaffold(body: Text('Detalle Reserva')),
+          builder: (_, _) => const Scaffold(body: Text('Detalle Reserva')),
         ),
       ],
     );
     return ProviderScope(child: MaterialApp.router(routerConfig: mockRouter));
   }
 
-  testWidgets('MyReservationsScreen muestra título y pestañas', (WidgetTester tester) async {
+  testWidgets('MyReservationsScreen muestra título y pestañas', (
+    WidgetTester tester,
+  ) async {
     final originalOnError = FlutterError.onError;
     FlutterError.onError = (FlutterErrorDetails details) {
       if (details.exceptionAsString().contains('overflowed')) return;
@@ -42,7 +44,7 @@ void main() {
     };
     tester.view.physicalSize = const Size(1080, 2400);
 
-    await tester.pumpWidget(_buildSubject());
+    await tester.pumpWidget(buildSubject());
     await tester.pumpAndSettle();
 
     expect(find.text('Mis Reservas'), findsWidgets);
@@ -55,7 +57,9 @@ void main() {
     });
   });
 
-  testWidgets('MyReservationsScreen muestra reservas activas por defecto', (WidgetTester tester) async {
+  testWidgets('MyReservationsScreen muestra reservas activas por defecto', (
+    WidgetTester tester,
+  ) async {
     final originalOnError = FlutterError.onError;
     FlutterError.onError = (FlutterErrorDetails details) {
       if (details.exceptionAsString().contains('overflowed')) return;
@@ -63,7 +67,7 @@ void main() {
     };
     tester.view.physicalSize = const Size(1080, 2400);
 
-    await tester.pumpWidget(_buildSubject());
+    await tester.pumpWidget(buildSubject());
     await tester.pumpAndSettle();
 
     expect(find.text('Pendiente'), findsOneWidget);
@@ -75,7 +79,9 @@ void main() {
     });
   });
 
-  testWidgets('MyReservationsScreen cambia a pestaña Historial', (WidgetTester tester) async {
+  testWidgets('MyReservationsScreen cambia a pestaña Historial', (
+    WidgetTester tester,
+  ) async {
     final originalOnError = FlutterError.onError;
     FlutterError.onError = (FlutterErrorDetails details) {
       if (details.exceptionAsString().contains('overflowed')) return;
@@ -83,7 +89,7 @@ void main() {
     };
     tester.view.physicalSize = const Size(1080, 2400);
 
-    await tester.pumpWidget(_buildSubject());
+    await tester.pumpWidget(buildSubject());
     await tester.pumpAndSettle();
 
     await tester.tap(find.text('Historial'));
@@ -97,7 +103,9 @@ void main() {
     });
   });
 
-  testWidgets('MyReservationsScreen muestra iconos de navegación', (WidgetTester tester) async {
+  testWidgets('MyReservationsScreen muestra iconos de navegación', (
+    WidgetTester tester,
+  ) async {
     final originalOnError = FlutterError.onError;
     FlutterError.onError = (FlutterErrorDetails details) {
       if (details.exceptionAsString().contains('overflowed')) return;
@@ -105,7 +113,7 @@ void main() {
     };
     tester.view.physicalSize = const Size(1080, 2400);
 
-    await tester.pumpWidget(_buildSubject());
+    await tester.pumpWidget(buildSubject());
     await tester.pumpAndSettle();
 
     expect(find.byIcon(Icons.home_outlined), findsOneWidget);
@@ -117,7 +125,9 @@ void main() {
     });
   });
 
-  testWidgets('MyReservationsScreen toca tarjeta de reserva activa', (WidgetTester tester) async {
+  testWidgets('MyReservationsScreen toca tarjeta de reserva activa', (
+    WidgetTester tester,
+  ) async {
     final originalOnError = FlutterError.onError;
     FlutterError.onError = (FlutterErrorDetails details) {
       if (details.exceptionAsString().contains('overflowed')) return;
@@ -125,7 +135,7 @@ void main() {
     };
     tester.view.physicalSize = const Size(1080, 2400);
 
-    await tester.pumpWidget(_buildSubject());
+    await tester.pumpWidget(buildSubject());
     await tester.pumpAndSettle();
 
     await tester.tap(find.text('Pendiente').first);

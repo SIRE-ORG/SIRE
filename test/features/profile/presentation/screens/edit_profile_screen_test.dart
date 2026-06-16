@@ -5,32 +5,34 @@ import 'package:go_router/go_router.dart';
 import 'package:sire/features/profile/presentation/screens/edit_profile_screen.dart';
 
 void main() {
-  Widget _buildSubject() {
+  Widget buildSubject() {
     final mockRouter = GoRouter(
       initialLocation: '/edit-profile',
       routes: [
         GoRoute(
           path: '/edit-profile',
-          builder: (_, __) => const EditProfileScreen(),
+          builder: (_, _) => const EditProfileScreen(),
         ),
         GoRoute(
           path: '/feed',
-          builder: (_, __) => const Scaffold(body: Text('Feed')),
+          builder: (_, _) => const Scaffold(body: Text('Feed')),
         ),
         GoRoute(
           path: '/my-reservations',
-          builder: (_, __) => const Scaffold(body: Text('Mis Reservas')),
+          builder: (_, _) => const Scaffold(body: Text('Mis Reservas')),
         ),
         GoRoute(
           path: '/dashboard',
-          builder: (_, __) => const Scaffold(body: Text('Dashboard')),
+          builder: (_, _) => const Scaffold(body: Text('Dashboard')),
         ),
       ],
     );
     return ProviderScope(child: MaterialApp.router(routerConfig: mockRouter));
   }
 
-  testWidgets('EditProfileScreen muestra título y campos del formulario', (WidgetTester tester) async {
+  testWidgets('EditProfileScreen muestra título y campos del formulario', (
+    WidgetTester tester,
+  ) async {
     final originalOnError = FlutterError.onError;
     FlutterError.onError = (FlutterErrorDetails details) {
       if (details.exceptionAsString().contains('overflowed')) return;
@@ -38,7 +40,7 @@ void main() {
     };
     tester.view.physicalSize = const Size(1080, 2400);
 
-    await tester.pumpWidget(_buildSubject());
+    await tester.pumpWidget(buildSubject());
     await tester.pumpAndSettle();
 
     expect(find.text('Editar Perfil'), findsWidgets);
@@ -51,7 +53,9 @@ void main() {
     });
   });
 
-  testWidgets('EditProfileScreen muestra sección cambio de contraseña', (WidgetTester tester) async {
+  testWidgets('EditProfileScreen muestra sección cambio de contraseña', (
+    WidgetTester tester,
+  ) async {
     final originalOnError = FlutterError.onError;
     FlutterError.onError = (FlutterErrorDetails details) {
       if (details.exceptionAsString().contains('overflowed')) return;
@@ -59,7 +63,7 @@ void main() {
     };
     tester.view.physicalSize = const Size(1080, 2400);
 
-    await tester.pumpWidget(_buildSubject());
+    await tester.pumpWidget(buildSubject());
     await tester.pumpAndSettle();
 
     expect(find.text('Cambiar contraseña'), findsOneWidget);
@@ -70,7 +74,9 @@ void main() {
     });
   });
 
-  testWidgets('EditProfileScreen muestra AppBar con título', (WidgetTester tester) async {
+  testWidgets('EditProfileScreen muestra AppBar con título', (
+    WidgetTester tester,
+  ) async {
     final originalOnError = FlutterError.onError;
     FlutterError.onError = (FlutterErrorDetails details) {
       if (details.exceptionAsString().contains('overflowed')) return;
@@ -78,7 +84,7 @@ void main() {
     };
     tester.view.physicalSize = const Size(1080, 2400);
 
-    await tester.pumpWidget(_buildSubject());
+    await tester.pumpWidget(buildSubject());
     await tester.pumpAndSettle();
 
     expect(find.byType(AppBar), findsOneWidget);
@@ -89,7 +95,9 @@ void main() {
     });
   });
 
-  testWidgets('EditProfileScreen permite ingresar texto en nombre', (WidgetTester tester) async {
+  testWidgets('EditProfileScreen permite ingresar texto en nombre', (
+    WidgetTester tester,
+  ) async {
     final originalOnError = FlutterError.onError;
     FlutterError.onError = (FlutterErrorDetails details) {
       if (details.exceptionAsString().contains('overflowed')) return;
@@ -97,7 +105,7 @@ void main() {
     };
     tester.view.physicalSize = const Size(1080, 2400);
 
-    await tester.pumpWidget(_buildSubject());
+    await tester.pumpWidget(buildSubject());
     await tester.pumpAndSettle();
 
     await tester.enterText(find.byType(TextField).first, 'Juan Pérez Test');
@@ -111,7 +119,9 @@ void main() {
     });
   });
 
-  testWidgets('EditProfileScreen layout web muestra sidebar SIRE', (WidgetTester tester) async {
+  testWidgets('EditProfileScreen layout web muestra sidebar SIRE', (
+    WidgetTester tester,
+  ) async {
     final originalOnError = FlutterError.onError;
     FlutterError.onError = (FlutterErrorDetails details) {
       if (details.exceptionAsString().contains('overflowed')) return;
@@ -120,7 +130,7 @@ void main() {
     tester.view.physicalSize = const Size(1080, 2400);
     tester.view.devicePixelRatio = 1.0;
 
-    await tester.pumpWidget(_buildSubject());
+    await tester.pumpWidget(buildSubject());
     await tester.pumpAndSettle();
 
     expect(find.text('SIRE'), findsOneWidget);
@@ -134,7 +144,9 @@ void main() {
     });
   });
 
-  testWidgets('EditProfileScreen layout web muestra formulario con Cancelar', (WidgetTester tester) async {
+  testWidgets('EditProfileScreen layout web muestra formulario con Cancelar', (
+    WidgetTester tester,
+  ) async {
     final originalOnError = FlutterError.onError;
     FlutterError.onError = (FlutterErrorDetails details) {
       if (details.exceptionAsString().contains('overflowed')) return;
@@ -143,7 +155,7 @@ void main() {
     tester.view.physicalSize = const Size(1080, 2400);
     tester.view.devicePixelRatio = 1.0;
 
-    await tester.pumpWidget(_buildSubject());
+    await tester.pumpWidget(buildSubject());
     await tester.pumpAndSettle();
 
     expect(find.text('Editar Perfil'), findsWidgets);
@@ -157,7 +169,9 @@ void main() {
     });
   });
 
-  testWidgets('EditProfileScreen layout web muestra botón Guardar cambios', (WidgetTester tester) async {
+  testWidgets('EditProfileScreen layout web muestra botón Guardar cambios', (
+    WidgetTester tester,
+  ) async {
     final originalOnError = FlutterError.onError;
     FlutterError.onError = (FlutterErrorDetails details) {
       if (details.exceptionAsString().contains('overflowed')) return;
@@ -166,7 +180,7 @@ void main() {
     tester.view.physicalSize = const Size(1080, 2400);
     tester.view.devicePixelRatio = 1.0;
 
-    await tester.pumpWidget(_buildSubject());
+    await tester.pumpWidget(buildSubject());
     await tester.pumpAndSettle();
 
     expect(find.text('Guardar cambios'), findsOneWidget);

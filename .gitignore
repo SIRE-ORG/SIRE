@@ -56,3 +56,7 @@ claude/
 CLAUDE.md
 CLAUDE.local.md
 .mcp.json
+
+# SonarQube (artefactos locales y binario del plugin; no versionar)
+.scannerwork/
+sonar/plugins/
