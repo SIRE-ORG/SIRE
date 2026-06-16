@@ -6,10 +6,17 @@ const prisma = new PrismaClient();
 // POST /api/v1/reservations -> Crear solicitud de reserva
 export const createReservation = async (request: FastifyRequest, reply: FastifyReply) => {
     try {
-        const { publicationId, date, startTime, endTime } = request.body as any;
         const solicitanteId = request.headers['x-user-id'] as string;
 
-        if (!publicationId || !date || !startTime || !endTime || !solicitanteId) {
+        if (!solicitanteId) {
+            return reply.status(401).send({
+                error: { code: 'AUTH_UNAUTHORIZED', message: 'Request a endpoint protegido con token inválido o expirado' }
+            });
+        }
+
+        const { publicationId, date, startTime, endTime } = request.body as any;
+
+        if (!publicationId || !date || !startTime || !endTime) {
             return reply.status(400).send({
                 error: { code: 'VALIDATION_ERROR', message: 'Faltan campos obligatorios para crear la reserva' }
             });
