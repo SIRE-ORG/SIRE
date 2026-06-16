@@ -25,6 +25,7 @@ import '../../domain/usecases/register_guest_usecase.dart';
 import '../../domain/usecases/send_magic_link_usecase.dart';
 import '../../domain/usecases/sign_out_usecase.dart';
 import '../../domain/usecases/update_profile_usecase.dart';
+import '../../domain/usecases/verify_otp_usecase.dart';
 
 part 'auth_provider.g.dart';
 
@@ -78,7 +79,7 @@ Future<AccountStatus?> authStatus(Ref ref) async {
 @riverpod
 class AuthNotifier extends _$AuthNotifier {
   @override
-  FutureOr<void> build() {}
+  AsyncValue<void> build() => const AsyncData(null);
 
   Future<void> login({required String email, required String password}) async {
     state = const AsyncLoading();
@@ -97,6 +98,16 @@ class AuthNotifier extends _$AuthNotifier {
         ref.read(authRepositoryProvider),
       ).call(email: email),
     );
+  }
+
+  Future<void> verifyOtp({required String email, required String token}) async {
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(
+      () => VerifyOtpUseCase(
+        ref.read(authRepositoryProvider),
+      ).call(email: email, token: token),
+    );
+    _refresh();
   }
 
   Future<AuthResult> registerGuest({
@@ -144,7 +155,7 @@ class AuthNotifier extends _$AuthNotifier {
 @riverpod
 class ProfileNotifier extends _$ProfileNotifier {
   @override
-  FutureOr<void> build() {}
+  AsyncValue<void> build() => const AsyncData(null);
 
   Future<void> updateProfile({
     required String userId,

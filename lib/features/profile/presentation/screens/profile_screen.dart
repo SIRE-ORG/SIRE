@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/providers/role_provider.dart';
+import '../../../auth/domain/entities/user_profile.dart';
+import '../../../auth/presentation/providers/auth_provider.dart';
 
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
@@ -9,6 +11,16 @@ class ProfileScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isPublisher = ref.watch(isPublisherProvider);
+    final profile = ref.watch(currentProfileProvider).valueOrNull;
+    final nombre = (profile?.name.isNotEmpty ?? false)
+        ? profile!.name
+        : (profile?.email ?? 'Usuario');
+    final email = profile?.email ?? '';
+    final estado = profile == null
+        ? 'Cargando…'
+        : (profile.accountStatus == AccountStatus.active
+              ? 'Cuenta activa'
+              : 'Invitado');
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -46,6 +58,9 @@ class ProfileScreen extends ConsumerWidget {
                                   child: _buildMainInfoCard(
                                     ref,
                                     isPublisher,
+                                    nombre: nombre,
+                                    email: email,
+                                    estado: estado,
                                     isWeb: true,
                                   ),
                                 ),
@@ -54,6 +69,7 @@ class ProfileScreen extends ConsumerWidget {
                                   flex: 2,
                                   child: _buildActionsCard(
                                     context,
+                                    ref,
                                     isPublisher,
                                   ),
                                 ),
@@ -73,7 +89,13 @@ class ProfileScreen extends ConsumerWidget {
             backgroundColor: const Color(0xFFF5F5F5),
             body: Column(
               children: [
-                _buildHeader(isPublisher, isWeb: false),
+                _buildHeader(
+                  isPublisher,
+                  isWeb: false,
+                  nombre: nombre,
+                  email: email,
+                  estado: estado,
+                ),
                 Expanded(
                   child: SingleChildScrollView(
                     padding: const EdgeInsets.all(24),
@@ -81,7 +103,7 @@ class ProfileScreen extends ConsumerWidget {
                       children: [
                         _buildModeSelector(ref, isPublisher),
                         const SizedBox(height: 32),
-                        _buildMenuMobile(context, isPublisher),
+                        _buildMenuMobile(context, ref, isPublisher),
                       ],
                     ),
                   ),
@@ -174,7 +196,13 @@ class ProfileScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildHeader(bool isPublisher, {required bool isWeb}) {
+  Widget _buildHeader(
+    bool isPublisher, {
+    required bool isWeb,
+    required String nombre,
+    required String email,
+    required String estado,
+  }) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.only(top: 60, bottom: 40, left: 24, right: 24),
@@ -204,29 +232,32 @@ class ProfileScreen extends ConsumerWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'María González',
-                      style: TextStyle(
+                    Text(
+                      nombre,
+                      style: const TextStyle(
                         color: Colors.white,
                         fontSize: 22,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    const Text(
-                      'maria@correo.com',
-                      style: TextStyle(color: Colors.white70, fontSize: 14),
+                    Text(
+                      email,
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 14,
+                      ),
                     ),
                     const SizedBox(height: 8),
                     Row(
                       children: [
                         const Icon(
-                          Icons.location_on,
+                          Icons.verified_user,
                           color: Colors.white,
                           size: 14,
                         ),
                         const SizedBox(width: 4),
                         Text(
-                          'Temuco, Chile',
+                          estado,
                           style: TextStyle(
                             color: Colors.white.withValues(alpha: 0.9),
                             fontSize: 14,
@@ -252,6 +283,9 @@ class ProfileScreen extends ConsumerWidget {
     WidgetRef ref,
     bool isPublisher, {
     required bool isWeb,
+    required String nombre,
+    required String email,
+    required String estado,
   }) {
     return Container(
       padding: const EdgeInsets.all(32),
@@ -290,30 +324,33 @@ class ProfileScreen extends ConsumerWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'María González',
-                      style: TextStyle(
+                    Text(
+                      nombre,
+                      style: const TextStyle(
                         color: Color(0xFF1E293B),
                         fontSize: 26,
                         fontWeight: FontWeight.w900,
                       ),
                     ),
-                    const Text(
-                      'maria@correo.com',
-                      style: TextStyle(color: Color(0xFF64748B), fontSize: 16),
+                    Text(
+                      email,
+                      style: const TextStyle(
+                        color: Color(0xFF64748B),
+                        fontSize: 16,
+                      ),
                     ),
                     const SizedBox(height: 12),
                     Row(
                       children: [
                         const Icon(
-                          Icons.location_on,
+                          Icons.verified_user,
                           color: Color(0xFF94A3B8),
                           size: 16,
                         ),
                         const SizedBox(width: 6),
-                        const Text(
-                          'Temuco, La Araucanía, Chile',
-                          style: TextStyle(
+                        Text(
+                          estado,
+                          style: const TextStyle(
                             color: Color(0xFF64748B),
                             fontSize: 14,
                           ),
@@ -345,7 +382,11 @@ class ProfileScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildActionsCard(BuildContext context, bool isPublisher) {
+  Widget _buildActionsCard(
+    BuildContext context,
+    WidgetRef ref,
+    bool isPublisher,
+  ) {
     return Column(
       children: [
         Container(
@@ -400,7 +441,10 @@ class ProfileScreen extends ConsumerWidget {
         SizedBox(
           width: double.infinity,
           child: OutlinedButton.icon(
-            onPressed: () => context.go('/'),
+            onPressed: () async {
+              await ref.read(authNotifierProvider.notifier).signOut();
+              if (context.mounted) context.go('/');
+            },
             icon: const Icon(Icons.logout, size: 18),
             label: const Text(
               'Cerrar Sesión',
@@ -658,7 +702,11 @@ class ProfileScreen extends ConsumerWidget {
     ],
   );
 
-  Widget _buildMenuMobile(BuildContext context, bool isPublisher) {
+  Widget _buildMenuMobile(
+    BuildContext context,
+    WidgetRef ref,
+    bool isPublisher,
+  ) {
     return Column(
       children: [
         _buildMenuItem(
@@ -683,13 +731,10 @@ class ProfileScreen extends ConsumerWidget {
             () => context.push('/my-publications'),
           ),
         const SizedBox(height: 12),
-        _buildMenuItem(
-          Icons.logout,
-          'Cerrar sesión',
-          '',
-          () => context.go('/'),
-          isLogout: true,
-        ),
+        _buildMenuItem(Icons.logout, 'Cerrar sesión', '', () async {
+          await ref.read(authNotifierProvider.notifier).signOut();
+          if (context.mounted) context.go('/');
+        }, isLogout: true),
       ],
     );
   }

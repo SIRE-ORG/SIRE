@@ -58,7 +58,7 @@ class MyReservationsNotifier extends _$MyReservationsNotifier {
 @riverpod
 class ReservationActionNotifier extends _$ReservationActionNotifier {
   @override
-  FutureOr<void> build() {}
+  AsyncValue<void> build() => const AsyncData(null);
 
   Future<Reservation> create({required CreateReservationParams params}) async {
     state = const AsyncLoading();

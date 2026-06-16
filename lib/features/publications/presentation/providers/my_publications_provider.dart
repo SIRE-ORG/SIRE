@@ -103,7 +103,7 @@ class MyPublicationsNotifier extends _$MyPublicationsNotifier {
 @riverpod
 class PublicationFormNotifier extends _$PublicationFormNotifier {
   @override
-  FutureOr<void> build() {}
+  AsyncValue<void> build() => const AsyncData(null);
 
   Future<Publication> create({
     required CreatePublicationParams params,
