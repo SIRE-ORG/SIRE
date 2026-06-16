@@ -70,22 +70,16 @@ export const createPublication = async (request: FastifyRequest, reply: FastifyR
             });
         }
 
-        let userProfile = await prisma.profile.findUnique({
+        const userProfile = await prisma.profile.findUnique({
             where: { id: ownerId }
         });
 
-        if (!userProfile) {
-            userProfile = await prisma.profile.create({
-                data: {
-                    id: ownerId,
-                    email: `test_${Date.now()}@sire.cl`,
-                    accountStatus: AccountStatus.active
+        if (!userProfile || userProfile.accountStatus !== 'active') {
+            return reply.status(403).send({
+                error: {
+                    code: 'FORBIDDEN',
+                    message: 'Debes tener una cuenta activa registrada para crear publicaciones en la plataforma.'
                 }
-            });
-        } else if (userProfile.accountStatus !== AccountStatus.active) {
-            userProfile = await prisma.profile.update({
-                where: { id: ownerId },
-                data: { accountStatus: AccountStatus.active }
             });
         }
 

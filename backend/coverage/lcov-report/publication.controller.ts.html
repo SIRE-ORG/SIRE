@@ -23,16 +23,16 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">69.56% </span>
+                <span class="strong">70.14% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>48/69</span>
+                <span class='fraction'>47/67</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">67.74% </span>
+                <span class="strong">70.96% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>21/31</span>
+                <span class='fraction'>22/31</span>
             </div>
         
             
@@ -44,9 +44,9 @@
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">73.01% </span>
+                <span class="strong">73.77% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>46/63</span>
+                <span class='fraction'>45/61</span>
             </div>
         
             
@@ -238,17 +238,7 @@
 <a name='L173'></a><a href='#L173'>173</a>
 <a name='L174'></a><a href='#L174'>174</a>
 <a name='L175'></a><a href='#L175'>175</a>
-<a name='L176'></a><a href='#L176'>176</a>
-<a name='L177'></a><a href='#L177'>177</a>
-<a name='L178'></a><a href='#L178'>178</a>
-<a name='L179'></a><a href='#L179'>179</a>
-<a name='L180'></a><a href='#L180'>180</a>
-<a name='L181'></a><a href='#L181'>181</a>
-<a name='L182'></a><a href='#L182'>182</a>
-<a name='L183'></a><a href='#L183'>183</a>
-<a name='L184'></a><a href='#L184'>184</a>
-<a name='L185'></a><a href='#L185'>185</a>
-<a name='L186'></a><a href='#L186'>186</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L176'></a><a href='#L176'>176</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">1x</span>
@@ -305,10 +295,8 @@
 <span class="cline-any cline-yes">4x</span>
 <span class="cline-any cline-yes">4x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">4x</span>
 <span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -322,21 +310,13 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">2x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">2x</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -485,19 +465,17 @@ export const getMyPublications = async (request: FastifyRequest, reply: FastifyR
     }
 };
 &nbsp;
-// POST /api/v1/publications -&gt; Crear publicación (Requiere cuenta ACTIVE)
+// POST /api/v1/publications -&gt; Crear publicación
 export const createPublication = async (request: FastifyRequest, reply: FastifyReply) =&gt; {
     try {
         const { title, description, category, imageUrl, region, city, availability, ownerId } = request.body as any;
 &nbsp;
-        // 1. Validaciones básicas de presencia
         if (!title || !category || !region || !availability || !ownerId) {
             return reply.status(400).send({
                 error: { code: 'VALIDATION_ERROR', message: 'Faltan campos obligatorios para crear la publicación' }
             });
         }
 &nbsp;
-        // 2. Validación del Enum cerrado de categorías
         if (!ALLOWED_CATEGORIES.includes(category)) {
             return reply.status(400).send({
                 error: {
@@ -507,28 +485,20 @@ export const createPublication = async (request: FastifyRequest, reply: FastifyR
             });
         }
 &nbsp;
-        // 3. Validación: Cuenta debe ser ACTIVE
         const userProfile = await prisma.profile.findUnique({
-            where: { id: ownerId },
-            select: { accountStatus: true }
+            where: { id: ownerId }
         });
 &nbsp;
-        <span class="missing-if-branch" title="if path not taken" >I</span>if (!userProfile) {
-<span class="cstat-no" title="statement not covered" >            return reply.status(404).send({</span>
-                error: { code: 'NOT_FOUND', message: 'El perfil del propietario no existe en el sistema' }
-            });
-        }
-&nbsp;
-        if (userProfile.accountStatus !== AccountStatus.active) {
+        // Barrera de seguridad: Bloquear si no existe o si no es ACTIVE
+        if (!userProfile || userProfile.accountStatus !== 'active') {
             return reply.status(403).send({
                 error: {
-                    code: 'FORBIDDEN',
-                    message: 'Operación rechazada. Se requiere una cuenta en estado ACTIVE para poder realizar publicaciones.'
+                    code: 'FORBIDDEN',  // &lt;-- ¡Cambiado aquí!
+                    message: 'Debes tener una cuenta activa registrada para crear publicaciones en la plataforma.'
                 }
             });
         }
 &nbsp;
-        // 4. Si pasa las validaciones, se crea la publicación
         const newPublication = await prisma.publication.create({
             data: {
                 title,
@@ -625,7 +595,7 @@ export const deletePublication = async (request: FastifyRequest, reply: FastifyR
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-06-14T00:37:05.388Z
+                at 2026-06-16T02:01:08.319Z
             </div>
         <script src="prettify.js"></script>
         <script>

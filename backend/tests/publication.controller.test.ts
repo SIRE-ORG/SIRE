@@ -18,6 +18,7 @@ const prismaMock = vi.hoisted(() => ({
     },
     profile: {
         findUnique: vi.fn(),
+        update: vi.fn(),
     }
 }));
 
@@ -82,13 +83,12 @@ describe('Módulo 2: Publicaciones', () => {
         expect(mockReply.status).toHaveBeenCalledWith(400);
     });
 
-    it('Creación: Debería bloquear (403) si la cuenta del dueño no es ACTIVE (ej. guest)', async () => {
+    it('Creación: Debería bloquear (403) si la cuenta del dueño no es ACTIVE', async () => {
         mockRequest.body = {
             title: 'Cancha', description: '...', category: 'DEPORTE',
             imageUrl: 'url', region: 'RM', city: 'Santiago', availability: true, ownerId: 'dueño-1'
         };
 
-        // Simulamos que el perfil en GUEST
         prismaMock.profile.findUnique.mockResolvedValue({ id: 'dueño-1', accountStatus: 'guest' });
 
         await createPublication(mockRequest, mockReply);
