@@ -1,0 +1,6 @@
+projectKey=sire
+serverUrl=http://localhost:9000
+serverVersion=26.5.0.122743
+dashboardUrl=http://localhost:9000/dashboard?id=sire
+ceTaskId=57285420-4e98-4570-9ee6-7fa79243ccfc
+ceTaskUrl=http://localhost:9000/api/ce/task?id=57285420-4e98-4570-9ee6-7fa79243ccfc
