@@ -5,7 +5,7 @@ import { publicationRoutes } from './routes/publication.routes.js';
 import { reservationRoutes } from './routes/reservation.routes.js';
 
 const app = Fastify({ logger: true });
-const port = process.env.PORT ? parseInt(process.env.PORT) : 3000;
+const port = process.env.PORT ? Number.parseInt(process.env.PORT, 10) : 3000;
 
 app.register(userRoutes, { prefix: '/api/v1/users' });
 app.register(authRoutes, { prefix: '/api/v1/auth' });

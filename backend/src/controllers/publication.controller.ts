@@ -1,5 +1,5 @@
 import type { FastifyRequest, FastifyReply } from 'fastify';
-import { PrismaClient, AccountStatus } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
@@ -74,7 +74,7 @@ export const createPublication = async (request: FastifyRequest, reply: FastifyR
             where: { id: ownerId }
         });
 
-        if (!userProfile || userProfile.accountStatus !== 'active') {
+        if (userProfile?.accountStatus !== 'active') {
             return reply.status(403).send({
                 error: {
                     code: 'FORBIDDEN',
