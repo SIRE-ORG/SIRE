@@ -33,8 +33,8 @@ export const getMyPublications = async (request: FastifyRequest, reply: FastifyR
         const userId = request.headers['x-user-id'] as string;
 
         if (!userId) {
-            return reply.status(400).send({
-                error: { code: 'MISSING_CREDENTIALS', message: 'Se requiere identificar al usuario mediante el header x-user-id' }
+            return reply.status(401).send({
+                error: { code: 'AUTH_UNAUTHORIZED', message: 'Request a endpoint protegido con token inválido o expirado' }
             });
         }
 

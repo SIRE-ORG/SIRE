@@ -18,7 +18,7 @@ export const registerGuest = async (request: FastifyRequest, reply: FastifyReply
 
         const newProfile = await prisma.profile.create({
             data: {
-                id, //Se guarda el mismo ID que genero Supabase
+                id,
                 email,
                 name,
                 phone,
@@ -40,12 +40,11 @@ export const updateAccountStatus = async (request: FastifyRequest, reply: Fastif
         const userId = request.headers['x-user-id'] as string;
 
         if (!userId) {
-            return reply.status(400).send({
-                error: { code: 'MISSING_CREDENTIALS', message: 'Se requiere identificar el header x-user-id' }
+            return reply.status(401).send({
+                error: { code: 'AUTH_UNAUTHORIZED', message: 'Request a endpoint protegido con token inválido o expirado' }
             });
         }
 
-        //El contrato exige que el endpoint actualice a ACTIVE
         const updateProfile = await prisma.profile.update({
             where: { id: userId },
             data: { accountStatus: AccountStatus.active }
@@ -65,8 +64,8 @@ export const getMe = async (request: FastifyRequest, reply: FastifyReply) => {
         const userId = request.headers['x-user-id'] as string;
 
         if (!userId) {
-            return reply.status(400).send({
-                error: { code: 'MISSING_CREDENTIALS', message: 'Se requiere identificar el header x-user-id' }
+            return reply.status(401).send({
+                error: { code: 'AUTH_UNAUTHORIZED', message: 'Request a endpoint protegido con token inválido o expirado' }
             });
         }
 
