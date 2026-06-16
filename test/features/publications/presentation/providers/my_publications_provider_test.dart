@@ -1,22 +1,19 @@
-// PI-PROV-01 / PI-PROV-02 / PI-PROV-03 — Providers de publicaciones con la
-// fuente de datos sustituida: tránsito de estados sin excepciones sin capturar.
-//
-// Sin binding de widgets: MyPublicationsNotifier no depende de storage ni
-// canales de plataforma. Solo se sustituye el datasource remoto.
-
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mocktail/mocktail.dart';
 import 'package:sire/core/network/app_exception.dart';
 import 'package:sire/features/publications/data/datasources/publications_remote_datasource.dart';
 import 'package:sire/features/publications/data/datasources/publications_remote_datasource_mock_impl.dart';
 import 'package:sire/features/publications/data/models/publication_summary_item_model.dart';
 import 'package:sire/features/publications/domain/entities/publication.dart';
+import 'package:sire/features/publications/domain/repositories/publications_repository.dart';
 import 'package:sire/features/publications/presentation/providers/my_publications_provider.dart';
 
 import '../../../../helpers/test_doubles.dart';
 
+class MockPublicationsRepository extends Mock implements PublicationsRepository {}
+
 void main() {
-  /// Crea un [ProviderContainer] con el datasource sustituido por [datasource].
   ProviderContainer containerCon(PublicationsRemoteDatasource datasource) {
     final container = ProviderContainer(
       overrides: [
@@ -27,8 +24,8 @@ void main() {
     return container;
   }
 
-  group('PI-PROV-01: tránsito de carga a datos', () {
-    test('el notifier arranca cargando y entrega entidades mapeadas', () async {
+  group('PI-PROV-01', () {
+    test('transito de carga a datos', () async {
       final container = containerCon(
         StubPublicationsRemoteDatasource(
           mineResponse: MyPublicationsResponse(
@@ -50,14 +47,10 @@ void main() {
         ),
       );
 
-      // Se mantiene una suscripción viva para que el provider no se disponga
-      // antes de que el test termine.
       final sub = container.listen(myPublicationsNotifierProvider, (_, _) {});
 
-      // Estado inicial: cargando.
       expect(container.read(myPublicationsNotifierProvider).isLoading, isTrue);
 
-      // Al resolverse el future, la entidad llega con categoría mapeada.
       final items = await container.read(myPublicationsNotifierProvider.future);
       expect(items.single.category, PublicationCategory.deporte);
       expect(container.read(myPublicationsNotifierProvider).hasValue, isTrue);
@@ -66,9 +59,8 @@ void main() {
     });
   });
 
-  group('PI-PROV-02: error del repositorio → AsyncError, sin excepción sin '
-      'capturar', () {
-    test('el error se propaga como estado y no rompe el test', () async {
+  group('PI-PROV-02', () {
+    test('error del repositorio se propaga como estado', () async {
       final container = containerCon(
         StubPublicationsRemoteDatasource(
           error: ServerException(
@@ -87,8 +79,8 @@ void main() {
     });
   });
 
-  group('PI-PROV-03: flag por defecto selecciona la implementación mock', () {
-    test('sin overrides, el datasource es el mock', () {
+  group('PI-PROV-03', () {
+    test('flag por defecto selecciona la implementacion mock', () {
       final container = ProviderContainer();
       addTearDown(container.dispose);
 
@@ -96,6 +88,26 @@ void main() {
         container.read(publicationsRemoteDatasourceProvider),
         isA<PublicationsRemoteDatasourceMockImpl>(),
       );
+    });
+  });
+
+  group('PI-PROV-04', () {
+    test('toggleStatus procesa la solicitud usando PublicationFormNotifier', () async {
+      final mockRepo = MockPublicationsRepository();
+      
+      when(() => mockRepo.togglePublicationStatus(id: 'pub-1', isActive: false))
+          .thenAnswer((_) async {});
+
+      final container = ProviderContainer(
+        overrides: [
+          publicationsRepositoryProvider.overrideWithValue(mockRepo),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await container.read(publicationFormNotifierProvider.notifier).toggleStatus(id: 'pub-1', isActive: false);
+
+      verify(() => mockRepo.togglePublicationStatus(id: 'pub-1', isActive: false)).called(1);
     });
   });
 }
