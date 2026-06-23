@@ -12,6 +12,7 @@ import '../../domain/repositories/reservations_repository.dart';
 import '../../domain/usecases/cancel_reservation_usecase.dart';
 import '../../domain/usecases/create_reservation_usecase.dart';
 import '../../domain/usecases/get_my_reservations_usecase.dart';
+import '../../domain/usecases/get_received_reservations_usecase.dart';
 import '../../domain/usecases/update_reservation_status_usecase.dart';
 
 part 'reservations_provider.g.dart';
@@ -41,6 +42,26 @@ class MyReservationsNotifier extends _$MyReservationsNotifier {
   @override
   Future<List<Reservation>> build() async {
     return GetMyReservationsUseCase(
+      ref.read(reservationsRepositoryProvider),
+    ).call();
+  }
+
+  Future<void> refresh() async {
+    ref.invalidateSelf();
+    await future;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// ReceivedReservationsNotifier — reservas recibidas sobre las publicaciones
+// del dueño (lado publisher). Espejo de MyReservationsNotifier.
+// ---------------------------------------------------------------------------
+
+@riverpod
+class ReceivedReservationsNotifier extends _$ReceivedReservationsNotifier {
+  @override
+  Future<List<Reservation>> build() async {
+    return GetReceivedReservationsUseCase(
       ref.read(reservationsRepositoryProvider),
     ).call();
   }
@@ -85,7 +106,9 @@ class ReservationActionNotifier extends _$ReservationActionNotifier {
         ref.read(reservationsRepositoryProvider),
       ).call(id: id, status: status);
       state = const AsyncData(null);
-      ref.invalidate(myReservationsNotifierProvider);
+      // updateStatus (aceptar/rechazar) lo ejecuta el dueño de la publicación
+      // sobre una reserva recibida → refresca la lista de recibidas.
+      ref.invalidate(receivedReservationsNotifierProvider);
       return result;
     } catch (e, st) {
       state = AsyncError(e, st);

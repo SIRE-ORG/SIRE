@@ -142,9 +142,14 @@ class StubPublicationsRemoteDatasource implements PublicationsRemoteDatasource {
 /// ReservationsRemoteDatasource controlable para pruebas de providers.
 /// Solo implementa lo que esas pruebas ejercitan; el resto no debe llamarse.
 class StubReservationsRemoteDatasource implements ReservationsRemoteDatasource {
-  const StubReservationsRemoteDatasource({this.myResponse, this.error});
+  const StubReservationsRemoteDatasource({
+    this.myResponse,
+    this.receivedResponse,
+    this.error,
+  });
 
   final List<ReservationModel>? myResponse;
+  final List<ReservationModel>? receivedResponse;
   final Object? error;
 
   @override
@@ -169,8 +174,10 @@ class StubReservationsRemoteDatasource implements ReservationsRemoteDatasource {
       throw UnimplementedError();
 
   @override
-  Future<List<ReservationModel>> getReceivedReservations() =>
-      throw UnimplementedError();
+  Future<List<ReservationModel>> getReceivedReservations() async {
+    if (error != null) throw error!;
+    return receivedResponse!;
+  }
 
   @override
   Future<ReservationModel> getReservationDetail({required String id}) =>

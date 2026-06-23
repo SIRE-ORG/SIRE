@@ -95,4 +95,63 @@ void main() {
       );
     });
   });
+
+  group('PI-PROV-07: recibidas (lado publisher) — espejo de PI-PROV-04/05', () {
+    test('el notifier de recibidas carga y mapea las entidades', () async {
+      final container = containerCon(
+        StubReservationsRemoteDatasource(
+          receivedResponse: [
+            const ReservationModel(
+              id: 'res-rx-1',
+              publicationId: 'pub-mia-1',
+              date: '2026-06-21',
+              startTime: '09:00',
+              endTime: '10:00',
+              status: 'pending',
+              createdAt: '2026-06-15T12:00:00Z',
+              publicationTitle: 'Mi cancha',
+              publicationCity: 'Temuco',
+              publicationImageUrl: null,
+            ),
+          ],
+        ),
+      );
+
+      expect(
+        container.read(receivedReservationsNotifierProvider).isLoading,
+        isTrue,
+      );
+
+      final items = await container.read(
+        receivedReservationsNotifierProvider.future,
+      );
+      expect(items.single.status, ReservationStatus.pending);
+      expect(items.single.publicationTitle, 'Mi cancha');
+      expect(
+        container.read(receivedReservationsNotifierProvider).hasValue,
+        isTrue,
+      );
+    });
+
+    test('el error del repositorio se propaga como AsyncError', () async {
+      final container = containerCon(
+        StubReservationsRemoteDatasource(
+          error: ServerException(
+            code: 'INTERNAL_SERVER_ERROR',
+            message: 'boom',
+          ),
+        ),
+      );
+
+      await expectLater(
+        container.read(receivedReservationsNotifierProvider.future),
+        throwsA(isA<ServerException>()),
+      );
+
+      expect(
+        container.read(receivedReservationsNotifierProvider).hasError,
+        isTrue,
+      );
+    });
+  });
 }
