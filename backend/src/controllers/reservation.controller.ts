@@ -157,7 +157,8 @@ export const getReservationById = async (request: FastifyRequest, reply: Fastify
                     select: {
                         title: true,
                         city: true,
-                        imageUrl: true
+                        imageUrl: true,
+                        ownerId: true // necesario para autorizar al publisher (abajo)
                     }
                 }
             }
