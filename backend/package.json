@@ -9,6 +9,7 @@
     "start": "node dist/app.js",
     "dev": "tsx watch src/app.ts",
     "test": "vitest",
+    "test:run": "vitest run",
     "coverage": "vitest run --coverage --coverage.reporter=lcov"
   },
   "keywords": [],
