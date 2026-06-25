@@ -67,12 +67,15 @@ final myReservationsNotifierProvider =
 
 typedef _$MyReservationsNotifier = AutoDisposeAsyncNotifier<List<Reservation>>;
 String _$reservationActionNotifierHash() =>
-    r'7fb4804656cadb4fc9510edb5729e425461b7fbc';
+    r'8222d7f529eed1348252fbafb84013ae3621bd13';
 
 /// See also [ReservationActionNotifier].
 @ProviderFor(ReservationActionNotifier)
 final reservationActionNotifierProvider =
-    AutoDisposeAsyncNotifierProvider<ReservationActionNotifier, void>.internal(
+    AutoDisposeNotifierProvider<
+      ReservationActionNotifier,
+      AsyncValue<void>
+    >.internal(
       ReservationActionNotifier.new,
       name: r'reservationActionNotifierProvider',
       debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
@@ -82,6 +85,6 @@ final reservationActionNotifierProvider =
       allTransitiveDependencies: null,
     );
 
-typedef _$ReservationActionNotifier = AutoDisposeAsyncNotifier<void>;
+typedef _$ReservationActionNotifier = AutoDisposeNotifier<AsyncValue<void>>;
 // ignore_for_file: type=lint
 // ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package

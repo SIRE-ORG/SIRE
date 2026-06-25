@@ -1,9 +1,10 @@
-import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../features/auth/presentation/screens/welcome_screen.dart';
 import '../../features/auth/presentation/screens/location_screen.dart';
 import '../../features/auth/presentation/screens/login_screen.dart';
 import '../../features/auth/presentation/screens/register_screen.dart';
+import '../../features/auth/presentation/screens/activate_account_screen.dart';
+import '../../features/auth/presentation/screens/verify_otp_screen.dart';
 import '../../features/auth/presentation/screens/forgot_password_screen.dart';
 import '../../features/feed/presentation/screens/feed_screen.dart';
 import '../../features/feed/presentation/screens/publication_detail_screen.dart';
@@ -118,9 +119,12 @@ class AppRouter {
         builder: (context, state) => const EditProfileScreen(),
       ),
       GoRoute(
+        path: '/verify-otp',
+        builder: (context, state) => const VerifyOtpScreen(),
+      ),
+      GoRoute(
         path: '/activate-account',
-        builder: (context, state) =>
-            Scaffold(body: Center(child: const Text('Activación'))),
+        builder: (context, state) => const ActivateAccountScreen(),
       ),
     ],
   );

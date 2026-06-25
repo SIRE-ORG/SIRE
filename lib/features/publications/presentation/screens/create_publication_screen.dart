@@ -4,6 +4,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/providers/role_provider.dart';
 import '../../../../core/widgets/custom_button.dart';
 import '../../../../core/widgets/custom_text_field.dart';
+import '../../domain/entities/availability_config.dart';
+import '../../domain/entities/publication.dart';
+import '../../domain/usecases/create_publication_usecase.dart';
+import '../providers/my_publications_provider.dart';
 
 class CreatePublicationScreen extends ConsumerStatefulWidget {
   const CreatePublicationScreen({super.key});
@@ -17,6 +21,13 @@ class _CreatePublicationScreenState
     extends ConsumerState<CreatePublicationScreen> {
   int _selectedDuration = 30;
   bool _sameSchedule = true;
+  bool _guardando = false;
+
+  final _nombreCtrl = TextEditingController();
+  final _descripcionCtrl = TextEditingController();
+  final _categoriaCtrl = TextEditingController();
+  final _imagenCtrl = TextEditingController();
+  final _regionCtrl = TextEditingController();
 
   final List<Map<String, dynamic>> _days = [
     {'name': 'Lunes', 'disabled': false, 'start': '09:00', 'end': '18:00'},
@@ -27,6 +38,70 @@ class _CreatePublicationScreenState
     {'name': 'Sábado', 'disabled': false, 'start': '09:00', 'end': '14:00'},
     {'name': 'Domingo', 'disabled': true, 'start': '09:00', 'end': '14:00'},
   ];
+
+  @override
+  void dispose() {
+    _nombreCtrl.dispose();
+    _descripcionCtrl.dispose();
+    _categoriaCtrl.dispose();
+    _imagenCtrl.dispose();
+    _regionCtrl.dispose();
+    super.dispose();
+  }
+
+  PublicationCategory _parseCat(String s) {
+    switch (s.trim().toLowerCase()) {
+      case 'deporte':
+        return PublicationCategory.deporte;
+      case 'eventos':
+        return PublicationCategory.eventos;
+      case 'recreacion':
+      case 'recreación':
+        return PublicationCategory.recreacion;
+      default:
+        return PublicationCategory.otros;
+    }
+  }
+
+  Future<void> _guardar() async {
+    final params = CreatePublicationParams(
+      title: _nombreCtrl.text.trim(),
+      description: _descripcionCtrl.text.trim(),
+      category: _parseCat(_categoriaCtrl.text),
+      region: _regionCtrl.text.trim(),
+      availability: const AvailabilityConfig(
+        slotDurationMinutes: 60,
+        sameScheduleAllDays: true,
+        defaultSchedules: [DaySchedule(startTime: '09:00', endTime: '18:00')],
+        dayOverrides: [
+          DayOverride(
+            dayOfWeek: DayOfWeek.sunday,
+            isClosed: true,
+            schedules: [],
+          ),
+        ],
+      ),
+    );
+
+    setState(() => _guardando = true);
+    try {
+      await ref
+          .read(publicationFormNotifierProvider.notifier)
+          .create(params: params);
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Publicación creada')));
+      context.pop();
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('No se pudo crear: $e')));
+    } finally {
+      if (mounted) setState(() => _guardando = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -238,21 +313,35 @@ class _CreatePublicationScreenState
           ),
         ),
         const SizedBox(height: 24),
-        const CustomTextField(
+        CustomTextField(
           label: 'Nombre del servicio',
           hintText: 'Ej: Cancha de fútbol',
+          controller: _nombreCtrl,
         ),
         const SizedBox(height: 16),
-        const CustomTextField(
+        CustomTextField(
           label: 'Descripción',
           hintText: 'Describe el espacio o servicio...',
+          controller: _descripcionCtrl,
         ),
         const SizedBox(height: 16),
-        const CustomTextField(label: 'Categoría', hintText: 'Deporte'),
+        CustomTextField(
+          label: 'Categoría',
+          hintText: 'Deporte',
+          controller: _categoriaCtrl,
+        ),
         const SizedBox(height: 16),
-        const CustomTextField(label: 'Imagen (URL)', hintText: 'https://...'),
+        CustomTextField(
+          label: 'Imagen (URL)',
+          hintText: 'https://...',
+          controller: _imagenCtrl,
+        ),
         const SizedBox(height: 16),
-        const CustomTextField(label: 'Región', hintText: 'Temuco'),
+        CustomTextField(
+          label: 'Región',
+          hintText: 'Temuco',
+          controller: _regionCtrl,
+        ),
         const SizedBox(height: 32),
         Container(height: 1, color: Colors.grey.shade300),
         const SizedBox(height: 24),
@@ -300,10 +389,10 @@ class _CreatePublicationScreenState
               borderRadius: BorderRadius.circular(12),
               border: Border.all(color: Colors.grey.shade200),
             ),
-            child: Column(
+            child: const Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   'Horario para todos los días',
                   style: TextStyle(
                     fontSize: 12,
@@ -311,48 +400,18 @@ class _CreatePublicationScreenState
                     color: Color(0xFF1E293B),
                   ),
                 ),
-                const SizedBox(height: 12),
+                SizedBox(height: 12),
                 Row(
                   children: [
-                    Expanded(
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 12,
-                        ),
-                        decoration: BoxDecoration(
-                          border: Border.all(color: Colors.grey.shade300),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: const Text(
-                          '09:00',
-                          style: TextStyle(fontSize: 14),
-                        ),
-                      ),
-                    ),
-                    const Padding(
+                    Expanded(child: _TimeDisplay(text: '09:00')),
+                    Padding(
                       padding: EdgeInsets.symmetric(horizontal: 16),
                       child: Text(
                         'hasta',
                         style: TextStyle(color: Colors.grey, fontSize: 12),
                       ),
                     ),
-                    Expanded(
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 12,
-                        ),
-                        decoration: BoxDecoration(
-                          border: Border.all(color: Colors.grey.shade300),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: const Text(
-                          '18:00',
-                          style: TextStyle(fontSize: 14),
-                        ),
-                      ),
-                    ),
+                    Expanded(child: _TimeDisplay(text: '18:00')),
                   ],
                 ),
               ],
@@ -463,8 +522,10 @@ class _CreatePublicationScreenState
           ),
         const SizedBox(height: 32),
         CustomButton(
-          text: 'Guardar publicación',
-          onPressed: () => context.pop(),
+          text: _guardando ? 'Guardando...' : 'Guardar publicación',
+          onPressed: () {
+            if (!_guardando) _guardar();
+          },
         ),
         const SizedBox(height: 40),
       ],
@@ -535,6 +596,23 @@ class _CreatePublicationScreenState
           ),
         ),
       ),
+    );
+  }
+}
+
+class _TimeDisplay extends StatelessWidget {
+  const _TimeDisplay({required this.text});
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.grey.shade300),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(text, style: const TextStyle(fontSize: 14)),
     );
   }
 }

@@ -19,6 +19,15 @@ class AuthSupabaseDatasourceImpl implements AuthSupabaseDatasource {
   }
 
   @override
+  Future<void> verifyOtp({required String email, required String token}) async {
+    await _client.auth.verifyOTP(
+      email: email,
+      token: token,
+      type: OtpType.email,
+    );
+  }
+
+  @override
   Future<void> updatePassword({required String password}) async {
     await _client.auth.updateUser(UserAttributes(password: password));
   }
