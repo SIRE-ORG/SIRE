@@ -184,3 +184,4 @@ Se levantó la arquitectura base con Fastify + Prisma ORM + Supabase PostgreSQL.
 > - **H9 — body de `POST`:** el cliente envía `{publicationId, date, startTime, endTime}` (sin `slotId`), acorde al backend real; el contrato `api-contract.md` aún dice `slotId`.
 > - **H10 — `POST /reservations` 500 en Render:** `GET /mine` funciona (200) pero el INSERT falla → drift de migración en la BD desplegada (no es `prisma generate`). Bloquea la verificación de Costura B de reservas.
 > - **Pendientes backend:** `GET /reservations/received` y `GET /reservations/:id` aún no existen (el cliente los tiene como stub `ENDPOINT_NOT_AVAILABLE`).
+PATCH | /api/v1/reservations/:id/cancel | ✅ Listo | |
