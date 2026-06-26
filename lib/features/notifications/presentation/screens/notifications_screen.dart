@@ -1,11 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-class NotificationsScreen extends StatelessWidget {
+import '../../data/models/notification_model.dart';
+import '../providers/notifications_provider.dart';
+
+class NotificationsScreen extends ConsumerWidget {
   const NotificationsScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final state = ref.watch(notificationsProvider);
+
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
       appBar: AppBar(
@@ -29,62 +35,51 @@ class NotificationsScreen extends StatelessWidget {
         ),
         centerTitle: false,
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          _buildNotificationCard(
-            title: 'Nueva reserva recibida',
-            description:
-                'Carlos Perez reservó Cancha de fútbol • Sab 2 may 13:00',
-            time: 'Hace 17 min',
-            icon: Icons.calendar_today,
-            color: const Color(0xFF1E70CD),
+      body: state.when(
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (e, _) => Center(
+          child: Text(
+            'No se pudieron cargar las notificaciones',
+            style: TextStyle(color: Colors.grey.shade600),
           ),
-          const SizedBox(height: 12),
-          _buildNotificationCard(
-            title: 'Nueva reserva recibida',
-            description: 'Ana Ruiz reservó Cancha de fútbol • Vie 15 may 09:00',
-            time: 'Hace 1 hora',
-            icon: Icons.calendar_today,
-            color: const Color(0xFF1E70CD),
-          ),
-          const SizedBox(height: 12),
-          _buildNotificationCard(
-            title: 'Reserva completada',
-            description:
-                'Tu reserva en Consultorio de kinesiología fue completada.',
-            time: 'Mar 27 abr',
-            icon: Icons.check_circle_outline,
-            color: const Color(0xFF2E7D32),
-          ),
-          const SizedBox(height: 12),
-          _buildNotificationCard(
-            title: 'Reserva cancelada',
-            description: 'Pedro Soto canceló su reserva del Mar 5 de may.',
-            time: 'Mar 5 may',
-            icon: Icons.cancel_outlined,
-            color: const Color(0xFFD32F2F),
-          ),
-          const SizedBox(height: 12),
-          _buildNotificationCard(
-            title: 'Bienvenido a SIRE',
-            description: 'Explora publicaciones cerca de ti en Temuco.',
-            time: 'Hace 7 días',
-            icon: Icons.notifications_active_outlined,
-            color: const Color(0xFFF57C00),
-          ),
-        ],
+        ),
+        data: (items) => items.isEmpty
+            ? Center(
+                child: Text(
+                  'Sin notificaciones por ahora',
+                  style: TextStyle(color: Colors.grey.shade600),
+                ),
+              )
+            : ListView.separated(
+                padding: const EdgeInsets.all(16),
+                itemCount: items.length,
+                separatorBuilder: (_, __) => const SizedBox(height: 12),
+                itemBuilder: (_, i) => _NotificationCard(item: items[i]),
+              ),
       ),
     );
   }
+}
 
-  Widget _buildNotificationCard({
-    required String title,
-    required String description,
-    required String time,
-    required IconData icon,
-    required Color color,
-  }) {
+class _NotificationCard extends StatelessWidget {
+  const _NotificationCard({required this.item});
+
+  final NotificationModel item;
+
+  Color _colorForType() {
+    return switch (item.type) {
+      NotificationType.reservation when item.title.contains('cancelada') =>
+        const Color(0xFFD32F2F),
+      NotificationType.reservation when item.title.contains('completada') =>
+        const Color(0xFF2E7D32),
+      NotificationType.reservation => const Color(0xFF1E70CD),
+      NotificationType.system => const Color(0xFFF57C00),
+    };
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final color = _colorForType();
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -117,7 +112,7 @@ class NotificationsScreen extends StatelessWidget {
                         color: color.withValues(alpha: 0.1),
                         shape: BoxShape.circle,
                       ),
-                      child: Icon(icon, color: color, size: 20),
+                      child: Icon(item.icon, color: color, size: 20),
                     ),
                     const SizedBox(width: 16),
                     Expanded(
@@ -125,7 +120,7 @@ class NotificationsScreen extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            title,
+                            item.title,
                             style: const TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 14,
@@ -134,7 +129,7 @@ class NotificationsScreen extends StatelessWidget {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            description,
+                            item.description,
                             style: const TextStyle(
                               color: Color(0xFF64748B),
                               fontSize: 12,
@@ -143,7 +138,7 @@ class NotificationsScreen extends StatelessWidget {
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            time,
+                            item.time,
                             style: const TextStyle(
                               color: Colors.grey,
                               fontSize: 10,

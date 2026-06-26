@@ -46,6 +46,167 @@ final reservationsRepositoryProvider =
 // ignore: unused_element
 typedef ReservationsRepositoryRef =
     AutoDisposeProviderRef<ReservationsRepository>;
+String _$receivedReservationsHash() =>
+    r'a1d78aa071c36020a66e0f65f5cfa6be395657f9';
+
+/// See also [receivedReservations].
+@ProviderFor(receivedReservations)
+final receivedReservationsProvider =
+    AutoDisposeFutureProvider<List<Reservation>>.internal(
+      receivedReservations,
+      name: r'receivedReservationsProvider',
+      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+          ? null
+          : _$receivedReservationsHash,
+      dependencies: null,
+      allTransitiveDependencies: null,
+    );
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef ReceivedReservationsRef =
+    AutoDisposeFutureProviderRef<List<Reservation>>;
+String _$reservationDetailHash() => r'5d9bd8057717e9480a891c22ea0f4a2a95d5e397';
+
+/// Copied from Dart SDK
+class _SystemHash {
+  _SystemHash._();
+
+  static int combine(int hash, int value) {
+    // ignore: parameter_assignments
+    hash = 0x1fffffff & (hash + value);
+    // ignore: parameter_assignments
+    hash = 0x1fffffff & (hash + ((0x0007ffff & hash) << 10));
+    return hash ^ (hash >> 6);
+  }
+
+  static int finish(int hash) {
+    // ignore: parameter_assignments
+    hash = 0x1fffffff & (hash + ((0x03ffffff & hash) << 3));
+    // ignore: parameter_assignments
+    hash = hash ^ (hash >> 11);
+    return 0x1fffffff & (hash + ((0x00003fff & hash) << 15));
+  }
+}
+
+/// See also [reservationDetail].
+@ProviderFor(reservationDetail)
+const reservationDetailProvider = ReservationDetailFamily();
+
+/// See also [reservationDetail].
+class ReservationDetailFamily extends Family<AsyncValue<Reservation>> {
+  /// See also [reservationDetail].
+  const ReservationDetailFamily();
+
+  /// See also [reservationDetail].
+  ReservationDetailProvider call(String id) {
+    return ReservationDetailProvider(id);
+  }
+
+  @override
+  ReservationDetailProvider getProviderOverride(
+    covariant ReservationDetailProvider provider,
+  ) {
+    return call(provider.id);
+  }
+
+  static const Iterable<ProviderOrFamily>? _dependencies = null;
+
+  @override
+  Iterable<ProviderOrFamily>? get dependencies => _dependencies;
+
+  static const Iterable<ProviderOrFamily>? _allTransitiveDependencies = null;
+
+  @override
+  Iterable<ProviderOrFamily>? get allTransitiveDependencies =>
+      _allTransitiveDependencies;
+
+  @override
+  String? get name => r'reservationDetailProvider';
+}
+
+/// See also [reservationDetail].
+class ReservationDetailProvider extends AutoDisposeFutureProvider<Reservation> {
+  /// See also [reservationDetail].
+  ReservationDetailProvider(String id)
+    : this._internal(
+        (ref) => reservationDetail(ref as ReservationDetailRef, id),
+        from: reservationDetailProvider,
+        name: r'reservationDetailProvider',
+        debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+            ? null
+            : _$reservationDetailHash,
+        dependencies: ReservationDetailFamily._dependencies,
+        allTransitiveDependencies:
+            ReservationDetailFamily._allTransitiveDependencies,
+        id: id,
+      );
+
+  ReservationDetailProvider._internal(
+    super._createNotifier, {
+    required super.name,
+    required super.dependencies,
+    required super.allTransitiveDependencies,
+    required super.debugGetCreateSourceHash,
+    required super.from,
+    required this.id,
+  }) : super.internal();
+
+  final String id;
+
+  @override
+  Override overrideWith(
+    FutureOr<Reservation> Function(ReservationDetailRef provider) create,
+  ) {
+    return ProviderOverride(
+      origin: this,
+      override: ReservationDetailProvider._internal(
+        (ref) => create(ref as ReservationDetailRef),
+        from: from,
+        name: null,
+        dependencies: null,
+        allTransitiveDependencies: null,
+        debugGetCreateSourceHash: null,
+        id: id,
+      ),
+    );
+  }
+
+  @override
+  AutoDisposeFutureProviderElement<Reservation> createElement() {
+    return _ReservationDetailProviderElement(this);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is ReservationDetailProvider && other.id == id;
+  }
+
+  @override
+  int get hashCode {
+    var hash = _SystemHash.combine(0, runtimeType.hashCode);
+    hash = _SystemHash.combine(hash, id.hashCode);
+
+    return _SystemHash.finish(hash);
+  }
+}
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+mixin ReservationDetailRef on AutoDisposeFutureProviderRef<Reservation> {
+  /// The parameter `id` of this provider.
+  String get id;
+}
+
+class _ReservationDetailProviderElement
+    extends AutoDisposeFutureProviderElement<Reservation>
+    with ReservationDetailRef {
+  _ReservationDetailProviderElement(super.provider);
+
+  @override
+  String get id => (origin as ReservationDetailProvider).id;
+}
+
 String _$myReservationsNotifierHash() =>
     r'0d18fbc5f0730315c626d82bed8939e147f6fa9f';
 

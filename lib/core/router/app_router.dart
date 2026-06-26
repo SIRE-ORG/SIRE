@@ -99,6 +99,7 @@ class AppRouter {
       GoRoute(
         path: '/received-reservation/detail',
         builder: (context, state) => ReceivedReservationDetailScreen(
+          id: state.uri.queryParameters['id'] ?? '',
           applicantName: state.uri.queryParameters['name'] ?? '',
           publication: state.uri.queryParameters['pub'] ?? '',
           date: state.uri.queryParameters['date'] ?? '',

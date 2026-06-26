@@ -148,4 +148,31 @@ void main() {
       FlutterError.onError = originalOnError;
     });
   });
+
+  testWidgets('tap Reservar sin slot seleccionado muestra SnackBar de error',
+      (tester) async {
+    final originalOnError = FlutterError.onError;
+    FlutterError.onError = (FlutterErrorDetails details) {
+      if (details.exceptionAsString().contains('overflowed')) return;
+      if (details.exceptionAsString().contains('NetworkImageLoadException')) return;
+      if (details.exceptionAsString().contains('statusCode: 400')) return;
+      originalOnError?.call(details);
+    };
+    tester.view.physicalSize = const Size(1080, 2400);
+
+    await _pumpScreen(tester);
+
+    await tester.tap(find.text('Reservar'));
+    await tester.pump();
+
+    expect(
+      find.text('Por favor selecciona un horario'),
+      findsOneWidget,
+    );
+
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      FlutterError.onError = originalOnError;
+    });
+  });
 }

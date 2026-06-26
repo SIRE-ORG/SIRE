@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/network/app_exception.dart';
 import '../../../../core/providers/role_provider.dart';
+import '../providers/reservations_provider.dart';
 
 class ReceivedReservationsScreen extends ConsumerStatefulWidget {
   const ReceivedReservationsScreen({super.key});
@@ -278,9 +280,33 @@ class _ReceivedReservationsScreenState
     ),
   );
 
+  Widget _buildEndpointBanner() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      color: const Color(0xFFFFF3E0),
+      child: const Row(
+        children: [
+          Icon(Icons.warning_amber_rounded, color: Color(0xFFF57C00), size: 18),
+          SizedBox(width: 8),
+          Flexible(
+            child: Text(
+              'Pendiente de backend — se muestran datos de prueba',
+              style: TextStyle(color: Color(0xFFF57C00), fontSize: 12),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final isPublisher = ref.watch(isPublisherProvider);
+    final receivedAsync = ref.watch(receivedReservationsProvider);
+    final showBanner = receivedAsync.hasError &&
+        receivedAsync.error is ServerException &&
+        (receivedAsync.error as ServerException).code == 'ENDPOINT_NOT_AVAILABLE';
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -296,6 +322,7 @@ class _ReceivedReservationsScreenState
                   child: Column(
                     children: [
                       _buildHeader(isWeb: true),
+                      if (showBanner) _buildEndpointBanner(),
                       Expanded(
                         child: SingleChildScrollView(
                           padding: const EdgeInsets.all(32),
@@ -327,6 +354,7 @@ class _ReceivedReservationsScreenState
           body: Column(
             children: [
               _buildHeader(isWeb: false),
+              if (showBanner) _buildEndpointBanner(),
               Expanded(
                 child: SingleChildScrollView(
                   padding: const EdgeInsets.all(16),
@@ -521,6 +549,7 @@ class _ReceivedReservationsScreenState
   List<Widget> _buildPendientesList(bool isWeb) {
     return [
       _buildReservationCard(
+        id: 'mock-recv-001',
         name: 'Carlos Pérez',
         publication: 'Cancha de futbol sintetica',
         date: 'Jue 15 may',
@@ -531,6 +560,7 @@ class _ReceivedReservationsScreenState
         isWeb: isWeb,
       ),
       _buildReservationCard(
+        id: 'mock-recv-002',
         name: 'Ana Ruiz',
         publication: 'Cancha de futbol sintetica',
         date: 'Vie 16 may',
@@ -546,6 +576,7 @@ class _ReceivedReservationsScreenState
   List<Widget> _buildHistorialList(bool isWeb) {
     return [
       _buildReservationCard(
+        id: 'mock-recv-hist-001',
         name: 'Pedro Soto',
         publication: 'Cancha de futbol sintetica',
         date: 'Lun 5 may',
@@ -559,6 +590,7 @@ class _ReceivedReservationsScreenState
   }
 
   Widget _buildReservationCard({
+    required String id,
     required String name,
     required String publication,
     required String date,
@@ -569,6 +601,7 @@ class _ReceivedReservationsScreenState
     required bool isWeb,
   }) {
     final data = {
+      'id': id,
       'name': name,
       'pub': publication,
       'date': date,
