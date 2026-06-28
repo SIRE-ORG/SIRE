@@ -326,4 +326,50 @@ void main() {
       },
     );
   });
+
+  group('PI-PROV-09: detalle de una reserva por id', () {
+    const detalle = ReservationModel(
+      id: 'res-1',
+      publicationId: 'pub-1',
+      date: '2026-06-25',
+      startTime: '10:00',
+      endTime: '11:00',
+      status: 'completed',
+      createdAt: '2026-06-20T12:00:00Z',
+      publicationTitle: 'Cancha',
+      publicationCity: 'Temuco',
+      publicationImageUrl: null,
+    );
+
+    test('éxito → entidad mapeada con status tipado', () async {
+      final container = containerCon(
+        StubReservationsRemoteDatasource(detailResponse: detalle),
+      );
+
+      final reserva = await container.read(
+        reservationDetailProvider('res-1').future,
+      );
+
+      expect(reserva.id, 'res-1');
+      expect(reserva.status, ReservationStatus.completed);
+      expect(reserva.publicationTitle, 'Cancha');
+    });
+
+    test('error del repositorio → AsyncError', () async {
+      final container = containerCon(
+        StubReservationsRemoteDatasource(
+          error: ServerException(code: 'NOT_FOUND', message: 'no existe'),
+        ),
+      );
+
+      await expectLater(
+        container.read(reservationDetailProvider('res-1').future),
+        throwsA(isA<ServerException>()),
+      );
+      expect(
+        container.read(reservationDetailProvider('res-1')).hasError,
+        isTrue,
+      );
+    });
+  });
 }

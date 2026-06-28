@@ -146,6 +146,7 @@ class StubReservationsRemoteDatasource implements ReservationsRemoteDatasource {
     this.myResponse,
     this.receivedResponse,
     this.actionResponse,
+    this.detailResponse,
     this.error,
   });
 
@@ -154,6 +155,9 @@ class StubReservationsRemoteDatasource implements ReservationsRemoteDatasource {
 
   /// Modelo devuelto por las acciones (create / updateStatus / cancel).
   final ReservationModel? actionResponse;
+
+  /// Modelo devuelto por [getReservationDetail].
+  final ReservationModel? detailResponse;
   final Object? error;
 
   // Sondas para verificar comportamiento desde las pruebas.
@@ -203,6 +207,8 @@ class StubReservationsRemoteDatasource implements ReservationsRemoteDatasource {
   }
 
   @override
-  Future<ReservationModel> getReservationDetail({required String id}) =>
-      throw UnimplementedError();
+  Future<ReservationModel> getReservationDetail({required String id}) async {
+    if (error != null) throw error!;
+    return detailResponse!;
+  }
 }

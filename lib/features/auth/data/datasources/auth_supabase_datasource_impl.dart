@@ -3,7 +3,13 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'auth_supabase_datasource.dart';
 
 class AuthSupabaseDatasourceImpl implements AuthSupabaseDatasource {
-  SupabaseClient get _client => Supabase.instance.client;
+  /// [client] permite inyectar un cliente en pruebas; en producción el provider
+  /// lo construye sin argumentos y usa el singleton `Supabase.instance.client`.
+  AuthSupabaseDatasourceImpl({SupabaseClient? client}) : _injected = client;
+
+  final SupabaseClient? _injected;
+
+  SupabaseClient get _client => _injected ?? Supabase.instance.client;
 
   @override
   Future<void> signInWithPassword({
