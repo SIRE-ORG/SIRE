@@ -11,6 +11,7 @@ import 'package:sire/features/reservations/data/datasources/reservations_remote_
 import 'package:sire/features/reservations/data/datasources/reservations_remote_datasource_mock_impl.dart';
 import 'package:sire/features/reservations/data/models/reservation_model.dart';
 import 'package:sire/features/reservations/domain/entities/reservation.dart';
+import 'package:sire/features/reservations/domain/usecases/create_reservation_usecase.dart';
 import 'package:sire/features/reservations/presentation/providers/reservations_provider.dart';
 
 import '../../../../helpers/test_doubles.dart';
@@ -153,5 +154,176 @@ void main() {
         isTrue,
       );
     });
+  });
+
+  group('PI-PROV-08: acciones (crear / actualizar estado / cancelar)', () {
+    const actionModel = ReservationModel(
+      id: 'res-new',
+      publicationId: 'pub-1',
+      date: '2026-06-25',
+      startTime: '10:00',
+      endTime: '11:00',
+      status: 'pending',
+      createdAt: '2026-06-20T12:00:00Z',
+    );
+
+    const params = CreateReservationParams(
+      publicationId: 'pub-1',
+      date: '2026-06-25',
+      startTime: '10:00',
+      endTime: '11:00',
+    );
+
+    test(
+      'create: éxito → devuelve la entidad e invalida "mis reservas"',
+      () async {
+        final stub = StubReservationsRemoteDatasource(
+          actionResponse: actionModel,
+          myResponse: const [],
+        );
+        final container = containerCon(stub);
+        // Mantener viva la lista para observar la invalidación.
+        container.listen(myReservationsNotifierProvider, (_, _) {});
+        await container.read(myReservationsNotifierProvider.future);
+        final callsAntes = stub.myReservationsCalls;
+
+        final notifier = container.read(
+          reservationActionNotifierProvider.notifier,
+        );
+        final created = await notifier.create(params: params);
+
+        expect(created.id, 'res-new');
+        expect(created.status, ReservationStatus.pending);
+        expect(
+          container.read(reservationActionNotifierProvider).hasValue,
+          isTrue,
+        );
+
+        // La invalidación forzó un refetch de la lista del solicitante.
+        await container.read(myReservationsNotifierProvider.future);
+        expect(stub.myReservationsCalls, greaterThan(callsAntes));
+      },
+    );
+
+    test('create: error del repositorio → AsyncError y relanza', () async {
+      final container = containerCon(
+        StubReservationsRemoteDatasource(
+          error: ServerException(code: 'CONFLICT', message: 'slot ocupado'),
+        ),
+      );
+      final notifier = container.read(
+        reservationActionNotifierProvider.notifier,
+      );
+
+      await expectLater(
+        notifier.create(params: params),
+        throwsA(isA<ServerException>()),
+      );
+      expect(
+        container.read(reservationActionNotifierProvider).hasError,
+        isTrue,
+      );
+    });
+
+    test(
+      'updateStatus: éxito → mapea el enum a string e invalida "recibidas"',
+      () async {
+        final stub = StubReservationsRemoteDatasource(
+          actionResponse: actionModel,
+          receivedResponse: const [],
+        );
+        final container = containerCon(stub);
+        container.listen(receivedReservationsNotifierProvider, (_, _) {});
+        await container.read(receivedReservationsNotifierProvider.future);
+        final callsAntes = stub.receivedReservationsCalls;
+
+        final notifier = container.read(
+          reservationActionNotifierProvider.notifier,
+        );
+        final updated = await notifier.updateStatus(
+          id: 'res-new',
+          status: ReservationStatus.completed,
+        );
+
+        expect(updated.id, 'res-new');
+        // El repositorio mapea el enum a su nombre en minúsculas.
+        expect(stub.lastStatusArg, 'completed');
+        expect(
+          container.read(reservationActionNotifierProvider).hasValue,
+          isTrue,
+        );
+
+        // updateStatus es acción del publisher → refresca "recibidas", no "mías".
+        await container.read(receivedReservationsNotifierProvider.future);
+        expect(stub.receivedReservationsCalls, greaterThan(callsAntes));
+      },
+    );
+
+    test('updateStatus: error → AsyncError y relanza', () async {
+      final container = containerCon(
+        StubReservationsRemoteDatasource(
+          error: ServerException(code: 'NOT_FOUND', message: 'no existe'),
+        ),
+      );
+      final notifier = container.read(
+        reservationActionNotifierProvider.notifier,
+      );
+
+      await expectLater(
+        notifier.updateStatus(id: 'nope', status: ReservationStatus.rejected),
+        throwsA(isA<ServerException>()),
+      );
+      expect(
+        container.read(reservationActionNotifierProvider).hasError,
+        isTrue,
+      );
+    });
+
+    test('cancel: éxito → AsyncData e invalida "mis reservas"', () async {
+      final stub = StubReservationsRemoteDatasource(
+        actionResponse: actionModel,
+        myResponse: const [],
+      );
+      final container = containerCon(stub);
+      container.listen(myReservationsNotifierProvider, (_, _) {});
+      await container.read(myReservationsNotifierProvider.future);
+      final callsAntes = stub.myReservationsCalls;
+
+      final notifier = container.read(
+        reservationActionNotifierProvider.notifier,
+      );
+      await notifier.cancel(id: 'res-new');
+
+      expect(
+        container.read(reservationActionNotifierProvider).hasValue,
+        isTrue,
+      );
+      await container.read(myReservationsNotifierProvider.future);
+      expect(stub.myReservationsCalls, greaterThan(callsAntes));
+    });
+
+    test(
+      'cancel: error → AsyncError sin relanzar (usa AsyncValue.guard)',
+      () async {
+        final container = containerCon(
+          StubReservationsRemoteDatasource(
+            error: ServerException(
+              code: 'INTERNAL_SERVER_ERROR',
+              message: 'boom',
+            ),
+          ),
+        );
+        final notifier = container.read(
+          reservationActionNotifierProvider.notifier,
+        );
+
+        // cancel usa guard: no relanza, solo deja el estado en error.
+        await notifier.cancel(id: 'res-new');
+        expect(
+          container.read(reservationActionNotifierProvider).hasError,
+          isTrue,
+        );
+      },
+    );
   });
 }

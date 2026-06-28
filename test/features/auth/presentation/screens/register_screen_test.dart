@@ -5,12 +5,11 @@ import 'package:go_router/go_router.dart';
 import 'package:sire/features/auth/presentation/screens/register_screen.dart';
 
 void main() {
-  testWidgets('RegisterScreen renderiza la UI y permite interaccion', (WidgetTester tester) async {
+  testWidgets('RegisterScreen renderiza campos y botón de registro', (WidgetTester tester) async {
+    final originalOnError = FlutterError.onError;
     FlutterError.onError = (FlutterErrorDetails details) {
-      if (details.exceptionAsString().contains('overflowed')) {
-        return; // Ignora los RenderFlex en silencio
-      }
-      FlutterError.presentError(details);
+      if (details.exceptionAsString().contains('overflowed')) return;
+      originalOnError?.call(details);
     };
 
     tester.view.physicalSize = const Size(600, 2000);
@@ -24,42 +23,44 @@ void main() {
           builder: (context, state) => const RegisterScreen(),
         ),
         GoRoute(
-          path: '/feed',
-          builder: (context, state) => const Scaffold(body: Text('Pantalla Feed Exitosa')),
+          path: '/verify-otp',
+          builder: (context, state) => const Scaffold(body: Text('Verificar OTP')),
+        ),
+        GoRoute(
+          path: '/login',
+          builder: (context, state) => const Scaffold(body: Text('Login')),
         ),
       ],
     );
 
     await tester.pumpWidget(
       ProviderScope(
-        child: MaterialApp.router(
-          routerConfig: mockRouter,
-        ),
+        child: MaterialApp.router(routerConfig: mockRouter),
       ),
     );
 
-    await tester.pumpAndSettle();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
 
     expect(find.text('Registrarse'), findsWidgets);
     expect(find.text('Nombre completo'), findsOneWidget);
-    
+    expect(find.text('Correo'), findsOneWidget);
+    expect(find.text('Teléfono'), findsOneWidget);
+    expect(find.text('Enviar código'), findsOneWidget);
+
     final textFields = find.byType(TextField);
     await tester.enterText(textFields.at(0), 'Juan Perez');
     await tester.enterText(textFields.at(1), 'juan@sire.cl');
-    await tester.enterText(textFields.at(3), 'clave123');
-    
-    FocusManager.instance.primaryFocus?.unfocus();
-    await tester.pumpAndSettle();
+    await tester.enterText(textFields.at(2), '+56912345678');
+    await tester.pump();
 
-    final button = find.text('Crear cuenta').first;
-    await tester.ensureVisible(button);
-    await tester.tap(button);
-    await tester.pumpAndSettle();
+    expect(find.text('juan@sire.cl'), findsOneWidget);
 
-    expect(find.text('Pantalla Feed Exitosa'), findsOneWidget);
-
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+      FlutterError.onError = originalOnError;
+    });
   });
 
   testWidgets('RegisterScreen layout web muestra panel izquierdo y formulario', (WidgetTester tester) async {

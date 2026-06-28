@@ -140,4 +140,31 @@ void main() {
       FlutterError.onError = originalOnError;
     });
   });
+
+  testWidgets(
+    'tap Cancelar reserva muestra SnackBar de función no disponible',
+    (WidgetTester tester) async {
+      final originalOnError = FlutterError.onError;
+      FlutterError.onError = (FlutterErrorDetails details) {
+        if (details.exceptionAsString().contains('overflowed')) return;
+        originalOnError?.call(details);
+      };
+      tester.view.physicalSize = const Size(390, 2400);
+
+      await tester.pumpWidget(buildSubject());
+      await tester.pumpAndSettle();
+
+      await tester.ensureVisible(find.text('Cancelar reserva'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Cancelar reserva'));
+      await tester.pump();
+
+      expect(find.text('Función no disponible aún'), findsOneWidget);
+
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        FlutterError.onError = originalOnError;
+      });
+    },
+  );
 }

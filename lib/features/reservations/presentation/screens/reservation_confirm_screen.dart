@@ -1,9 +1,12 @@
 ﻿import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/widgets/custom_button.dart';
 import '../../../../core/widgets/custom_text_field.dart';
+import '../../domain/usecases/create_reservation_usecase.dart';
+import '../providers/reservations_provider.dart';
 
-class ReservationConfirmScreen extends StatelessWidget {
+class ReservationConfirmScreen extends ConsumerStatefulWidget {
   final String id;
   final String title;
   final String subtitle;
@@ -18,6 +21,41 @@ class ReservationConfirmScreen extends StatelessWidget {
     required this.date,
     required this.time,
   });
+
+  @override
+  ConsumerState<ReservationConfirmScreen> createState() =>
+      _ReservationConfirmScreenState();
+}
+
+class _ReservationConfirmScreenState
+    extends ConsumerState<ReservationConfirmScreen> {
+  bool _loading = false;
+
+  Future<void> _handleConfirm() async {
+    setState(() => _loading = true);
+    try {
+      final parts = widget.time.contains('-')
+          ? widget.time.split('-')
+          : [widget.time, widget.time];
+      await ref.read(reservationActionNotifierProvider.notifier).create(
+            params: CreateReservationParams(
+              publicationId: widget.id,
+              date: widget.date,
+              startTime: parts[0].trim(),
+              endTime: parts.length > 1 ? parts[1].trim() : parts[0].trim(),
+            ),
+          );
+      if (mounted) _showSuccessDialog(context);
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No se pudo confirmar la reserva')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
 
   void _showSuccessDialog(BuildContext context) {
     showGeneralDialog(
@@ -199,8 +237,8 @@ class ReservationConfirmScreen extends StatelessWidget {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    title.isNotEmpty
-                                        ? title
+                                    widget.title.isNotEmpty
+                                        ? widget.title
                                         : 'Cancha de fútbol sintética',
                                     style: const TextStyle(
                                       color: Color(0xFF1E70CD),
@@ -210,8 +248,8 @@ class ReservationConfirmScreen extends StatelessWidget {
                                   ),
                                   const SizedBox(height: 4),
                                   Text(
-                                    subtitle.isNotEmpty
-                                        ? subtitle
+                                    widget.subtitle.isNotEmpty
+                                        ? widget.subtitle
                                         : 'Club Deportivo Temuco',
                                     style: const TextStyle(
                                       color: Colors.grey,
@@ -222,7 +260,7 @@ class ReservationConfirmScreen extends StatelessWidget {
                               ),
                             ),
                             Text(
-                              '${date.isNotEmpty ? date : "Hoy"} • ${time.isNotEmpty ? time : "11:00"}',
+                              '${widget.date.isNotEmpty ? widget.date : "Hoy"} • ${widget.time.isNotEmpty ? widget.time : "11:00"}',
                               style: const TextStyle(
                                 color: Colors.grey,
                                 fontSize: 12,
@@ -253,8 +291,36 @@ class ReservationConfirmScreen extends StatelessWidget {
                         width: double.infinity,
                         height: 50,
                         child: CustomButton(
-                          text: 'Confirmar Reserva',
-                          onPressed: () => _showSuccessDialog(context),
+                          text: _loading ? 'Confirmando...' : 'Confirmar Reserva',
+                          onPressed: _loading ? null : _handleConfirm,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 50,
+                        child: OutlinedButton(
+                          onPressed: () {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Función no disponible aún'),
+                              ),
+                            );
+                          },
+                          style: OutlinedButton.styleFrom(
+                            side: const BorderSide(color: Color(0xFFEF9A9A)),
+                            backgroundColor: const Color(0xFFFFEBEE),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          child: const Text(
+                            'Cancelar reserva',
+                            style: TextStyle(
+                              color: Color(0xFFC62828),
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                         ),
                       ),
                     ],

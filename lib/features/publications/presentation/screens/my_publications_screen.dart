@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/providers/role_provider.dart';
+import '../../domain/entities/publication.dart';
+import '../../domain/entities/publication_summary_item.dart';
+import '../providers/my_publications_provider.dart';
 
 class MyPublicationsScreen extends ConsumerStatefulWidget {
   const MyPublicationsScreen({super.key});
@@ -12,40 +15,33 @@ class MyPublicationsScreen extends ConsumerStatefulWidget {
 }
 
 class _MyPublicationsScreenState extends ConsumerState<MyPublicationsScreen> {
-  final List<Map<String, dynamic>> _publications = [
-    {
-      'id': '1',
-      'title': 'Cancha de fútbol sintética',
-      'subtitle': 'Deporte - Temuco',
-      'status': 'Activa',
-    },
-    {
-      'id': '2',
-      'title': 'Consultorio de kinesiología',
-      'subtitle': 'Salud - Temuco',
-      'status': 'Activa',
-    },
-    {
-      'id': '3',
-      'title': 'Salon para baile',
-      'subtitle': 'Eventos - Temuco',
-      'status': 'Pausada',
-    },
-  ];
+  String _catLabel(PublicationCategory c) {
+    switch (c) {
+      case PublicationCategory.deporte:
+        return 'Deporte';
+      case PublicationCategory.eventos:
+        return 'Eventos';
+      case PublicationCategory.recreacion:
+        return 'Recreación';
+      case PublicationCategory.otros:
+        return 'Otros';
+    }
+  }
 
-  void _toggleStatus(int index) {
-    setState(() {
-      if (_publications[index]['status'] == 'Activa') {
-        _publications[index]['status'] = 'Pausada';
-      } else {
-        _publications[index]['status'] = 'Activa';
-      }
-    });
+  Future<void> _togglar(PublicationSummaryItem pub) async {
+    await ref
+        .read(publicationFormNotifierProvider.notifier)
+        .toggleStatus(id: pub.id, isActive: !pub.isActive);
+  }
+
+  Future<void> _eliminar(PublicationSummaryItem pub) async {
+    await ref.read(publicationFormNotifierProvider.notifier).delete(id: pub.id);
   }
 
   @override
   Widget build(BuildContext context) {
     final isPublisher = ref.watch(isPublisherProvider);
+    final pubsAsync = ref.watch(myPublicationsNotifierProvider);
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -67,20 +63,7 @@ class _MyPublicationsScreenState extends ConsumerState<MyPublicationsScreen> {
                           child: Center(
                             child: ConstrainedBox(
                               constraints: const BoxConstraints(maxWidth: 1000),
-                              child: Wrap(
-                                spacing: 24,
-                                runSpacing: 24,
-                                children: _publications.asMap().entries.map((
-                                  entry,
-                                ) {
-                                  int index = entry.key;
-                                  var pub = entry.value;
-                                  return SizedBox(
-                                    width: 450,
-                                    child: _buildPublicationCard(pub, index),
-                                  );
-                                }).toList(),
-                              ),
+                              child: _buildContent(pubsAsync, isWeb: true),
                             ),
                           ),
                         ),
@@ -101,15 +84,7 @@ class _MyPublicationsScreenState extends ConsumerState<MyPublicationsScreen> {
               Expanded(
                 child: SingleChildScrollView(
                   padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: _publications.asMap().entries.map((entry) {
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 12),
-                        child: _buildPublicationCard(entry.value, entry.key),
-                      );
-                    }).toList(),
-                  ),
+                  child: _buildContent(pubsAsync, isWeb: false),
                 ),
               ),
             ],
@@ -120,6 +95,61 @@ class _MyPublicationsScreenState extends ConsumerState<MyPublicationsScreen> {
             backgroundColor: const Color(0xFF1E70CD),
             child: const Icon(Icons.add, color: Colors.white),
           ),
+        );
+      },
+    );
+  }
+
+  Widget _buildContent(
+    AsyncValue<List<PublicationSummaryItem>> pubsAsync, {
+    required bool isWeb,
+  }) {
+    return pubsAsync.when(
+      loading: () => const Padding(
+        padding: EdgeInsets.all(40),
+        child: Center(child: CircularProgressIndicator()),
+      ),
+      error: (e, _) => Padding(
+        padding: const EdgeInsets.all(40),
+        child: Center(
+          child: Text('No se pudieron cargar tus publicaciones: $e'),
+        ),
+      ),
+      data: (pubs) {
+        if (pubs.isEmpty) {
+          return const Padding(
+            padding: EdgeInsets.all(40),
+            child: Center(
+              child: Text(
+                'Aún no tienes publicaciones.\nCrea la primera con el botón +.',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.grey, fontSize: 14),
+              ),
+            ),
+          );
+        }
+        if (isWeb) {
+          return Wrap(
+            spacing: 24,
+            runSpacing: 24,
+            children: pubs
+                .map(
+                  (pub) =>
+                      SizedBox(width: 450, child: _buildPublicationCard(pub)),
+                )
+                .toList(),
+          );
+        }
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: pubs
+              .map(
+                (pub) => Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: _buildPublicationCard(pub),
+                ),
+              )
+              .toList(),
         );
       },
     );
@@ -261,8 +291,8 @@ class _MyPublicationsScreenState extends ConsumerState<MyPublicationsScreen> {
     );
   }
 
-  Widget _buildPublicationCard(Map<String, dynamic> pub, int index) {
-    final isActive = pub['status'] == 'Activa';
+  Widget _buildPublicationCard(PublicationSummaryItem pub) {
+    final isActive = pub.isActive;
     final statusBg = isActive
         ? const Color(0xFFE8F5E9)
         : const Color(0xFFF5F5F5);
@@ -296,7 +326,7 @@ class _MyPublicationsScreenState extends ConsumerState<MyPublicationsScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      pub['title'],
+                      pub.title,
                       style: const TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 16,
@@ -305,7 +335,7 @@ class _MyPublicationsScreenState extends ConsumerState<MyPublicationsScreen> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      pub['subtitle'],
+                      '${_catLabel(pub.category)} - ${pub.region}',
                       style: const TextStyle(color: Colors.grey, fontSize: 12),
                     ),
                   ],
@@ -321,7 +351,7 @@ class _MyPublicationsScreenState extends ConsumerState<MyPublicationsScreen> {
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: Text(
-                  pub['status'],
+                  isActive ? 'Activa' : 'Pausada',
                   style: TextStyle(
                     color: statusText,
                     fontSize: 12,
@@ -336,8 +366,7 @@ class _MyPublicationsScreenState extends ConsumerState<MyPublicationsScreen> {
             children: [
               Expanded(
                 child: OutlinedButton(
-                  onPressed: () =>
-                      context.push('/publication/${pub['id']}/edit'),
+                  onPressed: () => context.push('/publication/${pub.id}/edit'),
                   style: OutlinedButton.styleFrom(
                     side: const BorderSide(color: Color(0xFF1E70CD)),
                     shape: RoundedRectangleBorder(
@@ -358,7 +387,7 @@ class _MyPublicationsScreenState extends ConsumerState<MyPublicationsScreen> {
               const SizedBox(width: 8),
               Expanded(
                 child: OutlinedButton(
-                  onPressed: () => _toggleStatus(index),
+                  onPressed: () => _togglar(pub),
                   style: OutlinedButton.styleFrom(
                     side: BorderSide(color: Colors.grey.shade300),
                     shape: RoundedRectangleBorder(
@@ -379,7 +408,7 @@ class _MyPublicationsScreenState extends ConsumerState<MyPublicationsScreen> {
               const SizedBox(width: 8),
               Expanded(
                 child: OutlinedButton(
-                  onPressed: () {},
+                  onPressed: () => _eliminar(pub),
                   style: OutlinedButton.styleFrom(
                     backgroundColor: const Color(0xFFFFEBEE),
                     side: const BorderSide(color: Color(0xFFEF9A9A)),

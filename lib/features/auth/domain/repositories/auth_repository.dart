@@ -6,6 +6,7 @@ import '../entities/user_profile.dart';
 abstract interface class AuthRepository {
   Future<void> login({required String email, required String password});
   Future<void> sendMagicLink({required String email});
+  Future<void> verifyOtp({required String email, required String token});
   Future<void> signOut();
   Future<AuthResult> registerGuest({
     required String name,

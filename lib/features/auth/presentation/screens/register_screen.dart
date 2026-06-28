@@ -1,10 +1,68 @@
 ﻿import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/widgets/custom_button.dart';
 import '../../../../core/widgets/custom_text_field.dart';
+import '../providers/auth_provider.dart';
 
-class RegisterScreen extends StatelessWidget {
+class RegisterScreen extends ConsumerStatefulWidget {
   const RegisterScreen({super.key});
+
+  @override
+  ConsumerState<RegisterScreen> createState() => _RegisterScreenState();
+}
+
+class _RegisterScreenState extends ConsumerState<RegisterScreen> {
+  final _nombreCtrl = TextEditingController();
+  final _emailCtrl = TextEditingController();
+  final _telefonoCtrl = TextEditingController();
+  bool _cargando = false;
+
+  @override
+  void dispose() {
+    _nombreCtrl.dispose();
+    _emailCtrl.dispose();
+    _telefonoCtrl.dispose();
+    super.dispose();
+  }
+
+  void _snack(String msg) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+  }
+
+  Future<void> _enviarCodigo() async {
+    final email = _emailCtrl.text.trim();
+    if (email.isEmpty) {
+      _snack('Ingresa tu correo electrónico');
+      return;
+    }
+
+    setState(() => _cargando = true);
+    try {
+      await ref.read(authNotifierProvider.notifier).sendMagicLink(email: email);
+    } catch (_) {
+      // El código también se puede obtener vía generate_link aunque el envío
+      // del correo falle (p. ej. rate limit). No bloqueamos el flujo.
+    }
+    if (!mounted) return;
+    setState(() => _cargando = false);
+
+    if (ref.read(authNotifierProvider).hasError) {
+      _snack('Aviso: el correo no se envió; usa el código de generate_link.');
+    }
+
+    // Navegar SIEMPRE a verify-otp: el OTP llega por correo o se saca con
+    // generate_link, así que el envío no debe bloquear el avance.
+    context.go(
+      '/verify-otp',
+      extra: {
+        'email': email,
+        'name': _nombreCtrl.text.trim(),
+        'phone': _telefonoCtrl.text.trim(),
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -104,41 +162,34 @@ class RegisterScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 32),
-          const CustomTextField(
+          CustomTextField(
             label: 'Nombre completo',
             hintText: 'Ej: María González',
+            controller: _nombreCtrl,
           ),
           const SizedBox(height: 16),
-          const CustomTextField(
+          CustomTextField(
             label: 'Correo',
             hintText: 'correo@gmail.com',
             keyboardType: TextInputType.emailAddress,
+            controller: _emailCtrl,
           ),
           const SizedBox(height: 16),
-          const CustomTextField(
+          CustomTextField(
             label: 'Teléfono',
             hintText: '+56 9 1234 5678',
             keyboardType: TextInputType.phone,
-          ),
-          const SizedBox(height: 16),
-          const CustomTextField(
-            label: 'Contraseña',
-            hintText: 'Mínimo 8 caracteres',
-            isPassword: true,
-          ),
-          const SizedBox(height: 16),
-          const CustomTextField(
-            label: 'Confirmar contraseña',
-            hintText: 'Repite tu contraseña',
-            isPassword: true,
+            controller: _telefonoCtrl,
           ),
           const SizedBox(height: 32),
           SizedBox(
             width: double.infinity,
             height: 50,
             child: CustomButton(
-              text: 'Crear cuenta',
-              onPressed: () => context.go('/feed'),
+              text: _cargando ? 'Enviando código...' : 'Enviar código',
+              onPressed: () {
+                if (!_cargando) _enviarCodigo();
+              },
             ),
           ),
           const SizedBox(height: 24),

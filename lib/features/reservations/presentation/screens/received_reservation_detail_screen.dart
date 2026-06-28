@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../domain/entities/reservation.dart';
+import '../providers/reservations_provider.dart';
 
-class ReceivedReservationDetailScreen extends StatelessWidget {
+class ReceivedReservationDetailScreen extends ConsumerStatefulWidget {
+  final String id;
   final String applicantName;
   final String publication;
   final String date;
@@ -10,6 +14,7 @@ class ReceivedReservationDetailScreen extends StatelessWidget {
 
   const ReceivedReservationDetailScreen({
     super.key,
+    required this.id,
     required this.applicantName,
     required this.publication,
     required this.date,
@@ -18,11 +23,38 @@ class ReceivedReservationDetailScreen extends StatelessWidget {
   });
 
   @override
+  ConsumerState<ReceivedReservationDetailScreen> createState() =>
+      _ReceivedReservationDetailScreenState();
+}
+
+class _ReceivedReservationDetailScreenState
+    extends ConsumerState<ReceivedReservationDetailScreen> {
+  bool _processing = false;
+
+  Future<void> _updateStatus(ReservationStatus newStatus) async {
+    if (widget.id.isEmpty) {
+      _showSnackBar('ID de reserva no disponible aún');
+      return;
+    }
+    setState(() => _processing = true);
+    try {
+      await ref
+          .read(reservationActionNotifierProvider.notifier)
+          .updateStatus(id: widget.id, status: newStatus);
+      if (mounted) context.pop();
+    } catch (_) {
+      if (mounted) _showSnackBar('No se pudo actualizar el estado');
+    } finally {
+      if (mounted) setState(() => _processing = false);
+    }
+  }
+
+  void _showSnackBar(String msg) =>
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+
+  @override
   Widget build(BuildContext context) {
-    final isPendiente = status.toLowerCase() == 'pendiente';
-    final email =
-        '${applicantName.toLowerCase().replaceAll(' ', '').replaceAll('é', 'e')}@mail.com';
-    final phone = '+56912345678';
+    final isPendiente = widget.status.toLowerCase() == 'pendiente';
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -80,11 +112,14 @@ class ReceivedReservationDetailScreen extends StatelessWidget {
                             ),
                           ),
                           const SizedBox(height: 20),
-                          _buildField('Nombre', applicantName),
+                          _buildField('Nombre', widget.applicantName),
                           const SizedBox(height: 16),
-                          _buildField('Correo', email),
+                          _buildField(
+                            'Correo',
+                            '${widget.applicantName.toLowerCase().replaceAll(' ', '').replaceAll('é', 'e')}@mail.com',
+                          ),
                           const SizedBox(height: 16),
-                          _buildField('Teléfono', phone),
+                          _buildField('Teléfono', '+56912345678'),
                         ],
                       ),
                     ),
@@ -109,11 +144,11 @@ class ReceivedReservationDetailScreen extends StatelessWidget {
                             ),
                           ),
                           const SizedBox(height: 20),
-                          _buildField('Publicación', publication),
+                          _buildField('Publicación', widget.publication),
                           const SizedBox(height: 16),
-                          _buildField('Fecha', date),
+                          _buildField('Fecha', widget.date),
                           const SizedBox(height: 16),
-                          _buildField('Horario', time),
+                          _buildField('Horario', widget.time),
                           const SizedBox(height: 20),
                           Container(
                             padding: const EdgeInsets.symmetric(
@@ -127,7 +162,7 @@ class ReceivedReservationDetailScreen extends StatelessWidget {
                               borderRadius: BorderRadius.circular(20),
                             ),
                             child: Text(
-                              status,
+                              widget.status,
                               style: TextStyle(
                                 color: isPendiente
                                     ? const Color(0xFFF57C00)
@@ -145,7 +180,8 @@ class ReceivedReservationDetailScreen extends StatelessWidget {
                       children: [
                         Expanded(
                           child: OutlinedButton.icon(
-                            onPressed: () {},
+                            onPressed: () =>
+                                _showSnackBar('Contacto por correo no disponible aún'),
                             icon: const Icon(
                               Icons.email_outlined,
                               color: Color(0xFF1E70CD),
@@ -167,7 +203,8 @@ class ReceivedReservationDetailScreen extends StatelessWidget {
                         const SizedBox(width: 16),
                         Expanded(
                           child: OutlinedButton.icon(
-                            onPressed: () {},
+                            onPressed: () =>
+                                _showSnackBar('Contacto por WhatsApp no disponible aún'),
                             icon: const Icon(
                               Icons.phone,
                               color: Color(0xFF2E7D32),
@@ -190,69 +227,52 @@ class ReceivedReservationDetailScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 24),
                     if (isPendiente) ...[
-                      SizedBox(
+                      _actionButton(
+                        label: 'Marcar como COMPLETADA',
+                        bg: const Color(0xFFE8F5E9),
+                        border: const Color(0xFF4CAF50),
+                        text: const Color(0xFF2E7D32),
+                        onPressed: _processing
+                            ? null
+                            : () => _updateStatus(ReservationStatus.completed),
+                      ),
+                      const SizedBox(height: 12),
+                      _actionButton(
+                        label: 'Marcar como FALLIDA',
+                        bg: const Color(0xFFFFF3E0),
+                        border: const Color(0xFFFF9800),
+                        text: const Color(0xFFF57C00),
+                        onPressed: _processing
+                            ? null
+                            : () => _updateStatus(ReservationStatus.failed),
+                      ),
+                      const SizedBox(height: 12),
+                      _actionButton(
+                        label: 'Rechazar reserva',
+                        bg: const Color(0xFFFFEBEE),
+                        border: const Color(0xFFEF9A9A),
+                        text: const Color(0xFFC62828),
+                        onPressed: _processing
+                            ? null
+                            : () => _updateStatus(ReservationStatus.rejected),
+                      ),
+                      if (_processing) ...[
+                        const SizedBox(height: 16),
+                        const Center(child: CircularProgressIndicator()),
+                      ],
+                    ] else ...[
+                      Container(
                         width: double.infinity,
-                        child: ElevatedButton(
-                          onPressed: () {},
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFFE8F5E9),
-                            elevation: 0,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              side: const BorderSide(color: Color(0xFF4CAF50)),
-                            ),
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                          ),
-                          child: const Text(
-                            'Marcar como COMPLETADA',
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFE8F5E9),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Center(
+                          child: Text(
+                            'Reserva gestionada',
                             style: TextStyle(
                               color: Color(0xFF2E7D32),
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton(
-                          onPressed: () {},
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFFFFF3E0),
-                            elevation: 0,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              side: const BorderSide(color: Color(0xFFFF9800)),
-                            ),
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                          ),
-                          child: const Text(
-                            'Marcar como FALLIDA',
-                            style: TextStyle(
-                              color: Color(0xFFF57C00),
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton(
-                          onPressed: () {},
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFFFFEBEE),
-                            elevation: 0,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              side: const BorderSide(color: Color(0xFFEF9A9A)),
-                            ),
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                          ),
-                          child: const Text(
-                            'Rechazar reserva',
-                            style: TextStyle(
-                              color: Color(0xFFC62828),
                               fontWeight: FontWeight.bold,
                             ),
                           ),
@@ -269,8 +289,37 @@ class ReceivedReservationDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildField(String label, String value) {
-    return Column(
+  Widget _actionButton({
+    required String label,
+    required Color bg,
+    required Color border,
+    required Color text,
+    required VoidCallback? onPressed,
+  }) {
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton(
+        onPressed: onPressed,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: bg,
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+            side: BorderSide(color: border),
+          ),
+          padding: const EdgeInsets.symmetric(vertical: 16),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(color: text, fontWeight: FontWeight.bold),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildField(String label, String value) => Padding(
+    padding: const EdgeInsets.only(bottom: 4),
+    child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(label, style: const TextStyle(color: Colors.grey, fontSize: 12)),
@@ -278,12 +327,12 @@ class ReceivedReservationDetailScreen extends StatelessWidget {
         Text(
           value,
           style: const TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 16,
+            fontSize: 15,
+            fontWeight: FontWeight.w500,
             color: Color(0xFF1E293B),
           ),
         ),
       ],
-    );
-  }
+    ),
+  );
 }

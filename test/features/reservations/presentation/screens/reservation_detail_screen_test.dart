@@ -1,10 +1,26 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:mocktail/mocktail.dart';
+import 'package:sire/core/network/app_exception.dart';
+import 'package:sire/features/reservations/domain/entities/reservation.dart';
+import 'package:sire/features/reservations/domain/repositories/reservations_repository.dart';
+import 'package:sire/features/reservations/presentation/providers/reservations_provider.dart';
 import 'package:sire/features/reservations/presentation/screens/reservation_detail_screen.dart';
 
+class _MockReservationsRepository extends Mock
+    implements ReservationsRepository {}
+
 void main() {
-  Widget buildSubject({required String status}) {
+  setUpAll(() {
+    registerFallbackValue(ReservationStatus.pending);
+  });
+
+  Widget buildSubject({
+    required String status,
+    List<Override> overrides = const [],
+  }) {
     final mockRouter = GoRouter(
       initialLocation: '/detail',
       routes: [
@@ -19,9 +35,16 @@ void main() {
             status: status,
           ),
         ),
+        GoRoute(
+          path: '/my-reservations',
+          builder: (_, _) => const Scaffold(body: Text('Mis Reservas')),
+        ),
       ],
     );
-    return MaterialApp.router(routerConfig: mockRouter);
+    return ProviderScope(
+      overrides: overrides,
+      child: MaterialApp.router(routerConfig: mockRouter),
+    );
   }
 
   testWidgets('ReservationDetailScreen muestra encabezado y campos', (
@@ -142,4 +165,42 @@ void main() {
       FlutterError.onError = originalOnError;
     });
   });
+
+  testWidgets(
+    'tap Cancelar reserva cuando falla muestra SnackBar de no disponible',
+    (WidgetTester tester) async {
+      final originalOnError = FlutterError.onError;
+      FlutterError.onError = (FlutterErrorDetails details) {
+        if (details.exceptionAsString().contains('overflowed')) return;
+        originalOnError?.call(details);
+      };
+      tester.view.physicalSize = const Size(1080, 2400);
+
+      final mockRepo = _MockReservationsRepository();
+      when(() => mockRepo.cancelReservation(id: any(named: 'id'))).thenThrow(
+        ServerException(code: 'ENDPOINT_NOT_AVAILABLE', message: 'no impl'),
+      );
+
+      await tester.pumpWidget(
+        buildSubject(
+          status: 'pendiente',
+          overrides: [
+            reservationsRepositoryProvider.overrideWithValue(mockRepo),
+          ],
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Cancelar reserva'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      expect(find.text('Función no disponible aún'), findsOneWidget);
+
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        FlutterError.onError = originalOnError;
+      });
+    },
+  );
 }

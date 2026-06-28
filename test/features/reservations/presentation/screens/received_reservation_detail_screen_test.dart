@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:sire/features/reservations/presentation/screens/received_reservation_detail_screen.dart';
@@ -11,6 +12,7 @@ void main() {
         GoRoute(
           path: '/received-detail',
           builder: (_, _) => ReceivedReservationDetailScreen(
+            id: 'mock-recv-001',
             applicantName: 'Carlos Pérez',
             publication: 'Cancha de fútbol sintética',
             date: 'Jue 15 may',
@@ -20,7 +22,7 @@ void main() {
         ),
       ],
     );
-    return MaterialApp.router(routerConfig: mockRouter);
+    return ProviderScope(child: MaterialApp.router(routerConfig: mockRouter));
   }
 
   testWidgets('ReceivedReservationDetailScreen muestra encabezado', (

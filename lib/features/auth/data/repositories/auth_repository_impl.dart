@@ -32,6 +32,11 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
+  Future<void> verifyOtp({required String email, required String token}) async {
+    await supabaseDatasource.verifyOtp(email: email, token: token);
+  }
+
+  @override
   Future<void> signOut() async {
     await supabaseDatasource.signOut();
     await storage.delete(StorageKeys.token);

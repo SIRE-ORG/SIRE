@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../providers/reservations_provider.dart';
 
-class ReservationDetailScreen extends StatelessWidget {
+class ReservationDetailScreen extends ConsumerStatefulWidget {
   final String id;
   final String title;
   final String publisher;
@@ -20,15 +22,42 @@ class ReservationDetailScreen extends StatelessWidget {
   });
 
   @override
+  ConsumerState<ReservationDetailScreen> createState() =>
+      _ReservationDetailScreenState();
+}
+
+class _ReservationDetailScreenState
+    extends ConsumerState<ReservationDetailScreen> {
+  bool _canceling = false;
+
+  Future<void> _handleCancel() async {
+    setState(() => _canceling = true);
+    try {
+      await ref
+          .read(reservationActionNotifierProvider.notifier)
+          .cancel(id: widget.id);
+      if (mounted) context.pop();
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Función no disponible aún')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _canceling = false);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final isPendiente = status.toLowerCase() == 'pendiente';
+    final isPendiente = widget.status.toLowerCase() == 'pendiente';
     Color statusBgColor;
     Color statusTextColor;
 
-    if (status.toLowerCase() == 'completada') {
+    if (widget.status.toLowerCase() == 'completada') {
       statusBgColor = const Color(0xFFE8F5E9);
       statusTextColor = const Color(0xFF2E7D32);
-    } else if (status.toLowerCase() == 'cancelada') {
+    } else if (widget.status.toLowerCase() == 'cancelada') {
       statusBgColor = const Color(0xFFF5F5F5);
       statusTextColor = const Color(0xFF757575);
     } else {
@@ -83,13 +112,13 @@ class ReservationDetailScreen extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 24),
-                  _buildDetailRow('Publicación', title),
+                  _buildDetailRow('Publicación', widget.title),
                   const SizedBox(height: 16),
-                  _buildDetailRow('Publicador', publisher),
+                  _buildDetailRow('Publicador', widget.publisher),
                   const SizedBox(height: 16),
-                  _buildDetailRow('Fecha', date),
+                  _buildDetailRow('Fecha', widget.date),
                   const SizedBox(height: 16),
-                  _buildDetailRow('Horario', time),
+                  _buildDetailRow('Horario', widget.time),
                   const SizedBox(height: 16),
                   const Text(
                     'Estado',
@@ -106,7 +135,7 @@ class ReservationDetailScreen extends StatelessWidget {
                       borderRadius: BorderRadius.circular(16),
                     ),
                     child: Text(
-                      status,
+                      widget.status,
                       style: TextStyle(
                         color: statusTextColor,
                         fontSize: 12,
@@ -122,9 +151,7 @@ class ReservationDetailScreen extends StatelessWidget {
               SizedBox(
                 width: double.infinity,
                 child: OutlinedButton(
-                  onPressed: () {
-                    context.pop();
-                  },
+                  onPressed: _canceling ? null : _handleCancel,
                   style: OutlinedButton.styleFrom(
                     backgroundColor: const Color(0xFFFFEBEE),
                     side: const BorderSide(color: Color(0xFFEF9A9A)),
@@ -133,13 +160,19 @@ class ReservationDetailScreen extends StatelessWidget {
                       borderRadius: BorderRadius.circular(8),
                     ),
                   ),
-                  child: const Text(
-                    'Cancelar reserva',
-                    style: TextStyle(
-                      color: Color(0xFFC62828),
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+                  child: _canceling
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Text(
+                          'Cancelar reserva',
+                          style: TextStyle(
+                            color: Color(0xFFC62828),
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                 ),
               ),
           ],

@@ -229,12 +229,15 @@ final myPublicationsNotifierProvider =
 typedef _$MyPublicationsNotifier =
     AutoDisposeAsyncNotifier<List<PublicationSummaryItem>>;
 String _$publicationFormNotifierHash() =>
-    r'a4e1271c5b096336dd608f324fd32a99df7b8659';
+    r'f81000afa26e68bec05a31924a1af2bc8c1a3ff7';
 
 /// See also [PublicationFormNotifier].
 @ProviderFor(PublicationFormNotifier)
 final publicationFormNotifierProvider =
-    AutoDisposeAsyncNotifierProvider<PublicationFormNotifier, void>.internal(
+    AutoDisposeNotifierProvider<
+      PublicationFormNotifier,
+      AsyncValue<void>
+    >.internal(
       PublicationFormNotifier.new,
       name: r'publicationFormNotifierProvider',
       debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
@@ -244,6 +247,6 @@ final publicationFormNotifierProvider =
       allTransitiveDependencies: null,
     );
 
-typedef _$PublicationFormNotifier = AutoDisposeAsyncNotifier<void>;
+typedef _$PublicationFormNotifier = AutoDisposeNotifier<AsyncValue<void>>;
 // ignore_for_file: type=lint
 // ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package

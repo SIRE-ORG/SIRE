@@ -13,6 +13,7 @@ import '../../domain/usecases/cancel_reservation_usecase.dart';
 import '../../domain/usecases/create_reservation_usecase.dart';
 import '../../domain/usecases/get_my_reservations_usecase.dart';
 import '../../domain/usecases/get_received_reservations_usecase.dart';
+import '../../domain/usecases/get_reservation_detail_usecase.dart';
 import '../../domain/usecases/update_reservation_status_usecase.dart';
 
 part 'reservations_provider.g.dart';
@@ -32,6 +33,24 @@ ReservationsRepository reservationsRepository(Ref ref) =>
     ReservationsRepositoryImpl(
       remoteDatasource: ref.watch(reservationsRemoteDatasourceProvider),
     );
+
+// ---------------------------------------------------------------------------
+// ReceivedReservationsNotifier — reservas recibidas por el publicador
+// ---------------------------------------------------------------------------
+
+@riverpod
+Future<List<Reservation>> receivedReservations(Ref ref) =>
+    GetReceivedReservationsUseCase(ref.read(reservationsRepositoryProvider))
+        .call();
+
+// ---------------------------------------------------------------------------
+// ReservationDetail — detalle de una reserva por id
+// ---------------------------------------------------------------------------
+
+@riverpod
+Future<Reservation> reservationDetail(Ref ref, String id) =>
+    GetReservationDetailUseCase(ref.read(reservationsRepositoryProvider))
+        .call(id: id);
 
 // ---------------------------------------------------------------------------
 // MyReservationsNotifier — listado de reservas del solicitante
@@ -79,7 +98,7 @@ class ReceivedReservationsNotifier extends _$ReceivedReservationsNotifier {
 @riverpod
 class ReservationActionNotifier extends _$ReservationActionNotifier {
   @override
-  FutureOr<void> build() {}
+  AsyncValue<void> build() => const AsyncData(null);
 
   Future<Reservation> create({required CreateReservationParams params}) async {
     state = const AsyncLoading();
