@@ -142,23 +142,39 @@ class StubPublicationsRemoteDatasource implements PublicationsRemoteDatasource {
 /// ReservationsRemoteDatasource controlable para pruebas de providers.
 /// Solo implementa lo que esas pruebas ejercitan; el resto no debe llamarse.
 class StubReservationsRemoteDatasource implements ReservationsRemoteDatasource {
-  const StubReservationsRemoteDatasource({
+  StubReservationsRemoteDatasource({
     this.myResponse,
     this.receivedResponse,
+    this.actionResponse,
     this.error,
   });
 
   final List<ReservationModel>? myResponse;
   final List<ReservationModel>? receivedResponse;
+
+  /// Modelo devuelto por las acciones (create / updateStatus / cancel).
+  final ReservationModel? actionResponse;
   final Object? error;
+
+  // Sondas para verificar comportamiento desde las pruebas.
+  int myReservationsCalls = 0;
+  int receivedReservationsCalls = 0;
+
+  /// Último `status` (string) recibido en [updateReservationStatus]: permite
+  /// comprobar el mapeo enum → string que hace el repositorio.
+  String? lastStatusArg;
 
   @override
   Future<ReservationModel> createReservation({
     required CreateReservationRequestModel body,
-  }) => throw UnimplementedError();
+  }) async {
+    if (error != null) throw error!;
+    return actionResponse!;
+  }
 
   @override
   Future<List<ReservationModel>> getMyReservations() async {
+    myReservationsCalls++;
     if (error != null) throw error!;
     return myResponse!;
   }
@@ -167,14 +183,21 @@ class StubReservationsRemoteDatasource implements ReservationsRemoteDatasource {
   Future<ReservationModel> updateReservationStatus({
     required String id,
     required String status,
-  }) => throw UnimplementedError();
+  }) async {
+    lastStatusArg = status;
+    if (error != null) throw error!;
+    return actionResponse!;
+  }
 
   @override
-  Future<ReservationModel> cancelReservation({required String id}) =>
-      throw UnimplementedError();
+  Future<ReservationModel> cancelReservation({required String id}) async {
+    if (error != null) throw error!;
+    return actionResponse!;
+  }
 
   @override
   Future<List<ReservationModel>> getReceivedReservations() async {
+    receivedReservationsCalls++;
     if (error != null) throw error!;
     return receivedResponse!;
   }
