@@ -16,33 +16,30 @@ const _kProfile = UserProfile(
 );
 
 void main() {
-  Widget _buildSubject({bool isPublisher = false, bool withProfile = true}) {
+  Widget buildSubject({bool isPublisher = false, bool withProfile = true}) {
     final mockRouter = GoRouter(
       initialLocation: '/profile',
       routes: [
-        GoRoute(
-          path: '/profile',
-          builder: (_, __) => const ProfileScreen(),
-        ),
+        GoRoute(path: '/profile', builder: (_, _) => const ProfileScreen()),
         GoRoute(
           path: '/feed',
-          builder: (_, __) => const Scaffold(body: Text('Feed')),
+          builder: (_, _) => const Scaffold(body: Text('Feed')),
         ),
         GoRoute(
           path: '/my-reservations',
-          builder: (_, __) => const Scaffold(body: Text('Mis Reservas')),
+          builder: (_, _) => const Scaffold(body: Text('Mis Reservas')),
         ),
         GoRoute(
           path: '/dashboard',
-          builder: (_, __) => const Scaffold(body: Text('Dashboard')),
+          builder: (_, _) => const Scaffold(body: Text('Dashboard')),
         ),
         GoRoute(
           path: '/profile/edit',
-          builder: (_, __) => const Scaffold(body: Text('Editar Perfil')),
+          builder: (_, _) => const Scaffold(body: Text('Editar Perfil')),
         ),
         GoRoute(
           path: '/my-publications',
-          builder: (_, __) => const Scaffold(body: Text('Mis Publicaciones')),
+          builder: (_, _) => const Scaffold(body: Text('Mis Publicaciones')),
         ),
       ],
     );
@@ -50,15 +47,13 @@ void main() {
       overrides: [
         isPublisherProvider.overrideWith((ref) => isPublisher),
         if (withProfile)
-          currentProfileProvider.overrideWith(
-            (ref) async => _kProfile,
-          ),
+          currentProfileProvider.overrideWith((ref) async => _kProfile),
       ],
       child: MaterialApp.router(routerConfig: mockRouter),
     );
   }
 
-  void _setup(WidgetTester tester, {Size size = const Size(390, 844)}) {
+  void setup(WidgetTester tester, {Size size = const Size(390, 844)}) {
     final original = FlutterError.onError;
     FlutterError.onError = (d) {
       if (d.exceptionAsString().contains('overflowed')) return;
@@ -74,48 +69,48 @@ void main() {
   }
 
   testWidgets('muestra nombre de usuario desde el provider', (tester) async {
-    _setup(tester, size: const Size(1080, 2400));
+    setup(tester, size: const Size(1080, 2400));
 
-    await tester.pumpWidget(_buildSubject());
+    await tester.pumpWidget(buildSubject());
     await tester.pumpAndSettle();
 
     expect(find.text('María González'), findsWidgets);
   });
 
   testWidgets('muestra correo electrónico desde el provider', (tester) async {
-    _setup(tester, size: const Size(1080, 2400));
+    setup(tester, size: const Size(1080, 2400));
 
-    await tester.pumpWidget(_buildSubject());
+    await tester.pumpWidget(buildSubject());
     await tester.pumpAndSettle();
 
     expect(find.text('maria@correo.com'), findsWidgets);
   });
 
   testWidgets('muestra sección Editar Perfil', (tester) async {
-    _setup(tester, size: const Size(390, 2400));
-    await tester.pumpWidget(_buildSubject());
+    setup(tester, size: const Size(390, 2400));
+    await tester.pumpWidget(buildSubject());
     await tester.pumpAndSettle();
     expect(find.text('Editar perfil'), findsOneWidget);
   });
 
   testWidgets('muestra toggle de Publicador', (tester) async {
-    _setup(tester, size: const Size(1080, 2400));
-    await tester.pumpWidget(_buildSubject());
+    setup(tester, size: const Size(1080, 2400));
+    await tester.pumpWidget(buildSubject());
     await tester.pumpAndSettle();
     expect(find.text('Publicador'), findsWidgets);
   });
 
   testWidgets('muestra opción Cerrar sesión', (tester) async {
-    _setup(tester, size: const Size(390, 2400));
-    await tester.pumpWidget(_buildSubject());
+    setup(tester, size: const Size(390, 2400));
+    await tester.pumpWidget(buildSubject());
     await tester.pumpAndSettle();
     expect(find.text('Cerrar sesión'), findsOneWidget);
   });
 
   testWidgets('muestra tabs Solicitante y Publicador', (tester) async {
-    _setup(tester, size: const Size(1080, 2400));
+    setup(tester, size: const Size(1080, 2400));
 
-    await tester.pumpWidget(_buildSubject());
+    await tester.pumpWidget(buildSubject());
     await tester.pumpAndSettle();
 
     expect(find.text('Solicitante'), findsOneWidget);
@@ -123,9 +118,9 @@ void main() {
   });
 
   testWidgets('interacción con tab Publicador cambia estado', (tester) async {
-    _setup(tester, size: const Size(1080, 2400));
+    setup(tester, size: const Size(1080, 2400));
 
-    await tester.pumpWidget(_buildSubject());
+    await tester.pumpWidget(buildSubject());
     await tester.pumpAndSettle();
 
     await tester.tap(find.text('Publicador').first);
@@ -136,9 +131,9 @@ void main() {
 
   // Layout web (viewport >= 800)
   testWidgets('layout web muestra sidebar con SIRE', (tester) async {
-    _setup(tester, size: const Size(1280, 800));
+    setup(tester, size: const Size(1280, 800));
 
-    await tester.pumpWidget(_buildSubject());
+    await tester.pumpWidget(buildSubject());
     await tester.pumpAndSettle();
 
     expect(find.text('SIRE'), findsOneWidget);
@@ -146,18 +141,19 @@ void main() {
   });
 
   testWidgets('layout web muestra estado de cuenta activa', (tester) async {
-    _setup(tester, size: const Size(1280, 800));
+    setup(tester, size: const Size(1280, 800));
 
-    await tester.pumpWidget(_buildSubject());
+    await tester.pumpWidget(buildSubject());
     await tester.pumpAndSettle();
 
     expect(find.text('Cuenta activa'), findsOneWidget);
   });
 
-  testWidgets('modo publicador activo muestra mis publicaciones',
-      (tester) async {
-    _setup(tester, size: const Size(390, 2400));
-    await tester.pumpWidget(_buildSubject(isPublisher: true));
+  testWidgets('modo publicador activo muestra mis publicaciones', (
+    tester,
+  ) async {
+    setup(tester, size: const Size(390, 2400));
+    await tester.pumpWidget(buildSubject(isPublisher: true));
     await tester.pumpAndSettle();
     expect(find.text('Mis publicaciones'), findsOneWidget);
   });

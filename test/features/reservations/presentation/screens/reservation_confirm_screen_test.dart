@@ -4,13 +4,13 @@ import 'package:go_router/go_router.dart';
 import 'package:sire/features/reservations/presentation/screens/reservation_confirm_screen.dart';
 
 void main() {
-  Widget _buildSubject() {
+  Widget buildSubject() {
     final mockRouter = GoRouter(
       initialLocation: '/confirm',
       routes: [
         GoRoute(
           path: '/confirm',
-          builder: (_, __) => const ReservationConfirmScreen(
+          builder: (_, _) => const ReservationConfirmScreen(
             id: 'pub-001',
             title: 'Cancha de fútbol sintética',
             subtitle: 'Club Deportivo Temuco',
@@ -20,14 +20,16 @@ void main() {
         ),
         GoRoute(
           path: '/my-reservations',
-          builder: (_, __) => const Scaffold(body: Text('Mis Reservas')),
+          builder: (_, _) => const Scaffold(body: Text('Mis Reservas')),
         ),
       ],
     );
     return MaterialApp.router(routerConfig: mockRouter);
   }
 
-  testWidgets('ReservationConfirmScreen muestra encabezado y título', (WidgetTester tester) async {
+  testWidgets('ReservationConfirmScreen muestra encabezado y título', (
+    WidgetTester tester,
+  ) async {
     final originalOnError = FlutterError.onError;
     FlutterError.onError = (FlutterErrorDetails details) {
       if (details.exceptionAsString().contains('overflowed')) return;
@@ -35,7 +37,7 @@ void main() {
     };
     tester.view.physicalSize = const Size(1080, 2400);
 
-    await tester.pumpWidget(_buildSubject());
+    await tester.pumpWidget(buildSubject());
     await tester.pumpAndSettle();
 
     expect(find.text('Confirmar Reserva'), findsWidgets);
@@ -48,7 +50,9 @@ void main() {
     });
   });
 
-  testWidgets('ReservationConfirmScreen muestra campos del formulario', (WidgetTester tester) async {
+  testWidgets('ReservationConfirmScreen muestra campos del formulario', (
+    WidgetTester tester,
+  ) async {
     final originalOnError = FlutterError.onError;
     FlutterError.onError = (FlutterErrorDetails details) {
       if (details.exceptionAsString().contains('overflowed')) return;
@@ -56,7 +60,7 @@ void main() {
     };
     tester.view.physicalSize = const Size(1080, 2400);
 
-    await tester.pumpWidget(_buildSubject());
+    await tester.pumpWidget(buildSubject());
     await tester.pumpAndSettle();
 
     expect(find.text('Nombre Completo'), findsOneWidget);
@@ -69,7 +73,9 @@ void main() {
     });
   });
 
-  testWidgets('ReservationConfirmScreen muestra botón confirmar', (WidgetTester tester) async {
+  testWidgets('ReservationConfirmScreen muestra botón confirmar', (
+    WidgetTester tester,
+  ) async {
     final originalOnError = FlutterError.onError;
     FlutterError.onError = (FlutterErrorDetails details) {
       if (details.exceptionAsString().contains('overflowed')) return;
@@ -77,7 +83,7 @@ void main() {
     };
     tester.view.physicalSize = const Size(1080, 2400);
 
-    await tester.pumpWidget(_buildSubject());
+    await tester.pumpWidget(buildSubject());
     await tester.pumpAndSettle();
 
     expect(find.text('Confirmar Reserva'), findsWidgets);
@@ -88,7 +94,9 @@ void main() {
     });
   });
 
-  testWidgets('ReservationConfirmScreen muestra resumen de fecha y hora', (WidgetTester tester) async {
+  testWidgets('ReservationConfirmScreen muestra resumen de fecha y hora', (
+    WidgetTester tester,
+  ) async {
     final originalOnError = FlutterError.onError;
     FlutterError.onError = (FlutterErrorDetails details) {
       if (details.exceptionAsString().contains('overflowed')) return;
@@ -96,7 +104,7 @@ void main() {
     };
     tester.view.physicalSize = const Size(1080, 2400);
 
-    await tester.pumpWidget(_buildSubject());
+    await tester.pumpWidget(buildSubject());
     await tester.pumpAndSettle();
 
     expect(find.textContaining('Lun 15 jun'), findsOneWidget);
@@ -108,7 +116,9 @@ void main() {
     });
   });
 
-  testWidgets('ReservationConfirmScreen permite ingresar texto en los campos', (WidgetTester tester) async {
+  testWidgets('ReservationConfirmScreen permite ingresar texto en los campos', (
+    WidgetTester tester,
+  ) async {
     final originalOnError = FlutterError.onError;
     FlutterError.onError = (FlutterErrorDetails details) {
       if (details.exceptionAsString().contains('overflowed')) return;
@@ -116,7 +126,7 @@ void main() {
     };
     tester.view.physicalSize = const Size(1080, 2400);
 
-    await tester.pumpWidget(_buildSubject());
+    await tester.pumpWidget(buildSubject());
     await tester.pumpAndSettle();
 
     final textFields = find.byType(TextField);
@@ -131,27 +141,30 @@ void main() {
     });
   });
 
-  testWidgets('tap Cancelar reserva muestra SnackBar de función no disponible', (WidgetTester tester) async {
-    final originalOnError = FlutterError.onError;
-    FlutterError.onError = (FlutterErrorDetails details) {
-      if (details.exceptionAsString().contains('overflowed')) return;
-      originalOnError?.call(details);
-    };
-    tester.view.physicalSize = const Size(390, 2400);
+  testWidgets(
+    'tap Cancelar reserva muestra SnackBar de función no disponible',
+    (WidgetTester tester) async {
+      final originalOnError = FlutterError.onError;
+      FlutterError.onError = (FlutterErrorDetails details) {
+        if (details.exceptionAsString().contains('overflowed')) return;
+        originalOnError?.call(details);
+      };
+      tester.view.physicalSize = const Size(390, 2400);
 
-    await tester.pumpWidget(_buildSubject());
-    await tester.pumpAndSettle();
+      await tester.pumpWidget(buildSubject());
+      await tester.pumpAndSettle();
 
-    await tester.ensureVisible(find.text('Cancelar reserva'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Cancelar reserva'));
-    await tester.pump();
+      await tester.ensureVisible(find.text('Cancelar reserva'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Cancelar reserva'));
+      await tester.pump();
 
-    expect(find.text('Función no disponible aún'), findsOneWidget);
+      expect(find.text('Función no disponible aún'), findsOneWidget);
 
-    addTearDown(() {
-      tester.view.resetPhysicalSize();
-      FlutterError.onError = originalOnError;
-    });
-  });
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        FlutterError.onError = originalOnError;
+      });
+    },
+  );
 }

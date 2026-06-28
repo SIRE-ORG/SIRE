@@ -5,13 +5,13 @@ import 'package:go_router/go_router.dart';
 import 'package:sire/features/reservations/presentation/screens/received_reservation_detail_screen.dart';
 
 void main() {
-  Widget _buildSubject({required String status}) {
+  Widget buildSubject({required String status}) {
     final mockRouter = GoRouter(
       initialLocation: '/received-detail',
       routes: [
         GoRoute(
           path: '/received-detail',
-          builder: (_, __) => ReceivedReservationDetailScreen(
+          builder: (_, _) => ReceivedReservationDetailScreen(
             id: 'mock-recv-001',
             applicantName: 'Carlos Pérez',
             publication: 'Cancha de fútbol sintética',
@@ -25,7 +25,9 @@ void main() {
     return ProviderScope(child: MaterialApp.router(routerConfig: mockRouter));
   }
 
-  testWidgets('ReceivedReservationDetailScreen muestra encabezado', (WidgetTester tester) async {
+  testWidgets('ReceivedReservationDetailScreen muestra encabezado', (
+    WidgetTester tester,
+  ) async {
     final originalOnError = FlutterError.onError;
     FlutterError.onError = (FlutterErrorDetails details) {
       if (details.exceptionAsString().contains('overflowed')) return;
@@ -33,7 +35,7 @@ void main() {
     };
     tester.view.physicalSize = const Size(1080, 2400);
 
-    await tester.pumpWidget(_buildSubject(status: 'pendiente'));
+    await tester.pumpWidget(buildSubject(status: 'pendiente'));
     await tester.pumpAndSettle();
 
     expect(find.text('Detalle de reserva'), findsOneWidget);
@@ -46,7 +48,9 @@ void main() {
     });
   });
 
-  testWidgets('ReceivedReservationDetailScreen muestra datos del solicitante', (WidgetTester tester) async {
+  testWidgets('ReceivedReservationDetailScreen muestra datos del solicitante', (
+    WidgetTester tester,
+  ) async {
     final originalOnError = FlutterError.onError;
     FlutterError.onError = (FlutterErrorDetails details) {
       if (details.exceptionAsString().contains('overflowed')) return;
@@ -54,7 +58,7 @@ void main() {
     };
     tester.view.physicalSize = const Size(1080, 2400);
 
-    await tester.pumpWidget(_buildSubject(status: 'pendiente'));
+    await tester.pumpWidget(buildSubject(status: 'pendiente'));
     await tester.pumpAndSettle();
 
     expect(find.text('Carlos Pérez'), findsWidgets);
@@ -68,7 +72,57 @@ void main() {
     });
   });
 
-  testWidgets('ReceivedReservationDetailScreen pendiente muestra botones de acción', (WidgetTester tester) async {
+  testWidgets(
+    'ReceivedReservationDetailScreen pendiente muestra botones de acción',
+    (WidgetTester tester) async {
+      final originalOnError = FlutterError.onError;
+      FlutterError.onError = (FlutterErrorDetails details) {
+        if (details.exceptionAsString().contains('overflowed')) return;
+        originalOnError?.call(details);
+      };
+      tester.view.physicalSize = const Size(1080, 2400);
+
+      await tester.pumpWidget(buildSubject(status: 'pendiente'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Marcar como COMPLETADA'), findsOneWidget);
+      expect(find.text('Marcar como FALLIDA'), findsOneWidget);
+      expect(find.text('Rechazar reserva'), findsOneWidget);
+
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        FlutterError.onError = originalOnError;
+      });
+    },
+  );
+
+  testWidgets(
+    'ReceivedReservationDetailScreen no pendiente oculta botones de acción',
+    (WidgetTester tester) async {
+      final originalOnError = FlutterError.onError;
+      FlutterError.onError = (FlutterErrorDetails details) {
+        if (details.exceptionAsString().contains('overflowed')) return;
+        originalOnError?.call(details);
+      };
+      tester.view.physicalSize = const Size(1080, 2400);
+
+      await tester.pumpWidget(buildSubject(status: 'completada'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Marcar como COMPLETADA'), findsNothing);
+      expect(find.text('Marcar como FALLIDA'), findsNothing);
+      expect(find.text('Rechazar reserva'), findsNothing);
+
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        FlutterError.onError = originalOnError;
+      });
+    },
+  );
+
+  testWidgets('ReceivedReservationDetailScreen muestra botones de contacto', (
+    WidgetTester tester,
+  ) async {
     final originalOnError = FlutterError.onError;
     FlutterError.onError = (FlutterErrorDetails details) {
       if (details.exceptionAsString().contains('overflowed')) return;
@@ -76,49 +130,7 @@ void main() {
     };
     tester.view.physicalSize = const Size(1080, 2400);
 
-    await tester.pumpWidget(_buildSubject(status: 'pendiente'));
-    await tester.pumpAndSettle();
-
-    expect(find.text('Marcar como COMPLETADA'), findsOneWidget);
-    expect(find.text('Marcar como FALLIDA'), findsOneWidget);
-    expect(find.text('Rechazar reserva'), findsOneWidget);
-
-    addTearDown(() {
-      tester.view.resetPhysicalSize();
-      FlutterError.onError = originalOnError;
-    });
-  });
-
-  testWidgets('ReceivedReservationDetailScreen no pendiente oculta botones de acción', (WidgetTester tester) async {
-    final originalOnError = FlutterError.onError;
-    FlutterError.onError = (FlutterErrorDetails details) {
-      if (details.exceptionAsString().contains('overflowed')) return;
-      originalOnError?.call(details);
-    };
-    tester.view.physicalSize = const Size(1080, 2400);
-
-    await tester.pumpWidget(_buildSubject(status: 'completada'));
-    await tester.pumpAndSettle();
-
-    expect(find.text('Marcar como COMPLETADA'), findsNothing);
-    expect(find.text('Marcar como FALLIDA'), findsNothing);
-    expect(find.text('Rechazar reserva'), findsNothing);
-
-    addTearDown(() {
-      tester.view.resetPhysicalSize();
-      FlutterError.onError = originalOnError;
-    });
-  });
-
-  testWidgets('ReceivedReservationDetailScreen muestra botones de contacto', (WidgetTester tester) async {
-    final originalOnError = FlutterError.onError;
-    FlutterError.onError = (FlutterErrorDetails details) {
-      if (details.exceptionAsString().contains('overflowed')) return;
-      originalOnError?.call(details);
-    };
-    tester.view.physicalSize = const Size(1080, 2400);
-
-    await tester.pumpWidget(_buildSubject(status: 'pendiente'));
+    await tester.pumpWidget(buildSubject(status: 'pendiente'));
     await tester.pumpAndSettle();
 
     expect(find.text('Correo'), findsWidgets);

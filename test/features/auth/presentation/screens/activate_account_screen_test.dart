@@ -5,26 +5,25 @@ import 'package:go_router/go_router.dart';
 import 'package:sire/features/auth/presentation/screens/activate_account_screen.dart';
 
 void main() {
-  Widget _buildApp() => ProviderScope(
-        child: MaterialApp.router(
-          routerConfig: GoRouter(
-            initialLocation: '/activate-account',
-            routes: [
-              GoRoute(
-                path: '/activate-account',
-                builder: (_, __) => const ActivateAccountScreen(),
-              ),
-              GoRoute(
-                path: '/publication/create',
-                builder: (_, __) =>
-                    const Scaffold(body: Text('Crear publicación')),
-              ),
-            ],
+  Widget buildApp() => ProviderScope(
+    child: MaterialApp.router(
+      routerConfig: GoRouter(
+        initialLocation: '/activate-account',
+        routes: [
+          GoRoute(
+            path: '/activate-account',
+            builder: (_, _) => const ActivateAccountScreen(),
           ),
-        ),
-      );
+          GoRoute(
+            path: '/publication/create',
+            builder: (_, _) => const Scaffold(body: Text('Crear publicación')),
+          ),
+        ],
+      ),
+    ),
+  );
 
-  void _suppressOverflow(WidgetTester tester) {
+  void suppressOverflow(WidgetTester tester) {
     final original = FlutterError.onError;
     FlutterError.onError = (d) {
       if (d.exceptionAsString().contains('overflowed')) return;
@@ -38,11 +37,12 @@ void main() {
     tester.view.devicePixelRatio = 1.0;
   }
 
-  testWidgets('renderiza título, campo Contraseña y botón Activar cuenta',
-      (tester) async {
-    _suppressOverflow(tester);
+  testWidgets('renderiza título, campo Contraseña y botón Activar cuenta', (
+    tester,
+  ) async {
+    suppressOverflow(tester);
 
-    await tester.pumpWidget(_buildApp());
+    await tester.pumpWidget(buildApp());
     await tester.pumpAndSettle();
 
     expect(find.text('Activar cuenta'), findsWidgets);
@@ -51,22 +51,20 @@ void main() {
   });
 
   testWidgets('muestra instrucción sobre la contraseña', (tester) async {
-    _suppressOverflow(tester);
+    suppressOverflow(tester);
 
-    await tester.pumpWidget(_buildApp());
+    await tester.pumpWidget(buildApp());
     await tester.pumpAndSettle();
 
-    expect(
-      find.textContaining('Establece una contraseña'),
-      findsOneWidget,
-    );
+    expect(find.textContaining('Establece una contraseña'), findsOneWidget);
   });
 
-  testWidgets('contraseña menor a 8 caracteres muestra SnackBar de error',
-      (tester) async {
-    _suppressOverflow(tester);
+  testWidgets('contraseña menor a 8 caracteres muestra SnackBar de error', (
+    tester,
+  ) async {
+    suppressOverflow(tester);
 
-    await tester.pumpWidget(_buildApp());
+    await tester.pumpWidget(buildApp());
     await tester.pumpAndSettle();
 
     await tester.enterText(find.byType(TextField).first, 'short');
@@ -82,9 +80,9 @@ void main() {
   });
 
   testWidgets('permite ingresar contraseña en el campo', (tester) async {
-    _suppressOverflow(tester);
+    suppressOverflow(tester);
 
-    await tester.pumpWidget(_buildApp());
+    await tester.pumpWidget(buildApp());
     await tester.pumpAndSettle();
 
     await tester.enterText(find.byType(TextField).first, 'mipassword123');

@@ -222,7 +222,11 @@ class _MyReservationsScreenState extends ConsumerState<MyReservationsScreen> {
     color: const Color(0xFFFFF3E0),
     child: Row(
       children: [
-        const Icon(Icons.warning_amber_rounded, color: Color(0xFFF57C00), size: 18),
+        const Icon(
+          Icons.warning_amber_rounded,
+          color: Color(0xFFF57C00),
+          size: 18,
+        ),
         const SizedBox(width: 8),
         Flexible(
           child: Text(
@@ -240,26 +244,35 @@ class _MyReservationsScreenState extends ConsumerState<MyReservationsScreen> {
       return [
         const Padding(
           padding: EdgeInsets.symmetric(vertical: 32),
-          child: Center(child: Text('Sin reservas activas', style: TextStyle(color: Colors.grey))),
+          child: Center(
+            child: Text(
+              'Sin reservas activas',
+              style: TextStyle(color: Colors.grey),
+            ),
+          ),
         ),
       ];
     }
-    return activas.map((r) => _buildReservationCard(
-      title: r.publicationTitle ?? 'Reserva',
-      date: r.date,
-      time: '${r.startTime} - ${r.endTime}',
-      status: 'Pendiente',
-      statusColor: const Color(0xFFFFF3E0),
-      statusTextColor: const Color(0xFFF57C00),
-      onTap: () => _handleReservationTap(context, isWeb, {
-        'id': r.id,
-        'title': r.publicationTitle ?? 'Reserva',
-        'publisher': r.publicationCity ?? '',
-        'date': r.date,
-        'time': '${r.startTime} - ${r.endTime}',
-        'status': 'Pendiente',
-      }),
-    )).toList();
+    return activas
+        .map(
+          (r) => _buildReservationCard(
+            title: r.publicationTitle ?? 'Reserva',
+            date: r.date,
+            time: '${r.startTime} - ${r.endTime}',
+            status: 'Pendiente',
+            statusColor: const Color(0xFFFFF3E0),
+            statusTextColor: const Color(0xFFF57C00),
+            onTap: () => _handleReservationTap(context, isWeb, {
+              'id': r.id,
+              'title': r.publicationTitle ?? 'Reserva',
+              'publisher': r.publicationCity ?? '',
+              'date': r.date,
+              'time': '${r.startTime} - ${r.endTime}',
+              'status': 'Pendiente',
+            }),
+          ),
+        )
+        .toList();
   }
 
   List<Widget> _reservationsToHistorial(List<Reservation> list, bool isWeb) {
@@ -268,7 +281,9 @@ class _MyReservationsScreenState extends ConsumerState<MyReservationsScreen> {
       return [
         const Padding(
           padding: EdgeInsets.symmetric(vertical: 32),
-          child: Center(child: Text('Sin historial', style: TextStyle(color: Colors.grey))),
+          child: Center(
+            child: Text('Sin historial', style: TextStyle(color: Colors.grey)),
+          ),
         ),
       ];
     }
@@ -329,7 +344,9 @@ class _MyReservationsScreenState extends ConsumerState<MyReservationsScreen> {
                     children: [
                       _buildHeader(isWeb: true),
                       if (reservationsAsync.hasError)
-                        _buildBanner('No se pudieron cargar tus reservas — mostrando datos de ejemplo'),
+                        _buildBanner(
+                          'No se pudieron cargar tus reservas — mostrando datos de ejemplo',
+                        ),
                       Expanded(
                         child: reservationsAsync.isLoading
                             ? const Center(child: CircularProgressIndicator())
@@ -340,16 +357,34 @@ class _MyReservationsScreenState extends ConsumerState<MyReservationsScreen> {
                                   runSpacing: 24,
                                   children: reservationsAsync.when(
                                     loading: () => [],
-                                    error: (_, __) => (_showActivas
-                                            ? _buildActivasList(isWeb)
-                                            : _buildHistorialList(isWeb))
-                                        .map((w) => SizedBox(width: 400, child: w))
-                                        .toList(),
-                                    data: (list) => (_showActivas
-                                            ? _reservationsToActivas(list, isWeb)
-                                            : _reservationsToHistorial(list, isWeb))
-                                        .map((w) => SizedBox(width: 400, child: w))
-                                        .toList(),
+                                    error: (_, _) =>
+                                        (_showActivas
+                                                ? _buildActivasList(isWeb)
+                                                : _buildHistorialList(isWeb))
+                                            .map(
+                                              (w) => SizedBox(
+                                                width: 400,
+                                                child: w,
+                                              ),
+                                            )
+                                            .toList(),
+                                    data: (list) =>
+                                        (_showActivas
+                                                ? _reservationsToActivas(
+                                                    list,
+                                                    isWeb,
+                                                  )
+                                                : _reservationsToHistorial(
+                                                    list,
+                                                    isWeb,
+                                                  ))
+                                            .map(
+                                              (w) => SizedBox(
+                                                width: 400,
+                                                child: w,
+                                              ),
+                                            )
+                                            .toList(),
                                   ),
                                 ),
                               ),
@@ -367,7 +402,9 @@ class _MyReservationsScreenState extends ConsumerState<MyReservationsScreen> {
               children: [
                 _buildHeader(isWeb: false),
                 if (reservationsAsync.hasError)
-                  _buildBanner('No se pudieron cargar tus reservas — mostrando datos de ejemplo'),
+                  _buildBanner(
+                    'No se pudieron cargar tus reservas — mostrando datos de ejemplo',
+                  ),
                 Expanded(
                   child: reservationsAsync.isLoading
                       ? const Center(child: CircularProgressIndicator())
@@ -377,22 +414,35 @@ class _MyReservationsScreenState extends ConsumerState<MyReservationsScreen> {
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: reservationsAsync.when(
                               loading: () => [],
-                              error: (_, __) => (_showActivas
-                                      ? _buildActivasList(isWeb)
-                                      : _buildHistorialList(isWeb))
-                                  .map((w) => Padding(
-                                        padding: const EdgeInsets.only(bottom: 12),
-                                        child: w,
-                                      ))
-                                  .toList(),
-                              data: (list) => (_showActivas
-                                      ? _reservationsToActivas(list, isWeb)
-                                      : _reservationsToHistorial(list, isWeb))
-                                  .map((w) => Padding(
-                                        padding: const EdgeInsets.only(bottom: 12),
-                                        child: w,
-                                      ))
-                                  .toList(),
+                              error: (_, _) =>
+                                  (_showActivas
+                                          ? _buildActivasList(isWeb)
+                                          : _buildHistorialList(isWeb))
+                                      .map(
+                                        (w) => Padding(
+                                          padding: const EdgeInsets.only(
+                                            bottom: 12,
+                                          ),
+                                          child: w,
+                                        ),
+                                      )
+                                      .toList(),
+                              data: (list) =>
+                                  (_showActivas
+                                          ? _reservationsToActivas(list, isWeb)
+                                          : _reservationsToHistorial(
+                                              list,
+                                              isWeb,
+                                            ))
+                                      .map(
+                                        (w) => Padding(
+                                          padding: const EdgeInsets.only(
+                                            bottom: 12,
+                                          ),
+                                          child: w,
+                                        ),
+                                      )
+                                      .toList(),
                             ),
                           ),
                         ),

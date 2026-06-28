@@ -111,7 +111,9 @@ void main() {
     });
   });
 
-  testWidgets('tap Enviar enlace muestra SnackBar de confirmación', (WidgetTester tester) async {
+  testWidgets('tap Enviar enlace muestra SnackBar de confirmación', (
+    WidgetTester tester,
+  ) async {
     final originalOnError = FlutterError.onError;
     FlutterError.onError = (FlutterErrorDetails details) {
       if (details.exceptionAsString().contains('overflowed')) return;
@@ -126,11 +128,11 @@ void main() {
       routes: [
         GoRoute(
           path: '/forgot-password',
-          builder: (_, __) => const ForgotPasswordScreen(),
+          builder: (_, _) => const ForgotPasswordScreen(),
         ),
         GoRoute(
           path: '/login',
-          builder: (_, __) => const Scaffold(body: Text('Login')),
+          builder: (_, _) => const Scaffold(body: Text('Login')),
         ),
       ],
     );

@@ -17,7 +17,7 @@ void main() {
     registerFallbackValue(ReservationStatus.pending);
   });
 
-  Widget _buildSubject({
+  Widget buildSubject({
     required String status,
     List<Override> overrides = const [],
   }) {
@@ -26,7 +26,7 @@ void main() {
       routes: [
         GoRoute(
           path: '/detail',
-          builder: (_, __) => ReservationDetailScreen(
+          builder: (_, _) => ReservationDetailScreen(
             id: 'res-001',
             title: 'Cancha de fútbol',
             publisher: 'Club Deportivo',
@@ -37,7 +37,7 @@ void main() {
         ),
         GoRoute(
           path: '/my-reservations',
-          builder: (_, __) => const Scaffold(body: Text('Mis Reservas')),
+          builder: (_, _) => const Scaffold(body: Text('Mis Reservas')),
         ),
       ],
     );
@@ -57,7 +57,7 @@ void main() {
     };
     tester.view.physicalSize = const Size(1080, 2400);
 
-    await tester.pumpWidget(_buildSubject(status: 'pendiente'));
+    await tester.pumpWidget(buildSubject(status: 'pendiente'));
     await tester.pumpAndSettle();
 
     expect(find.text('Detalle de reserva'), findsOneWidget);
@@ -83,7 +83,7 @@ void main() {
       };
       tester.view.physicalSize = const Size(1080, 2400);
 
-      await tester.pumpWidget(_buildSubject(status: 'pendiente'));
+      await tester.pumpWidget(buildSubject(status: 'pendiente'));
       await tester.pumpAndSettle();
 
       expect(find.text('Cancelar reserva'), findsOneWidget);
@@ -105,7 +105,7 @@ void main() {
       };
       tester.view.physicalSize = const Size(1080, 2400);
 
-      await tester.pumpWidget(_buildSubject(status: 'completada'));
+      await tester.pumpWidget(buildSubject(status: 'completada'));
       await tester.pumpAndSettle();
 
       expect(find.text('Cancelar reserva'), findsNothing);
@@ -128,7 +128,7 @@ void main() {
       };
       tester.view.physicalSize = const Size(1080, 2400);
 
-      await tester.pumpWidget(_buildSubject(status: 'cancelada'));
+      await tester.pumpWidget(buildSubject(status: 'cancelada'));
       await tester.pumpAndSettle();
 
       expect(find.text('Cancelar reserva'), findsNothing);
@@ -151,7 +151,7 @@ void main() {
     };
     tester.view.physicalSize = const Size(1080, 2400);
 
-    await tester.pumpWidget(_buildSubject(status: 'pendiente'));
+    await tester.pumpWidget(buildSubject(status: 'pendiente'));
     await tester.pumpAndSettle();
 
     expect(find.text('Publicación'), findsOneWidget);
@@ -177,17 +177,12 @@ void main() {
       tester.view.physicalSize = const Size(1080, 2400);
 
       final mockRepo = _MockReservationsRepository();
-      when(
-        () => mockRepo.cancelReservation(id: any(named: 'id')),
-      ).thenThrow(
-        ServerException(
-          code: 'ENDPOINT_NOT_AVAILABLE',
-          message: 'no impl',
-        ),
+      when(() => mockRepo.cancelReservation(id: any(named: 'id'))).thenThrow(
+        ServerException(code: 'ENDPOINT_NOT_AVAILABLE', message: 'no impl'),
       );
 
       await tester.pumpWidget(
-        _buildSubject(
+        buildSubject(
           status: 'pendiente',
           overrides: [
             reservationsRepositoryProvider.overrideWithValue(mockRepo),
