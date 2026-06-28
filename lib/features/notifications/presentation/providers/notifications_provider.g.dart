@@ -7,7 +7,7 @@ part of 'notifications_provider.dart';
 // **************************************************************************
 
 String _$notificationsDatasourceHash() =>
-    r'45dabd29a2cbc56858ceed8b52c799b17ff945ba';
+    r'753709ae86a4a27359950e2e492b1b7b6d2d15b7';
 
 /// See also [notificationsDatasource].
 @ProviderFor(notificationsDatasource)
@@ -26,24 +26,82 @@ final notificationsDatasourceProvider =
 // ignore: unused_element
 typedef NotificationsDatasourceRef =
     AutoDisposeProviderRef<NotificationsDatasource>;
-String _$notificationsHash() => r'bf54890197e27d966b1c5036cea0fc70e0508f15';
+String _$notificationsRepositoryHash() =>
+    r'0accc426eb453b146cc8445471a5e57799986ba1';
 
-/// See also [notifications].
-@ProviderFor(notifications)
-final notificationsProvider =
-    AutoDisposeFutureProvider<List<NotificationModel>>.internal(
-      notifications,
-      name: r'notificationsProvider',
+/// See also [notificationsRepository].
+@ProviderFor(notificationsRepository)
+final notificationsRepositoryProvider =
+    AutoDisposeProvider<NotificationsRepository>.internal(
+      notificationsRepository,
+      name: r'notificationsRepositoryProvider',
       debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
           ? null
-          : _$notificationsHash,
+          : _$notificationsRepositoryHash,
       dependencies: null,
       allTransitiveDependencies: null,
     );
 
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
-typedef NotificationsRef =
-    AutoDisposeFutureProviderRef<List<NotificationModel>>;
+typedef NotificationsRepositoryRef =
+    AutoDisposeProviderRef<NotificationsRepository>;
+String _$notificationsStreamHash() =>
+    r'9f5f669bc1522cc69b9e818202974d246dd1b9ab';
+
+/// See also [notificationsStream].
+@ProviderFor(notificationsStream)
+final notificationsStreamProvider =
+    AutoDisposeStreamProvider<List<AppNotification>>.internal(
+      notificationsStream,
+      name: r'notificationsStreamProvider',
+      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+          ? null
+          : _$notificationsStreamHash,
+      dependencies: null,
+      allTransitiveDependencies: null,
+    );
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef NotificationsStreamRef =
+    AutoDisposeStreamProviderRef<List<AppNotification>>;
+String _$unreadCountHash() => r'65da8363152745f2d1f1b72257d9c4ee0563e91c';
+
+/// See also [unreadCount].
+@ProviderFor(unreadCount)
+final unreadCountProvider = AutoDisposeProvider<int>.internal(
+  unreadCount,
+  name: r'unreadCountProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$unreadCountHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef UnreadCountRef = AutoDisposeProviderRef<int>;
+String _$notificationActionsNotifierHash() =>
+    r'ad0ee50633a031fa70858e7eecad98c92dc5aeeb';
+
+/// See also [NotificationActionsNotifier].
+@ProviderFor(NotificationActionsNotifier)
+final notificationActionsNotifierProvider =
+    AutoDisposeNotifierProvider<
+      NotificationActionsNotifier,
+      AsyncValue<void>
+    >.internal(
+      NotificationActionsNotifier.new,
+      name: r'notificationActionsNotifierProvider',
+      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+          ? null
+          : _$notificationActionsNotifierHash,
+      dependencies: null,
+      allTransitiveDependencies: null,
+    );
+
+typedef _$NotificationActionsNotifier = AutoDisposeNotifier<AsyncValue<void>>;
 // ignore_for_file: type=lint
 // ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package

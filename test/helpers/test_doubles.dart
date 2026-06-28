@@ -10,6 +10,8 @@ import 'package:sire/features/publications/data/datasources/publications_remote_
 import 'package:sire/features/publications/data/models/create_publication_request_model.dart';
 import 'package:sire/features/publications/data/models/publication_detail_model.dart';
 import 'package:sire/features/publications/data/models/update_publication_request_model.dart';
+import 'package:sire/features/notifications/data/datasources/notifications_datasource.dart';
+import 'package:sire/features/notifications/data/models/notification_model.dart';
 import 'package:sire/features/reservations/data/datasources/reservations_remote_datasource.dart';
 import 'package:sire/features/reservations/data/models/create_reservation_request_model.dart';
 import 'package:sire/features/reservations/data/models/reservation_model.dart';
@@ -210,5 +212,54 @@ class StubReservationsRemoteDatasource implements ReservationsRemoteDatasource {
   Future<ReservationModel> getReservationDetail({required String id}) async {
     if (error != null) throw error!;
     return detailResponse!;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Notifications — fake de datasource
+// ---------------------------------------------------------------------------
+
+/// NotificationsDatasource controlable para pruebas de providers.
+/// `watchNotifications` emite [listResponse] (o lanza [error]); las acciones
+/// registran sondas.
+class StubNotificationsDatasource implements NotificationsDatasource {
+  StubNotificationsDatasource({this.listResponse, this.error});
+
+  final List<NotificationModel>? listResponse;
+  final Object? error;
+
+  int markReadCalls = 0;
+  int markAllReadCalls = 0;
+  String? lastMarkedId;
+
+  @override
+  Future<List<NotificationModel>> getNotifications({
+    bool unreadOnly = false,
+    int page = 1,
+    int limit = 20,
+  }) async {
+    if (error != null) throw error!;
+    return listResponse ?? const [];
+  }
+
+  @override
+  Stream<List<NotificationModel>> watchNotifications() {
+    if (error != null) {
+      return Stream<List<NotificationModel>>.error(error!);
+    }
+    return Stream.value(listResponse ?? const []);
+  }
+
+  @override
+  Future<void> markAsRead(String id) async {
+    markReadCalls++;
+    lastMarkedId = id;
+    if (error != null) throw error!;
+  }
+
+  @override
+  Future<void> markAllAsRead() async {
+    markAllReadCalls++;
+    if (error != null) throw error!;
   }
 }

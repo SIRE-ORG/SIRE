@@ -82,6 +82,25 @@ Map<String, dynamic> reservationJson({
     },
 };
 
+/// Notificación como la devuelve GET /notifications (contrato REST, camelCase).
+Map<String, dynamic> notificationJson({
+  String id = 'notif-1',
+  String type = 'new_reservation',
+  String title = 'Nueva reserva recibida',
+  String body = 'Carlos Pérez reservó Cancha de fútbol',
+  String? reservationId = 'res-1',
+  bool read = false,
+  String createdAt = '2026-06-20T12:00:00.000Z',
+}) => {
+  'id': id,
+  'type': type,
+  'title': title,
+  'body': body,
+  'reservationId': reservationId,
+  'read': read,
+  'createdAt': createdAt,
+};
+
 /// Cuerpo de error estándar del contrato.
 Map<String, dynamic> errorBody(
   String code,

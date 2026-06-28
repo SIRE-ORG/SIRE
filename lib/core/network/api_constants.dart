@@ -42,6 +42,7 @@ class ApiConstants {
   // Notifications
   static const String notifications = '/notifications';
   static const String notificationsReadAll = '/notifications/read-all';
+  static String notificationRead(String id) => '/notifications/$id/read';
 
   // Reservations — rutas parametrizadas
   static String reservationStatus(String id) => '/reservations/$id/status';
