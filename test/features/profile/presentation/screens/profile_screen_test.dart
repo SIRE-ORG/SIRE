@@ -2,187 +2,163 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:sire/features/auth/domain/entities/user_profile.dart';
+import 'package:sire/features/auth/presentation/providers/auth_provider.dart';
 import 'package:sire/features/profile/presentation/screens/profile_screen.dart';
 import 'package:sire/core/providers/role_provider.dart';
 
+const _kProfile = UserProfile(
+  id: 'u1',
+  name: 'María González',
+  email: 'maria@correo.com',
+  accountStatus: AccountStatus.active,
+  emailVerified: true,
+);
+
 void main() {
-  Widget buildSubject({bool isPublisher = false}) {
+  Widget _buildSubject({bool isPublisher = false, bool withProfile = true}) {
     final mockRouter = GoRouter(
       initialLocation: '/profile',
       routes: [
-        GoRoute(path: '/profile', builder: (_, _) => const ProfileScreen()),
+        GoRoute(
+          path: '/profile',
+          builder: (_, __) => const ProfileScreen(),
+        ),
         GoRoute(
           path: '/feed',
-          builder: (_, _) => const Scaffold(body: Text('Feed')),
+          builder: (_, __) => const Scaffold(body: Text('Feed')),
         ),
         GoRoute(
           path: '/my-reservations',
-          builder: (_, _) => const Scaffold(body: Text('Mis Reservas')),
+          builder: (_, __) => const Scaffold(body: Text('Mis Reservas')),
         ),
         GoRoute(
           path: '/dashboard',
-          builder: (_, _) => const Scaffold(body: Text('Dashboard')),
+          builder: (_, __) => const Scaffold(body: Text('Dashboard')),
         ),
         GoRoute(
-          path: '/edit-profile',
-          builder: (_, _) => const Scaffold(body: Text('Editar Perfil')),
+          path: '/profile/edit',
+          builder: (_, __) => const Scaffold(body: Text('Editar Perfil')),
+        ),
+        GoRoute(
+          path: '/my-publications',
+          builder: (_, __) => const Scaffold(body: Text('Mis Publicaciones')),
         ),
       ],
     );
     return ProviderScope(
-      overrides: [isPublisherProvider.overrideWith((ref) => isPublisher)],
+      overrides: [
+        isPublisherProvider.overrideWith((ref) => isPublisher),
+        if (withProfile)
+          currentProfileProvider.overrideWith(
+            (ref) async => _kProfile,
+          ),
+      ],
       child: MaterialApp.router(routerConfig: mockRouter),
     );
   }
 
-  testWidgets('ProfileScreen muestra nombre de usuario', (
-    WidgetTester tester,
-  ) async {
-    final originalOnError = FlutterError.onError;
-    FlutterError.onError = (FlutterErrorDetails details) {
-      if (details.exceptionAsString().contains('overflowed')) return;
-      originalOnError?.call(details);
+  void _setup(WidgetTester tester, {Size size = const Size(390, 844)}) {
+    final original = FlutterError.onError;
+    FlutterError.onError = (d) {
+      if (d.exceptionAsString().contains('overflowed')) return;
+      original?.call(d);
     };
-    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.physicalSize = size;
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+      FlutterError.onError = original;
+    });
+  }
 
-    await tester.pumpWidget(buildSubject());
+  testWidgets('muestra nombre de usuario desde el provider', (tester) async {
+    _setup(tester, size: const Size(1080, 2400));
+
+    await tester.pumpWidget(_buildSubject());
     await tester.pumpAndSettle();
 
     expect(find.text('María González'), findsWidgets);
-
-    addTearDown(() {
-      tester.view.resetPhysicalSize();
-      FlutterError.onError = originalOnError;
-    });
   });
 
-  testWidgets('ProfileScreen muestra correo electrónico', (
-    WidgetTester tester,
-  ) async {
-    final originalOnError = FlutterError.onError;
-    FlutterError.onError = (FlutterErrorDetails details) {
-      if (details.exceptionAsString().contains('overflowed')) return;
-      originalOnError?.call(details);
-    };
-    tester.view.physicalSize = const Size(1080, 2400);
+  testWidgets('muestra correo electrónico desde el provider', (tester) async {
+    _setup(tester, size: const Size(1080, 2400));
 
-    await tester.pumpWidget(buildSubject());
+    await tester.pumpWidget(_buildSubject());
     await tester.pumpAndSettle();
 
     expect(find.text('maria@correo.com'), findsWidgets);
-
-    addTearDown(() {
-      tester.view.resetPhysicalSize();
-      FlutterError.onError = originalOnError;
-    });
   });
 
-  testWidgets('ProfileScreen muestra sección Editar Perfil', (
-    WidgetTester tester,
-  ) async {
-    final originalOnError = FlutterError.onError;
-    FlutterError.onError = (FlutterErrorDetails details) {
-      if (details.exceptionAsString().contains('overflowed')) return;
-      originalOnError?.call(details);
-    };
-    tester.view.physicalSize = const Size(1080, 2400);
-
-    await tester.pumpWidget(buildSubject());
+  testWidgets('muestra sección Editar Perfil', (tester) async {
+    _setup(tester, size: const Size(390, 2400));
+    await tester.pumpWidget(_buildSubject());
     await tester.pumpAndSettle();
-
     expect(find.text('Editar perfil'), findsOneWidget);
-
-    addTearDown(() {
-      tester.view.resetPhysicalSize();
-      FlutterError.onError = originalOnError;
-    });
   });
 
-  testWidgets('ProfileScreen muestra toggle de Publicador', (
-    WidgetTester tester,
-  ) async {
-    final originalOnError = FlutterError.onError;
-    FlutterError.onError = (FlutterErrorDetails details) {
-      if (details.exceptionAsString().contains('overflowed')) return;
-      originalOnError?.call(details);
-    };
-    tester.view.physicalSize = const Size(1080, 2400);
-
-    await tester.pumpWidget(buildSubject());
+  testWidgets('muestra toggle de Publicador', (tester) async {
+    _setup(tester, size: const Size(1080, 2400));
+    await tester.pumpWidget(_buildSubject());
     await tester.pumpAndSettle();
-
     expect(find.text('Publicador'), findsWidgets);
-
-    addTearDown(() {
-      tester.view.resetPhysicalSize();
-      FlutterError.onError = originalOnError;
-    });
   });
 
-  testWidgets('ProfileScreen muestra opción Cerrar sesión', (
-    WidgetTester tester,
-  ) async {
-    final originalOnError = FlutterError.onError;
-    FlutterError.onError = (FlutterErrorDetails details) {
-      if (details.exceptionAsString().contains('overflowed')) return;
-      originalOnError?.call(details);
-    };
-    tester.view.physicalSize = const Size(1080, 2400);
-
-    await tester.pumpWidget(buildSubject());
+  testWidgets('muestra opción Cerrar sesión', (tester) async {
+    _setup(tester, size: const Size(390, 2400));
+    await tester.pumpWidget(_buildSubject());
     await tester.pumpAndSettle();
-
     expect(find.text('Cerrar sesión'), findsOneWidget);
-
-    addTearDown(() {
-      tester.view.resetPhysicalSize();
-      FlutterError.onError = originalOnError;
-    });
   });
 
-  testWidgets('ProfileScreen muestra tabs Solicitante y Publicador', (
-    WidgetTester tester,
-  ) async {
-    final originalOnError = FlutterError.onError;
-    FlutterError.onError = (FlutterErrorDetails details) {
-      if (details.exceptionAsString().contains('overflowed')) return;
-      originalOnError?.call(details);
-    };
-    tester.view.physicalSize = const Size(1080, 2400);
+  testWidgets('muestra tabs Solicitante y Publicador', (tester) async {
+    _setup(tester, size: const Size(1080, 2400));
 
-    await tester.pumpWidget(buildSubject());
+    await tester.pumpWidget(_buildSubject());
     await tester.pumpAndSettle();
 
     expect(find.text('Solicitante'), findsOneWidget);
     expect(find.text('Publicador'), findsWidgets);
-
-    addTearDown(() {
-      tester.view.resetPhysicalSize();
-      FlutterError.onError = originalOnError;
-    });
   });
 
-  testWidgets('ProfileScreen interacción con tab Publicador cambia estado', (
-    WidgetTester tester,
-  ) async {
-    final originalOnError = FlutterError.onError;
-    FlutterError.onError = (FlutterErrorDetails details) {
-      if (details.exceptionAsString().contains('overflowed')) return;
-      originalOnError?.call(details);
-    };
-    tester.view.physicalSize = const Size(1080, 2400);
+  testWidgets('interacción con tab Publicador cambia estado', (tester) async {
+    _setup(tester, size: const Size(1080, 2400));
 
-    await tester.pumpWidget(buildSubject());
+    await tester.pumpWidget(_buildSubject());
     await tester.pumpAndSettle();
 
     await tester.tap(find.text('Publicador').first);
     await tester.pumpAndSettle();
 
     expect(find.text('Publicador'), findsWidgets);
+  });
 
-    addTearDown(() {
-      tester.view.resetPhysicalSize();
-      FlutterError.onError = originalOnError;
-    });
+  // Layout web (viewport >= 800)
+  testWidgets('layout web muestra sidebar con SIRE', (tester) async {
+    _setup(tester, size: const Size(1280, 800));
+
+    await tester.pumpWidget(_buildSubject());
+    await tester.pumpAndSettle();
+
+    expect(find.text('SIRE'), findsOneWidget);
+    expect(find.text('Mi Perfil'), findsOneWidget);
+  });
+
+  testWidgets('layout web muestra estado de cuenta activa', (tester) async {
+    _setup(tester, size: const Size(1280, 800));
+
+    await tester.pumpWidget(_buildSubject());
+    await tester.pumpAndSettle();
+
+    expect(find.text('Cuenta activa'), findsOneWidget);
+  });
+
+  testWidgets('modo publicador activo muestra mis publicaciones',
+      (tester) async {
+    _setup(tester, size: const Size(390, 2400));
+    await tester.pumpWidget(_buildSubject(isPublisher: true));
+    await tester.pumpAndSettle();
+    expect(find.text('Mis publicaciones'), findsOneWidget);
   });
 }

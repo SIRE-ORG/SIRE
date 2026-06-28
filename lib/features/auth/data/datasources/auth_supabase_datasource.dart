@@ -6,6 +6,7 @@ abstract interface class AuthSupabaseDatasource {
     required String password,
   });
   Future<void> signInWithOtp({required String email});
+  Future<void> verifyOtp({required String email, required String token});
   Future<void> updatePassword({required String password});
   Future<void> signOut();
   Future<void> resendVerification({required String email});

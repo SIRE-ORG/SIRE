@@ -1,16 +1,88 @@
-﻿import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../core/providers/role_provider.dart';
 import '../../../../core/widgets/custom_button.dart';
 import '../../../../core/widgets/custom_text_field.dart';
+import '../../../auth/presentation/providers/auth_provider.dart';
 
-class EditProfileScreen extends ConsumerWidget {
+class EditProfileScreen extends ConsumerStatefulWidget {
   const EditProfileScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<EditProfileScreen> createState() => _EditProfileScreenState();
+}
+
+class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
+  late final TextEditingController _nameController;
+  late final TextEditingController _phoneController;
+  bool _saving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _nameController = TextEditingController();
+    _phoneController = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _phoneController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _handleSave(String userId) async {
+    final name = _nameController.text.trim();
+    final phone = _phoneController.text.trim();
+    if (name.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('El nombre no puede estar vacío')),
+      );
+      return;
+    }
+    setState(() => _saving = true);
+    try {
+      await ref.read(profileNotifierProvider.notifier).updateProfile(
+            userId: userId,
+            name: name.isNotEmpty ? name : null,
+            phone: phone.isNotEmpty ? phone : null,
+          );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Perfil actualizado')),
+        );
+        context.pop();
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No se pudo guardar el perfil')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final isPublisher = ref.watch(isPublisherProvider);
+    final profileAsync = ref.watch(currentProfileProvider);
+
+    // Pre-fill controllers when profile loads
+    profileAsync.whenData((profile) {
+      if (profile != null) {
+        if (_nameController.text.isEmpty) {
+          _nameController.text = profile.name;
+        }
+        if (_phoneController.text.isEmpty && profile.phone != null) {
+          _phoneController.text = profile.phone!;
+        }
+      }
+    });
+
+    final userId = profileAsync.value?.id ?? '';
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -28,7 +100,7 @@ class EditProfileScreen extends ConsumerWidget {
                     child: Center(
                       child: ConstrainedBox(
                         constraints: const BoxConstraints(maxWidth: 800),
-                        child: _buildFormCard(context, isWeb: true),
+                        child: _buildFormCard(context, userId: userId, isWeb: true),
                       ),
                     ),
                   ),
@@ -61,7 +133,7 @@ class EditProfileScreen extends ConsumerWidget {
             ),
             body: SingleChildScrollView(
               padding: const EdgeInsets.all(24.0),
-              child: _buildFormMobile(context),
+              child: _buildFormMobile(context, userId: userId),
             ),
           );
         }
@@ -137,7 +209,11 @@ class EditProfileScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildFormCard(BuildContext context, {required bool isWeb}) {
+  Widget _buildFormCard(
+    BuildContext context, {
+    required String userId,
+    required bool isWeb,
+  }) {
     return Container(
       padding: const EdgeInsets.all(40),
       decoration: BoxDecoration(
@@ -175,16 +251,18 @@ class EditProfileScreen extends ConsumerWidget {
           const SizedBox(height: 40),
           _buildPhotoEditor(),
           const SizedBox(height: 40),
-          const CustomTextField(
+          CustomTextField(
             label: 'Nombre completo',
-            hintText: 'María González',
+            hintText: 'Tu nombre',
             keyboardType: TextInputType.name,
+            controller: _nameController,
           ),
           const SizedBox(height: 24),
-          const CustomTextField(
+          CustomTextField(
             label: 'Teléfono',
             hintText: '+56 9 1234 5678',
             keyboardType: TextInputType.phone,
+            controller: _phoneController,
           ),
           const SizedBox(height: 40),
           const Text(
@@ -195,23 +273,17 @@ class EditProfileScreen extends ConsumerWidget {
               fontWeight: FontWeight.bold,
             ),
           ),
-          const SizedBox(height: 24),
-          const CustomTextField(
-            label: 'Contraseña actual',
-            hintText: 'Tu contraseña actual',
-            isPassword: true,
-          ),
-          const SizedBox(height: 24),
-          const CustomTextField(
-            label: 'Nueva contraseña',
-            hintText: 'Mínimo 8 caracteres',
-            isPassword: true,
-          ),
-          const SizedBox(height: 24),
-          const CustomTextField(
-            label: 'Confirmar contraseña nueva',
-            hintText: 'Repite la contraseña nueva',
-            isPassword: true,
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFFF3E0),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: const Text(
+              'El cambio de contraseña estará disponible próximamente.',
+              style: TextStyle(color: Color(0xFFF57C00), fontSize: 13),
+            ),
           ),
           const SizedBox(height: 40),
           const Divider(color: Color(0xFFE2E8F0)),
@@ -220,8 +292,8 @@ class EditProfileScreen extends ConsumerWidget {
             width: double.infinity,
             height: 50,
             child: CustomButton(
-              text: 'Guardar cambios',
-              onPressed: () => context.pop(),
+              text: _saving ? 'Guardando...' : 'Guardar cambios',
+              onPressed: _saving || userId.isEmpty ? null : () => _handleSave(userId),
             ),
           ),
         ],
@@ -229,22 +301,24 @@ class EditProfileScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildFormMobile(BuildContext context) {
+  Widget _buildFormMobile(BuildContext context, {required String userId}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _buildPhotoEditor(),
         const SizedBox(height: 32),
-        const CustomTextField(
+        CustomTextField(
           label: 'Nombre completo',
-          hintText: 'María González',
+          hintText: 'Tu nombre',
           keyboardType: TextInputType.name,
+          controller: _nameController,
         ),
         const SizedBox(height: 20),
-        const CustomTextField(
+        CustomTextField(
           label: 'Teléfono',
           hintText: '+56 9 1234 5678',
           keyboardType: TextInputType.phone,
+          controller: _phoneController,
         ),
         const SizedBox(height: 40),
         const Text(
@@ -255,31 +329,25 @@ class EditProfileScreen extends ConsumerWidget {
             fontWeight: FontWeight.bold,
           ),
         ),
-        const SizedBox(height: 20),
-        const CustomTextField(
-          label: 'Contraseña actual',
-          hintText: 'Tu contraseña actual',
-          isPassword: true,
-        ),
-        const SizedBox(height: 20),
-        const CustomTextField(
-          label: 'Nueva contraseña',
-          hintText: 'Mínimo 8 caracteres',
-          isPassword: true,
-        ),
-        const SizedBox(height: 20),
-        const CustomTextField(
-          label: 'Confirmar contraseña nueva',
-          hintText: 'Repite la contraseña nueva',
-          isPassword: true,
+        const SizedBox(height: 12),
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: const Color(0xFFFFF3E0),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: const Text(
+            'El cambio de contraseña estará disponible próximamente.',
+            style: TextStyle(color: Color(0xFFF57C00), fontSize: 13),
+          ),
         ),
         const SizedBox(height: 40),
         SizedBox(
           width: double.infinity,
           height: 50,
           child: CustomButton(
-            text: 'Guardar cambios',
-            onPressed: () => context.pop(),
+            text: _saving ? 'Guardando...' : 'Guardar cambios',
+            onPressed: _saving || userId.isEmpty ? null : () => _handleSave(userId),
           ),
         ),
       ],

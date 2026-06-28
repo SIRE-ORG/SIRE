@@ -118,21 +118,44 @@ void main() {
   });
 
   group('flujos no integrables aún (PI-AUTH-02)', () {
-    test('registerGuest → error controlado ENDPOINT_NOT_AVAILABLE', () {
-      // registerGuest lanza ServerException síncrono (no es async real);
-      // try/catch en vez de expectLater + throwsA para evitar que el throw
-      // escape antes de que el matcher lo capture.
-      try {
-        datasourceCon().registerGuest(
+    test('registerGuest con sesión → POST real y respuesta correcta', () async {
+      const name = 'Dani';
+      const email = 'dani@sire.cl';
+
+      adapter.onPost(
+        ApiConstants.authRegisterGuest,
+        (server) => server.reply(200, {
+          'data': profileJson(id: 'user-1', accountStatus: 'guest'),
+        }),
+        data: {
+          'id': 'user-1',
+          'email': email,
+          'name': name,
+          'phone': '+56911111111',
+        },
+      );
+
+      final result = await datasourceCon().registerGuest(
+        name: name,
+        email: email,
+        phone: '+56911111111',
+      );
+
+      expect(result.userId, 'user-1');
+      expect(result.accountStatus, 'guest');
+      expect(result.userCreated, isTrue);
+      expect(result.token, isNull);
+    });
+
+    test('registerGuest sin sesión → UnauthorizedException', () async {
+      await expectLater(
+        datasourceCon(conUsuario: false).registerGuest(
           name: 'Dani',
           email: 'dani@sire.cl',
           phone: '+56911111111',
-        );
-        fail('Se esperaba un ServerException');
-      } on ServerException catch (e) {
-        expect(e.code, 'ENDPOINT_NOT_AVAILABLE');
-        expect(e.message, contains('difiere del contrato'));
-      }
+        ),
+        throwsA(isA<UnauthorizedException>()),
+      );
     });
 
     test('updateProfile → error controlado ENDPOINT_NOT_AVAILABLE', () {

@@ -116,12 +116,12 @@ final authStatusProvider = AutoDisposeFutureProvider<AccountStatus?>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef AuthStatusRef = AutoDisposeFutureProviderRef<AccountStatus?>;
-String _$authNotifierHash() => r'a372c787e0f182dc109d3a1105dda1093020847c';
+String _$authNotifierHash() => r'0c2f54ac0d998d5e9f2bb85cedb4fddef28f9c49';
 
 /// See also [AuthNotifier].
 @ProviderFor(AuthNotifier)
 final authNotifierProvider =
-    AutoDisposeAsyncNotifierProvider<AuthNotifier, void>.internal(
+    AutoDisposeNotifierProvider<AuthNotifier, AsyncValue<void>>.internal(
       AuthNotifier.new,
       name: r'authNotifierProvider',
       debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
@@ -131,13 +131,13 @@ final authNotifierProvider =
       allTransitiveDependencies: null,
     );
 
-typedef _$AuthNotifier = AutoDisposeAsyncNotifier<void>;
-String _$profileNotifierHash() => r'3d1640808b986198d179f93b53d0cb5d040335b3';
+typedef _$AuthNotifier = AutoDisposeNotifier<AsyncValue<void>>;
+String _$profileNotifierHash() => r'da1d1940ef31adaa41e3fdec79b6ba5c1c37e561';
 
 /// See also [ProfileNotifier].
 @ProviderFor(ProfileNotifier)
 final profileNotifierProvider =
-    AutoDisposeAsyncNotifierProvider<ProfileNotifier, void>.internal(
+    AutoDisposeNotifierProvider<ProfileNotifier, AsyncValue<void>>.internal(
       ProfileNotifier.new,
       name: r'profileNotifierProvider',
       debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
@@ -147,6 +147,6 @@ final profileNotifierProvider =
       allTransitiveDependencies: null,
     );
 
-typedef _$ProfileNotifier = AutoDisposeAsyncNotifier<void>;
+typedef _$ProfileNotifier = AutoDisposeNotifier<AsyncValue<void>>;
 // ignore_for_file: type=lint
 // ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package

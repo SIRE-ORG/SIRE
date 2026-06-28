@@ -2,41 +2,79 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:mocktail/mocktail.dart';
+import 'package:sire/features/reservations/domain/entities/reservation.dart';
+import 'package:sire/features/reservations/domain/repositories/reservations_repository.dart';
+import 'package:sire/features/reservations/presentation/providers/reservations_provider.dart';
 import 'package:sire/features/reservations/presentation/screens/my_reservations_screen.dart';
 
+class _MockRepo extends Mock implements ReservationsRepository {}
+
+const _pending = Reservation(
+  id: '1',
+  publicationId: 'pub-1',
+  date: 'Hoy',
+  startTime: '11:00',
+  endTime: '12:00',
+  status: ReservationStatus.pending,
+  createdAt: '2026-01-01',
+  publicationTitle: 'Cancha de fútbol sintética',
+);
+
+const _completed = Reservation(
+  id: '2',
+  publicationId: 'pub-2',
+  date: 'Mar 5 may',
+  startTime: '11:00',
+  endTime: '12:00',
+  status: ReservationStatus.completed,
+  createdAt: '2026-01-01',
+  publicationTitle: 'Consultorio de kinesiología',
+);
+
 void main() {
-  Widget buildSubject() {
+  setUpAll(() {
+    registerFallbackValue(ReservationStatus.pending);
+  });
+
+  Widget _buildSubject({List<Reservation> seed = const []}) {
+    final repo = _MockRepo();
+    when(() => repo.getMyReservations()).thenAnswer((_) async => seed);
+
     final mockRouter = GoRouter(
       initialLocation: '/my-reservations',
       routes: [
         GoRoute(
           path: '/my-reservations',
-          builder: (_, _) => const MyReservationsScreen(),
+          builder: (_, __) => const MyReservationsScreen(),
         ),
         GoRoute(
           path: '/feed',
-          builder: (_, _) => const Scaffold(body: Text('Feed')),
+          builder: (_, __) => const Scaffold(body: Text('Feed')),
         ),
         GoRoute(
           path: '/profile',
-          builder: (_, _) => const Scaffold(body: Text('Perfil')),
+          builder: (_, __) => const Scaffold(body: Text('Perfil')),
         ),
         GoRoute(
           path: '/dashboard',
-          builder: (_, _) => const Scaffold(body: Text('Dashboard')),
+          builder: (_, __) => const Scaffold(body: Text('Dashboard')),
         ),
         GoRoute(
           path: '/reservation/:id',
-          builder: (_, _) => const Scaffold(body: Text('Detalle Reserva')),
+          builder: (_, __) => const Scaffold(body: Text('Detalle Reserva')),
         ),
       ],
     );
-    return ProviderScope(child: MaterialApp.router(routerConfig: mockRouter));
+    return ProviderScope(
+      overrides: [
+        reservationsRepositoryProvider.overrideWithValue(repo),
+      ],
+      child: MaterialApp.router(routerConfig: mockRouter),
+    );
   }
 
-  testWidgets('MyReservationsScreen muestra título y pestañas', (
-    WidgetTester tester,
-  ) async {
+  testWidgets('MyReservationsScreen muestra título y pestañas', (WidgetTester tester) async {
     final originalOnError = FlutterError.onError;
     FlutterError.onError = (FlutterErrorDetails details) {
       if (details.exceptionAsString().contains('overflowed')) return;
@@ -44,7 +82,7 @@ void main() {
     };
     tester.view.physicalSize = const Size(1080, 2400);
 
-    await tester.pumpWidget(buildSubject());
+    await tester.pumpWidget(_buildSubject());
     await tester.pumpAndSettle();
 
     expect(find.text('Mis Reservas'), findsWidgets);
@@ -57,9 +95,7 @@ void main() {
     });
   });
 
-  testWidgets('MyReservationsScreen muestra reservas activas por defecto', (
-    WidgetTester tester,
-  ) async {
+  testWidgets('MyReservationsScreen muestra reservas activas por defecto', (WidgetTester tester) async {
     final originalOnError = FlutterError.onError;
     FlutterError.onError = (FlutterErrorDetails details) {
       if (details.exceptionAsString().contains('overflowed')) return;
@@ -67,7 +103,7 @@ void main() {
     };
     tester.view.physicalSize = const Size(1080, 2400);
 
-    await tester.pumpWidget(buildSubject());
+    await tester.pumpWidget(_buildSubject(seed: [_pending, _completed]));
     await tester.pumpAndSettle();
 
     expect(find.text('Pendiente'), findsOneWidget);
@@ -79,9 +115,7 @@ void main() {
     });
   });
 
-  testWidgets('MyReservationsScreen cambia a pestaña Historial', (
-    WidgetTester tester,
-  ) async {
+  testWidgets('MyReservationsScreen cambia a pestaña Historial', (WidgetTester tester) async {
     final originalOnError = FlutterError.onError;
     FlutterError.onError = (FlutterErrorDetails details) {
       if (details.exceptionAsString().contains('overflowed')) return;
@@ -89,7 +123,7 @@ void main() {
     };
     tester.view.physicalSize = const Size(1080, 2400);
 
-    await tester.pumpWidget(buildSubject());
+    await tester.pumpWidget(_buildSubject(seed: [_pending, _completed]));
     await tester.pumpAndSettle();
 
     await tester.tap(find.text('Historial'));
@@ -103,9 +137,7 @@ void main() {
     });
   });
 
-  testWidgets('MyReservationsScreen muestra iconos de navegación', (
-    WidgetTester tester,
-  ) async {
+  testWidgets('MyReservationsScreen muestra iconos de navegación', (WidgetTester tester) async {
     final originalOnError = FlutterError.onError;
     FlutterError.onError = (FlutterErrorDetails details) {
       if (details.exceptionAsString().contains('overflowed')) return;
@@ -113,7 +145,7 @@ void main() {
     };
     tester.view.physicalSize = const Size(1080, 2400);
 
-    await tester.pumpWidget(buildSubject());
+    await tester.pumpWidget(_buildSubject());
     await tester.pumpAndSettle();
 
     expect(find.byIcon(Icons.home_outlined), findsOneWidget);
@@ -125,9 +157,7 @@ void main() {
     });
   });
 
-  testWidgets('MyReservationsScreen toca tarjeta de reserva activa', (
-    WidgetTester tester,
-  ) async {
+  testWidgets('MyReservationsScreen toca tarjeta de reserva activa', (WidgetTester tester) async {
     final originalOnError = FlutterError.onError;
     FlutterError.onError = (FlutterErrorDetails details) {
       if (details.exceptionAsString().contains('overflowed')) return;
@@ -135,7 +165,7 @@ void main() {
     };
     tester.view.physicalSize = const Size(1080, 2400);
 
-    await tester.pumpWidget(buildSubject());
+    await tester.pumpWidget(_buildSubject(seed: [_pending]));
     await tester.pumpAndSettle();
 
     await tester.tap(find.text('Pendiente').first);

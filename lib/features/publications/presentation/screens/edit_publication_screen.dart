@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../core/providers/role_provider.dart';
 import '../../../../core/widgets/custom_button.dart';
+import '../../../publications/domain/entities/availability_config.dart';
+import '../../../publications/domain/entities/publication.dart';
+import '../../../publications/domain/usecases/update_publication_usecase.dart';
+import '../providers/my_publications_provider.dart';
 
 class EditPublicationScreen extends ConsumerStatefulWidget {
   final String id;
@@ -48,6 +52,8 @@ class _EditPublicationScreenState extends ConsumerState<EditPublicationScreen> {
     _regionController = TextEditingController(text: 'Temuco');
   }
 
+  bool _saving = false;
+
   @override
   void dispose() {
     _nameController.dispose();
@@ -56,6 +62,88 @@ class _EditPublicationScreenState extends ConsumerState<EditPublicationScreen> {
     _urlController.dispose();
     _regionController.dispose();
     super.dispose();
+  }
+
+  PublicationCategory _parseCategory(String raw) {
+    switch (raw.toLowerCase().trim()) {
+      case 'deporte':
+        return PublicationCategory.deporte;
+      case 'eventos':
+        return PublicationCategory.eventos;
+      case 'recreacion':
+      case 'recreación':
+        return PublicationCategory.recreacion;
+      default:
+        return PublicationCategory.otros;
+    }
+  }
+
+  AvailabilityConfig _buildAvailability() {
+    final dayNames = [
+      'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo',
+    ];
+    final dayEnums = [
+      DayOfWeek.monday, DayOfWeek.tuesday, DayOfWeek.wednesday,
+      DayOfWeek.thursday, DayOfWeek.friday, DayOfWeek.saturday, DayOfWeek.sunday,
+    ];
+    final overrides = <DayOverride>[];
+    for (var i = 0; i < _days.length; i++) {
+      final day = _days[i];
+      final idx = dayNames.indexOf(day['name'] as String);
+      if (idx < 0) continue;
+      overrides.add(DayOverride(
+        dayOfWeek: dayEnums[idx],
+        isClosed: day['disabled'] as bool,
+        schedules: (day['disabled'] as bool)
+            ? []
+            : [DaySchedule(startTime: day['start'] as String, endTime: day['end'] as String)],
+      ));
+    }
+    return AvailabilityConfig(
+      slotDurationMinutes: _selectedDuration,
+      sameScheduleAllDays: _sameSchedule,
+      defaultSchedules: _sameSchedule && overrides.isNotEmpty && !overrides.first.isClosed
+          ? overrides.first.schedules
+          : [],
+      dayOverrides: overrides,
+    );
+  }
+
+  Future<void> _handleSave() async {
+    final title = _nameController.text.trim();
+    if (title.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('El nombre no puede estar vacío')),
+      );
+      return;
+    }
+    setState(() => _saving = true);
+    try {
+      await ref.read(publicationFormNotifierProvider.notifier).edit(
+            id: widget.id,
+            params: UpdatePublicationParams(
+              title: title,
+              description: _descController.text.trim(),
+              category: _parseCategory(_catController.text),
+              region: _regionController.text.trim(),
+              availability: _buildAvailability(),
+            ),
+          );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Publicación actualizada')),
+        );
+        context.pop();
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No se pudo guardar la publicación')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
   }
 
   @override
@@ -486,7 +574,10 @@ class _EditPublicationScreenState extends ConsumerState<EditPublicationScreen> {
             ),
           ),
         const SizedBox(height: 32),
-        CustomButton(text: 'Guardar cambios', onPressed: () => context.pop()),
+        CustomButton(
+          text: _saving ? 'Guardando...' : 'Guardar cambios',
+          onPressed: _saving ? null : _handleSave,
+        ),
         const SizedBox(height: 40),
       ],
     );

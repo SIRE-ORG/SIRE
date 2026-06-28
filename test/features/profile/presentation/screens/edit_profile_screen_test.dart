@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:sire/features/auth/presentation/providers/auth_provider.dart';
 import 'package:sire/features/profile/presentation/screens/edit_profile_screen.dart';
 
 void main() {
@@ -27,7 +28,12 @@ void main() {
         ),
       ],
     );
-    return ProviderScope(child: MaterialApp.router(routerConfig: mockRouter));
+    return ProviderScope(
+      overrides: [
+        currentProfileProvider.overrideWith((ref) => Future.value(null)),
+      ],
+      child: MaterialApp.router(routerConfig: mockRouter),
+    );
   }
 
   testWidgets('EditProfileScreen muestra título y campos del formulario', (

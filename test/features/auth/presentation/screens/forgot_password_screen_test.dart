@@ -110,4 +110,49 @@ void main() {
       FlutterError.onError = originalOnError;
     });
   });
+
+  testWidgets('tap Enviar enlace muestra SnackBar de confirmación', (WidgetTester tester) async {
+    final originalOnError = FlutterError.onError;
+    FlutterError.onError = (FlutterErrorDetails details) {
+      if (details.exceptionAsString().contains('overflowed')) return;
+      if (details.exceptionAsString().contains('nothing to pop')) return;
+      originalOnError?.call(details);
+    };
+    tester.view.physicalSize = const Size(390, 2400);
+    tester.view.devicePixelRatio = 1.0;
+
+    final mockRouter = GoRouter(
+      initialLocation: '/forgot-password',
+      routes: [
+        GoRoute(
+          path: '/forgot-password',
+          builder: (_, __) => const ForgotPasswordScreen(),
+        ),
+        GoRoute(
+          path: '/login',
+          builder: (_, __) => const Scaffold(body: Text('Login')),
+        ),
+      ],
+    );
+
+    await tester.pumpWidget(MaterialApp.router(routerConfig: mockRouter));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextField).first, 'usuario@test.com');
+    await tester.pump();
+
+    await tester.tap(find.text('Enviar enlace'));
+    await tester.pump();
+
+    expect(
+      find.text('Enlace de recuperación enviado al correo'),
+      findsOneWidget,
+    );
+
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+      FlutterError.onError = originalOnError;
+    });
+  });
 }

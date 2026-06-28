@@ -1,10 +1,54 @@
 ﻿import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/widgets/custom_button.dart';
 import '../../../../core/widgets/custom_text_field.dart';
+import '../providers/auth_provider.dart';
 
-class LoginScreen extends StatelessWidget {
+class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
+
+  @override
+  ConsumerState<LoginScreen> createState() => _LoginScreenState();
+}
+
+class _LoginScreenState extends ConsumerState<LoginScreen> {
+  final _emailCtrl = TextEditingController();
+  final _passwordCtrl = TextEditingController();
+  bool _cargando = false;
+
+  @override
+  void dispose() {
+    _emailCtrl.dispose();
+    _passwordCtrl.dispose();
+    super.dispose();
+  }
+
+  void _snack(String msg) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+  }
+
+  Future<void> _login() async {
+    setState(() => _cargando = true);
+    try {
+      await ref
+          .read(authNotifierProvider.notifier)
+          .login(email: _emailCtrl.text.trim(), password: _passwordCtrl.text);
+      if (!mounted) return;
+
+      if (ref.read(authNotifierProvider).hasError) {
+        _snack(
+          'No se pudo iniciar sesión: ${ref.read(authNotifierProvider).error}',
+        );
+        return;
+      }
+
+      context.go('/feed');
+    } finally {
+      if (mounted) setState(() => _cargando = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -93,24 +137,28 @@ class LoginScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 40),
-          const CustomTextField(
+          CustomTextField(
             label: 'Correo',
             hintText: 'correo@gmail.com',
             keyboardType: TextInputType.emailAddress,
+            controller: _emailCtrl,
           ),
           const SizedBox(height: 20),
-          const CustomTextField(
+          CustomTextField(
             label: 'Contraseña',
             hintText: 'Tu contraseña',
             isPassword: true,
+            controller: _passwordCtrl,
           ),
           const SizedBox(height: 24),
           SizedBox(
             width: double.infinity,
             height: 50,
             child: CustomButton(
-              text: 'Iniciar sesión',
-              onPressed: () => context.go('/feed'),
+              text: _cargando ? 'Ingresando...' : 'Iniciar sesión',
+              onPressed: () {
+                if (!_cargando) _login();
+              },
             ),
           ),
           const SizedBox(height: 16),

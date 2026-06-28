@@ -10,14 +10,14 @@ import 'auth_remote_datasource.dart';
 /// Implementación real del datasource de auth contra el backend local.
 ///
 /// Endpoints disponibles (backend en dev, authRoutes registrado en app.ts):
-///   GET   /auth/me             → [getProfile]
-///   PATCH /auth/account-status → [updateAccountStatus]
+///   GET   /auth/me              → [getProfile]
+///   POST  /auth/register-guest  → [registerGuest]
+///   PATCH /auth/account-status  → [updateAccountStatus]
 ///
-/// [registerGuest] sigue como error controlado: la ruta existe pero su
-/// contrato difiere del documentado — espera el id de un usuario Supabase ya
-/// creado (no lo crea, contra lo que dice api-contract.md) y responde
-/// {data: profile} sin token ni userCreated. Hallazgo H3 en
-/// claude/diseno_pruebas_calidad_hito3.md §8.3.
+/// [registerGuest] fue destrabado (H3): el backend espera el id de un usuario
+/// Supabase ya creado (no lo crea él) e inserta la fila profile con ese id.
+/// Responde {data: profile} sin token ni userCreated; se construye el
+/// AuthResponseModel a partir de data.profile.
 ///
 /// [updateProfile] sigue sin endpoint (PUT /users/me no existe).
 ///
@@ -53,12 +53,23 @@ class AuthRemoteDatasourceRealImpl implements AuthRemoteDatasource {
     required String name,
     required String email,
     required String phone,
-  }) {
-    throw ServerException(
-      code: 'ENDPOINT_NOT_AVAILABLE',
-      message:
-          'POST /auth/register-guest difiere del contrato (requiere id de '
-          'Supabase ya creado); flujo de invitado no integrable aún',
+  }) async {
+    final user = supabase.auth.currentUser;
+    if (user == null) throw UnauthorizedException();
+
+    // El backend exige el id de un usuario Supabase ya creado (H3) e inserta el
+    // profile con ese id. Body: {id, email, name, phone}.
+    final response = await dio.post(
+      ApiConstants.authRegisterGuest,
+      data: {'id': user.id, 'email': email, 'name': name, 'phone': phone},
+    );
+    final profile =
+        (response.data as Map<String, dynamic>)['data'] as Map<String, dynamic>;
+    return AuthResponseModel(
+      userId: profile['id'] as String,
+      accountStatus: (profile['accountStatus'] as String?) ?? 'guest',
+      userCreated: true,
+      token: null,
     );
   }
 
