@@ -3,6 +3,7 @@ import { userRoutes } from './routes/user.routes.js';
 import { authRoutes } from './routes/auth.routes.js';
 import { publicationRoutes } from './routes/publication.routes.js';
 import { reservationRoutes } from './routes/reservation.routes.js';
+import { notificationRoutes } from './routes/notification.routes.js';
 
 const app = Fastify({ logger: true });
 const port = process.env.PORT ? Number.parseInt(process.env.PORT, 10) : 3000;
@@ -11,6 +12,7 @@ app.register(userRoutes, { prefix: '/api/v1/users' });
 app.register(authRoutes, { prefix: '/api/v1/auth' });
 app.register(publicationRoutes, { prefix: '/api/v1/publications' });
 app.register(reservationRoutes, { prefix: '/api/v1/reservations' });
+app.register(notificationRoutes, { prefix: '/api/v1/notifications' });
 
 const start = async () => {
     try {

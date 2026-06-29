@@ -11,16 +11,15 @@ AppNotification _notif({
   NotificationType type = NotificationType.newReservation,
   bool read = false,
   String? reservationId,
-}) =>
-    AppNotification(
-      id: id,
-      type: type,
-      title: 'Nueva reserva recibida',
-      body: 'Carlos Pérez quiere reservar tu cancha',
-      read: read,
-      createdAt: DateTime.now().subtract(const Duration(minutes: 5)),
-      reservationId: reservationId,
-    );
+}) => AppNotification(
+  id: id,
+  type: type,
+  title: 'Nueva reserva recibida',
+  body: 'Carlos Pérez quiere reservar tu cancha',
+  read: read,
+  createdAt: DateTime.now().subtract(const Duration(minutes: 5)),
+  reservationId: reservationId,
+);
 
 Widget _buildSubject({
   List<AppNotification> notifications = const [],
@@ -32,20 +31,19 @@ Widget _buildSubject({
     routes: [
       GoRoute(
         path: '/notifications',
-        builder: (_, __) => const NotificationsScreen(),
+        builder: (_, _) => const NotificationsScreen(),
       ),
       GoRoute(
         path: '/reservation/:id',
-        builder: (_, __) => const Scaffold(body: Text('Detalle')),
+        builder: (_, _) => const Scaffold(body: Text('Detalle')),
       ),
     ],
   );
   return ProviderScope(
     overrides: [
       notificationsStreamProvider.overrideWith(
-        (ref) => error != null
-            ? Stream.error(error)
-            : Stream.value(notifications),
+        (ref) =>
+            error != null ? Stream.error(error) : Stream.value(notifications),
       ),
       unreadCountProvider.overrideWith((ref) => unread),
     ],
@@ -77,7 +75,9 @@ void main() {
     expect(find.byType(AppBar), findsOneWidget);
   });
 
-  testWidgets('NotificationsScreen sin notificaciones muestra empty state', (tester) async {
+  testWidgets('NotificationsScreen sin notificaciones muestra empty state', (
+    tester,
+  ) async {
     suppressOverflow(tester);
     tester.view.physicalSize = const Size(390, 844);
 
@@ -88,7 +88,9 @@ void main() {
     expect(find.byIcon(Icons.notifications_off_outlined), findsOneWidget);
   });
 
-  testWidgets('NotificationsScreen con notificaciones muestra cards', (tester) async {
+  testWidgets('NotificationsScreen con notificaciones muestra cards', (
+    tester,
+  ) async {
     suppressOverflow(tester);
     tester.view.physicalSize = const Size(390, 844);
 
@@ -100,11 +102,15 @@ void main() {
     expect(find.text('Carlos Pérez quiere reservar tu cancha'), findsWidgets);
   });
 
-  testWidgets('NotificationsScreen no leídas muestran punto azul', (tester) async {
+  testWidgets('NotificationsScreen no leídas muestran punto azul', (
+    tester,
+  ) async {
     suppressOverflow(tester);
     tester.view.physicalSize = const Size(390, 844);
 
-    await tester.pumpWidget(_buildSubject(notifications: [_notif(read: false)], unread: 1));
+    await tester.pumpWidget(
+      _buildSubject(notifications: [_notif(read: false)], unread: 1),
+    );
     await tester.pump();
 
     expect(find.text('1 nueva'), findsOneWidget);
@@ -120,63 +126,86 @@ void main() {
     expect(find.text('Hoy'), findsOneWidget);
   });
 
-  testWidgets('NotificationsScreen con unread > 1 muestra plural nuevas', (tester) async {
+  testWidgets('NotificationsScreen con unread > 1 muestra plural nuevas', (
+    tester,
+  ) async {
     suppressOverflow(tester);
     tester.view.physicalSize = const Size(390, 844);
 
-    await tester.pumpWidget(_buildSubject(
-      notifications: [_notif(id: '1'), _notif(id: '2')],
-      unread: 2,
-    ));
+    await tester.pumpWidget(
+      _buildSubject(
+        notifications: [
+          _notif(id: '1'),
+          _notif(id: '2'),
+        ],
+        unread: 2,
+      ),
+    );
     await tester.pump();
 
     expect(find.text('2 nuevas'), findsOneWidget);
   });
 
-  testWidgets('NotificationsScreen error muestra mensaje y botón reintentar', (tester) async {
+  testWidgets('NotificationsScreen error muestra mensaje y botón reintentar', (
+    tester,
+  ) async {
     suppressOverflow(tester);
     tester.view.physicalSize = const Size(390, 844);
 
     await tester.pumpWidget(_buildSubject(error: Exception('fallo')));
     await tester.pump();
 
-    expect(find.text('No se pudieron cargar las notificaciones'), findsOneWidget);
+    expect(
+      find.text('No se pudieron cargar las notificaciones'),
+      findsOneWidget,
+    );
     expect(find.text('Reintentar'), findsOneWidget);
   });
 
-  testWidgets('NotificationsScreen iconos por tipo de notificación', (tester) async {
+  testWidgets('NotificationsScreen iconos por tipo de notificación', (
+    tester,
+  ) async {
     suppressOverflow(tester);
     tester.view.physicalSize = const Size(390, 844);
 
-    await tester.pumpWidget(_buildSubject(notifications: [
-      _notif(type: NotificationType.statusUpdated),
-    ]));
+    await tester.pumpWidget(
+      _buildSubject(
+        notifications: [_notif(type: NotificationType.statusUpdated)],
+      ),
+    );
     await tester.pump();
 
     expect(find.byIcon(Icons.check_circle_outline), findsOneWidget);
   });
 
-  testWidgets('NotificationsScreen tipo cancelada muestra ícono cancel', (tester) async {
+  testWidgets('NotificationsScreen tipo cancelada muestra ícono cancel', (
+    tester,
+  ) async {
     suppressOverflow(tester);
     tester.view.physicalSize = const Size(390, 844);
 
-    await tester.pumpWidget(_buildSubject(notifications: [
-      _notif(type: NotificationType.reservationCancelled),
-    ]));
+    await tester.pumpWidget(
+      _buildSubject(
+        notifications: [_notif(type: NotificationType.reservationCancelled)],
+      ),
+    );
     await tester.pump();
 
     expect(find.byIcon(Icons.cancel_outlined), findsOneWidget);
   });
 
-  testWidgets('NotificationsScreen tipo system muestra ícono notifications_active', (tester) async {
-    suppressOverflow(tester);
-    tester.view.physicalSize = const Size(390, 844);
+  testWidgets(
+    'NotificationsScreen tipo system muestra ícono notifications_active',
+    (tester) async {
+      suppressOverflow(tester);
+      tester.view.physicalSize = const Size(390, 844);
 
-    await tester.pumpWidget(_buildSubject(notifications: [
-      _notif(type: NotificationType.system),
-    ]));
-    await tester.pump();
+      await tester.pumpWidget(
+        _buildSubject(notifications: [_notif(type: NotificationType.system)]),
+      );
+      await tester.pump();
 
-    expect(find.byIcon(Icons.notifications_active_outlined), findsOneWidget);
-  });
+      expect(find.byIcon(Icons.notifications_active_outlined), findsOneWidget);
+    },
+  );
 }

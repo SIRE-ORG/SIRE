@@ -88,6 +88,10 @@ void main() {
     await tester.tap(find.text('Seleccionar ubicación manualmente'));
     await tester.pumpAndSettle();
 
+    // Se abre el selector de región; al elegir una, navega al feed.
+    await tester.tap(find.text('Región de Arica y Parinacota'));
+    await tester.pumpAndSettle();
+
     expect(find.text('Pantalla Feed'), findsOneWidget);
 
     addTearDown(() {

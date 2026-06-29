@@ -40,6 +40,18 @@ export const createReservation = async (request: FastifyRequest, reply: FastifyR
             });
         }
 
+        // 1. Obtener datos de la publicación para saber quién es el dueño
+        const publication = await prisma.publication.findUnique({
+            where: { id: publicationId },
+            select: { ownerId: true, title: true }
+        });
+
+        if (!publication) {
+            return reply.status(404).send({
+                error: { code: 'NOT_FOUND', message: 'La publicación a reservar no existe' }
+            });
+        }
+
         const newReservation = await prisma.reservation.create({
             data: {
                 publicationId,
@@ -48,6 +60,17 @@ export const createReservation = async (request: FastifyRequest, reply: FastifyR
                 startTime,
                 endTime,
                 status: ReservationStatus.pending
+            }
+        });
+
+        // 3. Crear la notificación on-event (RF-06.1)
+        await prisma.notification.create({
+            data: {
+                userId: publication.ownerId, // Destinatario: dueño de la publicación 
+                type: 'new_reservation',
+                title: '¡Nueva reserva solicitada!',
+                body: `Han solicitado una reserva para "${publication.title}" el ${date} de ${startTime} a ${endTime}.`, // Compuesto en el backend 
+                reservationId: newReservation.id
             }
         });
 
@@ -227,6 +250,25 @@ export const updateReservationStatus = async (request: FastifyRequest, reply: Fa
             data: { status }
         });
 
+        const estadoTexto: Record<string, string> = {
+            completed: 'Aceptada',
+            rejected: 'Rechazada',
+            cancelled: 'Cancelada',
+            pending: 'Pendiente',
+            failed: 'Fallida'
+        };
+        const estadoAmigable = estadoTexto[status] || status;
+
+        await prisma.notification.create({
+            data: {
+                userId: existingReservation.solicitanteId, // Destinatario: el solicitante 
+                type: 'status_updated',
+                title: 'Actualización de tu reserva',
+                body: `Tu solicitud para "${existingReservation.publication.title}" ha cambiado a estado: ${estadoAmigable}.`, // 
+                reservationId: updatedReservation.id
+            }
+        });
+
         return reply.status(200).send({
             message: `Reserva actualizada a estado ${status}`,
             data: updatedReservation
@@ -253,7 +295,8 @@ export const cancelReservation = async (request: FastifyRequest, reply: FastifyR
         }
 
         const existingReservation = await prisma.reservation.findUnique({
-            where: { id }
+            where: { id },
+            include: { publication: true }
         });
 
         if (!existingReservation) {
@@ -277,6 +320,16 @@ export const cancelReservation = async (request: FastifyRequest, reply: FastifyR
         const cancelledReservation = await prisma.reservation.update({
             where: { id },
             data: { status: ReservationStatus.cancelled }
+        });
+
+        await prisma.notification.create({
+            data: {
+                userId: existingReservation.publication.ownerId, // Destinatario: dueño de la publicación 
+                type: 'reservation_cancelled',
+                title: 'Reserva cancelada',
+                body: `El solicitante ha cancelado su reserva para "${existingReservation.publication.title}".`, // 
+                reservationId: cancelledReservation.id
+            }
         });
 
         return reply.status(200).send({

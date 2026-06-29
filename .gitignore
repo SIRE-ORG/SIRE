@@ -60,3 +60,7 @@ CLAUDE.local.md
 # SonarQube (artefactos locales y binario del plugin; no versionar)
 .scannerwork/
 sonar/plugins/
+
+# Graphify output
+graphify-out/
+.graphifyignore
