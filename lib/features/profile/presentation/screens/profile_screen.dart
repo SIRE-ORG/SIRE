@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../../../core/providers/role_provider.dart';
 import '../../../auth/domain/entities/user_profile.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
@@ -25,6 +26,7 @@ class ProfileScreen extends ConsumerWidget {
               ? 'Cuenta activa'
               : 'Invitado');
 
+    final avatarUrl = profile?.avatarUrl;
     final pubCount = ref.watch(myPublicationsNotifierProvider).value?.length ?? 0;
     final myRes = ref.watch(myReservationsNotifierProvider).value ?? [];
     final received = ref.watch(receivedReservationsNotifierProvider).value ?? [];
@@ -73,6 +75,7 @@ class ProfileScreen extends ConsumerWidget {
                                     email: email,
                                     estado: estado,
                                     isWeb: true,
+                                    avatarUrl: avatarUrl,
                                     pubCount: pubCount,
                                     receivedCount: receivedCount,
                                     totalReservations: totalReservations,
@@ -110,6 +113,7 @@ class ProfileScreen extends ConsumerWidget {
                   nombre: nombre,
                   email: email,
                   estado: estado,
+                  avatarUrl: avatarUrl,
                   pubCount: pubCount,
                   receivedCount: receivedCount,
                   totalReservations: totalReservations,
@@ -221,6 +225,7 @@ class ProfileScreen extends ConsumerWidget {
     required String nombre,
     required String email,
     required String estado,
+    String? avatarUrl,
     required int pubCount,
     required int receivedCount,
     required int totalReservations,
@@ -248,7 +253,15 @@ class ProfileScreen extends ConsumerWidget {
                   shape: BoxShape.circle,
                   border: Border.all(color: Colors.white, width: 3),
                 ),
-                child: const Icon(Icons.person, size: 50, color: Colors.white),
+                clipBehavior: Clip.antiAlias,
+                child: avatarUrl != null && avatarUrl.isNotEmpty
+                    ? CachedNetworkImage(
+                        imageUrl: avatarUrl,
+                        fit: BoxFit.cover,
+                        errorWidget: (_, _a, _b) =>
+                            const Icon(Icons.person, size: 50, color: Colors.white),
+                      )
+                    : const Icon(Icons.person, size: 50, color: Colors.white),
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -309,6 +322,7 @@ class ProfileScreen extends ConsumerWidget {
     required String nombre,
     required String email,
     required String estado,
+    String? avatarUrl,
     required int pubCount,
     required int receivedCount,
     required int totalReservations,
@@ -340,11 +354,22 @@ class ProfileScreen extends ConsumerWidget {
                   shape: BoxShape.circle,
                   border: Border.all(color: const Color(0xFFE2E8F0), width: 4),
                 ),
-                child: const Icon(
-                  Icons.person,
-                  size: 60,
-                  color: Color(0xFF94A3B8),
-                ),
+                clipBehavior: Clip.antiAlias,
+                child: avatarUrl != null && avatarUrl.isNotEmpty
+                    ? CachedNetworkImage(
+                        imageUrl: avatarUrl,
+                        fit: BoxFit.cover,
+                        errorWidget: (_, _a, _b) => const Icon(
+                          Icons.person,
+                          size: 60,
+                          color: Color(0xFF94A3B8),
+                        ),
+                      )
+                    : const Icon(
+                        Icons.person,
+                        size: 60,
+                        color: Color(0xFF94A3B8),
+                      ),
               ),
               const SizedBox(width: 24),
               Expanded(
