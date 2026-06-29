@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/network/app_exception.dart';
 import '../../../../core/providers/role_provider.dart';
+import '../../domain/entities/reservation.dart';
 import '../providers/reservations_provider.dart';
 
 class ReceivedReservationsScreen extends ConsumerStatefulWidget {
@@ -16,6 +18,17 @@ class ReceivedReservationsScreen extends ConsumerStatefulWidget {
 class _ReceivedReservationsScreenState
     extends ConsumerState<ReceivedReservationsScreen> {
   bool _showPendientes = true;
+
+  Future<void> _launchUrl(String url) async {
+    final uri = Uri.parse(url);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri);
+    } else if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No se pudo abrir la aplicación')),
+      );
+    }
+  }
 
   void _showDetailPanel(BuildContext context, Map<String, String> data) {
     showGeneralDialog(
@@ -125,7 +138,11 @@ class _ReceivedReservationsScreenState
                   children: [
                     Expanded(
                       child: OutlinedButton.icon(
-                        onPressed: () {},
+                        onPressed: () {
+                          final email =
+                              data['email'] ?? 'contacto@sire.cl';
+                          _launchUrl('mailto:$email');
+                        },
                         icon: const Icon(
                           Icons.email_outlined,
                           color: Color(0xFF1E70CD),
@@ -147,7 +164,7 @@ class _ReceivedReservationsScreenState
                     const SizedBox(width: 16),
                     Expanded(
                       child: OutlinedButton.icon(
-                        onPressed: () {},
+                        onPressed: () => _launchUrl('https://wa.me/56912345678'),
                         icon: const Icon(
                           Icons.phone,
                           color: Color(0xFF2E7D32),
@@ -173,7 +190,25 @@ class _ReceivedReservationsScreenState
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
-                      onPressed: () {},
+                      onPressed: () async {
+                        Navigator.pop(context);
+                        try {
+                          await ref
+                              .read(reservationActionNotifierProvider.notifier)
+                              .updateStatus(
+                                id: data['id'] ?? '',
+                                status: ReservationStatus.completed,
+                              );
+                        } catch (_) {
+                          if (mounted) {
+                            ScaffoldMessenger.of(this.context).showSnackBar(
+                              const SnackBar(
+                                content: Text('No se pudo actualizar el estado'),
+                              ),
+                            );
+                          }
+                        }
+                      },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFFE8F5E9),
                         elevation: 0,
@@ -196,7 +231,25 @@ class _ReceivedReservationsScreenState
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
-                      onPressed: () {},
+                      onPressed: () async {
+                        Navigator.pop(context);
+                        try {
+                          await ref
+                              .read(reservationActionNotifierProvider.notifier)
+                              .updateStatus(
+                                id: data['id'] ?? '',
+                                status: ReservationStatus.failed,
+                              );
+                        } catch (_) {
+                          if (mounted) {
+                            ScaffoldMessenger.of(this.context).showSnackBar(
+                              const SnackBar(
+                                content: Text('No se pudo actualizar el estado'),
+                              ),
+                            );
+                          }
+                        }
+                      },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFFFFF3E0),
                         elevation: 0,
@@ -219,7 +272,25 @@ class _ReceivedReservationsScreenState
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
-                      onPressed: () {},
+                      onPressed: () async {
+                        Navigator.pop(context);
+                        try {
+                          await ref
+                              .read(reservationActionNotifierProvider.notifier)
+                              .updateStatus(
+                                id: data['id'] ?? '',
+                                status: ReservationStatus.rejected,
+                              );
+                        } catch (_) {
+                          if (mounted) {
+                            ScaffoldMessenger.of(this.context).showSnackBar(
+                              const SnackBar(
+                                content: Text('No se pudo actualizar el estado'),
+                              ),
+                            );
+                          }
+                        }
+                      },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFFFFEBEE),
                         elevation: 0,
@@ -308,6 +379,9 @@ class _ReceivedReservationsScreenState
         receivedAsync.error is ServerException &&
         (receivedAsync.error as ServerException).code == 'ENDPOINT_NOT_AVAILABLE';
 
+    // Use real data when available; fall back to mock when error or loading
+    final realData = receivedAsync.valueOrNull;
+
     return LayoutBuilder(
       builder: (context, constraints) {
         final isWeb = constraints.maxWidth >= 800;
@@ -331,8 +405,8 @@ class _ReceivedReservationsScreenState
                             runSpacing: 24,
                             children:
                                 (_showPendientes
-                                        ? _buildPendientesList(true)
-                                        : _buildHistorialList(true))
+                                        ? _buildPendientesList(true, realData)
+                                        : _buildHistorialList(true, realData))
                                     .map(
                                       (widget) =>
                                           SizedBox(width: 400, child: widget),
@@ -362,8 +436,8 @@ class _ReceivedReservationsScreenState
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children:
                         (_showPendientes
-                                ? _buildPendientesList(false)
-                                : _buildHistorialList(false))
+                                ? _buildPendientesList(false, realData)
+                                : _buildHistorialList(false, realData))
                             .map(
                               (widget) => Padding(
                                 padding: const EdgeInsets.only(bottom: 12),
@@ -546,47 +620,151 @@ class _ReceivedReservationsScreenState
     ),
   );
 
-  List<Widget> _buildPendientesList(bool isWeb) {
-    return [
-      _buildReservationCard(
-        id: 'mock-recv-001',
-        name: 'Carlos Pérez',
-        publication: 'Cancha de futbol sintetica',
-        date: 'Jue 15 may',
-        time: '14:00-15:00',
-        status: 'Pendiente',
-        statusBg: const Color(0xFFFFF3E0),
-        statusText: const Color(0xFFF57C00),
-        isWeb: isWeb,
-      ),
-      _buildReservationCard(
-        id: 'mock-recv-002',
-        name: 'Ana Ruiz',
-        publication: 'Cancha de futbol sintetica',
-        date: 'Vie 16 may',
-        time: '9:00-10:00',
-        status: 'Pendiente',
-        statusBg: const Color(0xFFFFF3E0),
-        statusText: const Color(0xFFF57C00),
-        isWeb: isWeb,
-      ),
-    ];
+  static const _mockPendientes = [
+    {
+      'id': 'mock-recv-001',
+      'name': 'Carlos Pérez',
+      'pub': 'Cancha de futbol sintetica',
+      'date': 'Jue 15 may',
+      'time': '14:00-15:00',
+      'status': 'Pendiente',
+    },
+    {
+      'id': 'mock-recv-002',
+      'name': 'Ana Ruiz',
+      'pub': 'Cancha de futbol sintetica',
+      'date': 'Vie 16 may',
+      'time': '9:00-10:00',
+      'status': 'Pendiente',
+    },
+  ];
+
+  static const _mockHistorial = [
+    {
+      'id': 'mock-recv-hist-001',
+      'name': 'Pedro Soto',
+      'pub': 'Cancha de futbol sintetica',
+      'date': 'Lun 5 may',
+      'time': '10:00-11:00',
+      'status': 'Completada',
+    },
+  ];
+
+  List<Widget> _buildPendientesList(
+    bool isWeb,
+    List<Reservation>? realData,
+  ) {
+    final items = realData != null
+        ? realData
+            .where((r) => r.status == ReservationStatus.pending)
+            .map(
+              (r) => {
+                'id': r.id,
+                'name': r.applicantName ?? 'Solicitante',
+                'pub': r.publicationTitle ?? '',
+                'date': r.date,
+                'time': '${r.startTime}-${r.endTime}',
+                'status': 'Pendiente',
+              },
+            )
+            .toList()
+        : _mockPendientes;
+
+    return items
+        .map(
+          (item) => _buildReservationCard(
+            id: item['id']!,
+            name: item['name']!,
+            publication: item['pub']!,
+            date: item['date']!,
+            time: item['time']!,
+            status: item['status']!,
+            statusBg: const Color(0xFFFFF3E0),
+            statusText: const Color(0xFFF57C00),
+            isWeb: isWeb,
+          ),
+        )
+        .toList();
   }
 
-  List<Widget> _buildHistorialList(bool isWeb) {
-    return [
-      _buildReservationCard(
-        id: 'mock-recv-hist-001',
-        name: 'Pedro Soto',
-        publication: 'Cancha de futbol sintetica',
-        date: 'Lun 5 may',
-        time: '10:00-11:00',
-        status: 'Completada',
-        statusBg: const Color(0xFFE8F5E9),
-        statusText: const Color(0xFF2E7D32),
-        isWeb: isWeb,
-      ),
-    ];
+  List<Widget> _buildHistorialList(
+    bool isWeb,
+    List<Reservation>? realData,
+  ) {
+    final items = realData != null
+        ? realData
+            .where((r) => r.status != ReservationStatus.pending)
+            .map(
+              (r) => {
+                'id': r.id,
+                'name': r.applicantName ?? 'Solicitante',
+                'pub': r.publicationTitle ?? '',
+                'date': r.date,
+                'time': '${r.startTime}-${r.endTime}',
+                'status': _statusLabel(r.status),
+              },
+            )
+            .toList()
+        : _mockHistorial;
+
+    return items
+        .map(
+          (item) => _buildReservationCard(
+            id: item['id']!,
+            name: item['name']!,
+            publication: item['pub']!,
+            date: item['date']!,
+            time: item['time']!,
+            status: item['status']!,
+            statusBg: _statusBg(item['status']!),
+            statusText: _statusTextColor(item['status']!),
+            isWeb: isWeb,
+          ),
+        )
+        .toList();
+  }
+
+  String _statusLabel(ReservationStatus s) {
+    switch (s) {
+      case ReservationStatus.completed:
+        return 'Completada';
+      case ReservationStatus.rejected:
+        return 'Rechazada';
+      case ReservationStatus.cancelled:
+        return 'Cancelada';
+      case ReservationStatus.failed:
+        return 'Fallida';
+      default:
+        return 'Pendiente';
+    }
+  }
+
+  Color _statusBg(String status) {
+    switch (status) {
+      case 'Completada':
+        return const Color(0xFFE8F5E9);
+      case 'Rechazada':
+      case 'Cancelada':
+        return const Color(0xFFFFEBEE);
+      case 'Fallida':
+        return const Color(0xFFFFF3E0);
+      default:
+        return const Color(0xFFFFF3E0);
+    }
+  }
+
+  Color _statusTextColor(String status) {
+    switch (status) {
+      case 'Completada':
+        return const Color(0xFF2E7D32);
+      case 'Rechazada':
+      case 'Cancelada':
+        return const Color(0xFFC62828);
+      case 'Fallida':
+        return const Color(0xFFF57C00);
+      default:
+        return const Color(0xFFF57C00);
+    }
   }
 
   Widget _buildReservationCard({

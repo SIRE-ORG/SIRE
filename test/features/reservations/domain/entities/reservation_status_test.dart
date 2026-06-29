@@ -75,7 +75,7 @@ void main() {
         publicationCity: 'Temuco',
         publicationImageUrl: null,
       );
-      expect(res.props.length, 10);
+      expect(res.props.length, 12);
       expect(res.id, 'res-1');
       expect(res.publicationTitle, 'Cancha');
     });

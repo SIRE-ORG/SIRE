@@ -33,6 +33,46 @@ class ReservationsRemoteDatasourceMockImpl
     ),
   };
 
+  // Seed específico para reservas recibidas (lado publicador)
+  static const _receivedSeed = [
+    ReservationModel(
+      id: 'mock-recv-001',
+      publicationId: 'mock-pub-1',
+      date: 'Jue 15 may',
+      startTime: '14:00',
+      endTime: '15:00',
+      status: 'pending',
+      createdAt: '2026-05-14T10:00:00Z',
+      publicationTitle: 'Cancha de futbol sintetica',
+      applicantName: 'Carlos Pérez',
+      applicantEmail: 'carlosperez@mail.com',
+    ),
+    ReservationModel(
+      id: 'mock-recv-002',
+      publicationId: 'mock-pub-1',
+      date: 'Vie 16 may',
+      startTime: '09:00',
+      endTime: '10:00',
+      status: 'pending',
+      createdAt: '2026-05-14T11:00:00Z',
+      publicationTitle: 'Cancha de futbol sintetica',
+      applicantName: 'Ana Ruiz',
+      applicantEmail: 'anaruiz@mail.com',
+    ),
+    ReservationModel(
+      id: 'mock-recv-hist-001',
+      publicationId: 'mock-pub-1',
+      date: 'Lun 5 may',
+      startTime: '10:00',
+      endTime: '11:00',
+      status: 'completed',
+      createdAt: '2026-05-03T09:00:00Z',
+      publicationTitle: 'Cancha de futbol sintetica',
+      applicantName: 'Pedro Soto',
+      applicantEmail: 'pedrosoto@mail.com',
+    ),
+  ];
+
   @override
   Future<ReservationModel> createReservation({
     required CreateReservationRequestModel body,
@@ -119,7 +159,7 @@ class ReservationsRemoteDatasourceMockImpl
 
   @override
   Future<List<ReservationModel>> getReceivedReservations() async =>
-      _seed.values.toList();
+      _receivedSeed;
 
   @override
   Future<ReservationModel> getReservationDetail({required String id}) async =>

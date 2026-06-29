@@ -4,6 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/providers/role_provider.dart';
 import '../../../notifications/presentation/screens/notifications_screen.dart';
 import '../../../notifications/presentation/widgets/notification_bell.dart';
+import '../../../publications/domain/entities/publication.dart';
+import '../../domain/entities/publication_summary.dart';
+import '../providers/feed_provider.dart';
 
 class FeedScreen extends ConsumerStatefulWidget {
   const FeedScreen({super.key});
@@ -15,38 +18,45 @@ class FeedScreen extends ConsumerStatefulWidget {
 class _FeedScreenState extends ConsumerState<FeedScreen> {
   String _selectedCategory = 'Todos';
 
-  final List<Map<String, dynamic>> _allPublications = [
-    {
-      'title': 'Cancha de fútbol sintética',
-      'subtitle': 'Club Deportivo Temuco',
-      'category': 'Deporte',
-      'id': '1',
-    },
-    {
-      'title': 'Consultorio de kinesiología',
-      'subtitle': 'Clínica Santa María',
-      'category': 'Salud',
-      'id': '2',
-    },
-    {
-      'title': 'Salón para baile',
-      'subtitle': 'Espacio El Ático',
-      'category': 'Eventos',
-      'id': '3',
-    },
-    {
-      'title': 'Piscina municipal',
-      'subtitle': 'Municipalidad de Temuco',
-      'category': 'Recreación',
-      'id': '4',
-    },
+  static const _categories = [
+    'Todos',
+    'Deporte',
+    'Eventos',
+    'Recreación',
+    'Salud',
   ];
 
-  List<Map<String, dynamic>> get _filteredPublications {
-    if (_selectedCategory == 'Todos') return _allPublications;
-    return _allPublications
-        .where((pub) => pub['category'] == _selectedCategory)
-        .toList();
+  PublicationCategory? _categoryEnum(String label) {
+    switch (label) {
+      case 'Deporte':
+        return PublicationCategory.deporte;
+      case 'Eventos':
+        return PublicationCategory.eventos;
+      case 'Recreación':
+        return PublicationCategory.recreacion;
+      default:
+        return null;
+    }
+  }
+
+  String _categoryLabel(PublicationCategory cat) {
+    switch (cat) {
+      case PublicationCategory.deporte:
+        return 'Deporte';
+      case PublicationCategory.eventos:
+        return 'Eventos';
+      case PublicationCategory.recreacion:
+        return 'Recreación';
+      case PublicationCategory.otros:
+        return 'Otros';
+    }
+  }
+
+  List<PublicationSummary> _filterLocally(List<PublicationSummary> items) {
+    if (_selectedCategory == 'Todos') return items;
+    final cat = _categoryEnum(_selectedCategory);
+    if (cat == null) return items;
+    return items.where((p) => p.category == cat).toList();
   }
 
   void _handleNotificationsClick(BuildContext context, bool isWeb) {
@@ -108,6 +118,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
   @override
   Widget build(BuildContext context) {
     final isPublisher = ref.watch(isPublisherProvider);
+    final feedAsync = ref.watch(feedNotifierProvider);
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -124,7 +135,18 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
                     children: [
                       _buildHeader(context, isWeb: true),
                       _buildCategories(),
-                      Expanded(child: _buildGrid(context)),
+                      Expanded(
+                        child: feedAsync.when(
+                          loading: () => const Center(
+                            child: CircularProgressIndicator(
+                              color: Color(0xFF1E70CD),
+                            ),
+                          ),
+                          error: (e, _) => _buildError(context),
+                          data: (feed) =>
+                              _buildGrid(context, _filterLocally(feed.items)),
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -138,13 +160,45 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
               children: [
                 _buildHeader(context, isWeb: false),
                 _buildCategories(),
-                Expanded(child: _buildList(context)),
+                Expanded(
+                  child: feedAsync.when(
+                    loading: () => const Center(
+                      child: CircularProgressIndicator(
+                        color: Color(0xFF1E70CD),
+                      ),
+                    ),
+                    error: (e, _) => _buildError(context),
+                    data: (feed) =>
+                        _buildList(context, _filterLocally(feed.items)),
+                  ),
+                ),
               ],
             ),
             bottomNavigationBar: _buildBottomNav(context, isPublisher),
           );
         }
       },
+    );
+  }
+
+  Widget _buildError(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.wifi_off, size: 48, color: Colors.grey),
+          const SizedBox(height: 16),
+          const Text(
+            'No se pudieron cargar las publicaciones',
+            style: TextStyle(color: Colors.grey),
+          ),
+          const SizedBox(height: 16),
+          TextButton(
+            onPressed: () => ref.invalidate(feedNotifierProvider),
+            child: const Text('Reintentar'),
+          ),
+        ],
+      ),
     );
   }
 
@@ -301,13 +355,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
       scrollDirection: Axis.horizontal,
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
       child: Row(
-        children: [
-          _buildChip('Todos'),
-          _buildChip('Deporte'),
-          _buildChip('Eventos'),
-          _buildChip('Recreación'),
-          _buildChip('Salud'),
-        ],
+        children: _categories.map(_buildChip).toList(),
       ),
     );
   }
@@ -316,9 +364,10 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
     final isSelected = _selectedCategory == label;
     return GestureDetector(
       onTap: () {
-        setState(() {
-          _selectedCategory = label;
-        });
+        setState(() => _selectedCategory = label);
+        ref
+            .read(feedNotifierProvider.notifier)
+            .setCategory(_categoryEnum(label));
       },
       child: Container(
         margin: const EdgeInsets.only(right: 8),
@@ -341,9 +390,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
     );
   }
 
-  Widget _buildList(BuildContext context) {
-    final items = _filteredPublications;
-
+  Widget _buildList(BuildContext context, List<PublicationSummary> items) {
     if (items.isEmpty) {
       return const Center(
         child: Text(
@@ -360,18 +407,17 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
       itemBuilder: (context, index) {
         final item = items[index];
         return _buildPlaceCard(
-          item['title'],
-          item['subtitle'],
-          item['category'],
-          onTap: () => context.push('/publication/${item['id']}'),
+          item.title,
+          item.ownerName,
+          _categoryLabel(item.category),
+          imageUrl: item.imageUrl,
+          onTap: () => context.push('/publication/${item.id}'),
         );
       },
     );
   }
 
-  Widget _buildGrid(BuildContext context) {
-    final items = _filteredPublications;
-
+  Widget _buildGrid(BuildContext context, List<PublicationSummary> items) {
     if (items.isEmpty) {
       return const Center(
         child: Text(
@@ -393,10 +439,11 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
       itemBuilder: (context, index) {
         final item = items[index];
         return _buildPlaceCard(
-          item['title'],
-          item['subtitle'],
-          item['category'],
-          onTap: () => context.push('/publication/${item['id']}'),
+          item.title,
+          item.ownerName,
+          _categoryLabel(item.category),
+          imageUrl: item.imageUrl,
+          onTap: () => context.push('/publication/${item.id}'),
         );
       },
     );
@@ -406,6 +453,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
     String title,
     String subtitle,
     String category, {
+    String? imageUrl,
     VoidCallback? onTap,
   }) {
     return GestureDetector(
@@ -425,8 +473,16 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
               decoration: BoxDecoration(
                 color: Colors.grey.shade300,
                 borderRadius: BorderRadius.circular(12),
+                image: imageUrl != null
+                    ? DecorationImage(
+                        image: NetworkImage(imageUrl),
+                        fit: BoxFit.cover,
+                      )
+                    : null,
               ),
-              child: const Icon(Icons.image, color: Colors.grey),
+              child: imageUrl == null
+                  ? const Icon(Icons.image, color: Colors.grey)
+                  : null,
             ),
             const SizedBox(width: 16),
             Expanded(

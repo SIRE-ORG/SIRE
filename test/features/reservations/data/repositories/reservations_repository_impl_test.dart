@@ -150,21 +150,35 @@ void main() {
     }
   });
 
-  test('getReceivedReservations lanza ServerException desde el stub', () async {
-    try {
-      await repository.getReceivedReservations();
-      fail('Se esperaba una excepción');
-    } on ServerException catch (e) {
-      expect(e.code, 'ENDPOINT_NOT_AVAILABLE');
-    }
+  test('getReceivedReservations 200 → entidades de dominio con applicantName', () async {
+    adapter.onGet(
+      ApiConstants.reservationsReceived,
+      (server) => server.reply(200, {
+        'data': [
+          {
+            ...reservationJson(id: 'recv-1', withPublication: true),
+            'applicant': {'name': 'Carlos Pérez', 'email': 'c@mail.com'},
+          },
+        ],
+      }),
+    );
+
+    final result = await repository.getReceivedReservations();
+    expect(result, hasLength(1));
+    expect(result.first.id, 'recv-1');
+    expect(result.first.applicantName, 'Carlos Pérez');
   });
 
-  test('getReservationDetail lanza ServerException desde el stub', () async {
-    try {
-      await repository.getReservationDetail(id: 'res-1');
-      fail('Se esperaba una excepción');
-    } on ServerException catch (e) {
-      expect(e.code, 'ENDPOINT_NOT_AVAILABLE');
-    }
+  test('getReservationDetail 200 → entidad de dominio con id correcto', () async {
+    adapter.onGet(
+      ApiConstants.reservationById('res-1'),
+      (server) => server.reply(200, {
+        'data': reservationJson(id: 'res-1'),
+      }),
+    );
+
+    final result = await repository.getReservationDetail(id: 'res-1');
+    expect(result.id, 'res-1');
+    expect(result.status, ReservationStatus.pending);
   });
 }

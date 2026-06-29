@@ -153,7 +153,26 @@ class _MyReservationsScreenState extends ConsumerState<MyReservationsScreen> {
                         child: SizedBox(
                           width: double.infinity,
                           child: OutlinedButton(
-                            onPressed: () => Navigator.of(context).pop(),
+                            onPressed: () async {
+                              Navigator.of(context).pop();
+                              try {
+                                await ref
+                                    .read(
+                                      reservationActionNotifierProvider.notifier,
+                                    )
+                                    .cancel(id: data['id'] ?? '');
+                              } catch (_) {
+                                if (mounted) {
+                                  ScaffoldMessenger.of(this.context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                        'No se pudo cancelar la reserva',
+                                      ),
+                                    ),
+                                  );
+                                }
+                              }
+                            },
                             style: OutlinedButton.styleFrom(
                               backgroundColor: const Color(0xFFFFEBEE),
                               side: const BorderSide(color: Color(0xFFEF9A9A)),
