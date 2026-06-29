@@ -1,9 +1,92 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../core/storage/local_storage_service.dart';
 import '../../../../core/widgets/custom_button.dart';
+import '../../../feed/presentation/providers/feed_provider.dart';
 
-class LocationScreen extends StatelessWidget {
+class LocationScreen extends ConsumerStatefulWidget {
   const LocationScreen({super.key});
+
+  @override
+  ConsumerState<LocationScreen> createState() => _LocationScreenState();
+}
+
+class _LocationScreenState extends ConsumerState<LocationScreen> {
+  bool _detecting = false;
+
+  static const _regiones = <String>[
+    'Región de Arica y Parinacota',
+    'Región de Tarapacá',
+    'Región de Antofagasta',
+    'Región de Atacama',
+    'Región de Coquimbo',
+    'Región de Valparaíso',
+    'Región Metropolitana',
+    "Región del Libertador General Bernardo O'Higgins",
+    'Región del Maule',
+    'Región de Ñuble',
+    'Región del Biobío',
+    'Región de La Araucanía',
+    'Región de Los Ríos',
+    'Región de Los Lagos',
+    'Región de Aysén',
+    'Región de Magallanes',
+  ];
+
+  /// Pide la ubicación real (dispara el permiso nativo vía Geolocator), cachea
+  /// la región y entra al feed. Si falla (denegado / sin soporte), avisa y entra
+  /// igual — el feed hace fallback.
+  Future<void> _onPermitir() async {
+    setState(() => _detecting = true);
+    try {
+      final loc = await ref.read(geoDatasourceProvider).getCurrentLocation();
+      // Cacheo best-effort: no bloquea la navegación.
+      const LocalStorageService()
+          .write(StorageKeys.region, loc.region)
+          .ignore();
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'No pudimos obtener tu ubicación; mostrando el feed general.',
+            ),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _detecting = false);
+    }
+    if (mounted) context.go('/feed');
+  }
+
+  /// Selector manual de región: cachea la elegida y entra al feed.
+  Future<void> _onManual() async {
+    final region = await showModalBottomSheet<String>(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: ListView(
+          shrinkWrap: true,
+          children: [
+            const Padding(
+              padding: EdgeInsets.all(16),
+              child: Text(
+                'Selecciona tu región',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+            ),
+            for (final r in _regiones)
+              ListTile(title: Text(r), onTap: () => Navigator.of(ctx).pop(r)),
+          ],
+        ),
+      ),
+    );
+    if (region == null) return;
+    // Cacheo best-effort: no bloquea la navegación.
+    const LocalStorageService().write(StorageKeys.region, region).ignore();
+    if (mounted) context.go('/feed');
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -28,10 +111,7 @@ class LocationScreen extends StatelessWidget {
           child: Container(
             color: const Color(0xFF1E70CD),
             child: Center(
-              child: Image.asset(
-                'assets/images/Logo_SIRE.png',
-                width: 250,
-              ),
+              child: Image.asset('assets/images/Logo_SIRE.png', width: 250),
             ),
           ),
         ),
@@ -68,10 +148,7 @@ class LocationScreen extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Image.asset(
-                  'assets/images/Logo_SIRE.png',
-                  width: 180,
-                ),
+                Image.asset('assets/images/Logo_SIRE.png', width: 180),
                 const SizedBox(height: 20),
               ],
             ),
@@ -91,7 +168,10 @@ class LocationScreen extends StatelessWidget {
                 ),
               ),
               child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 30),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 40,
+                  vertical: 30,
+                ),
                 child: _buildContent(context),
               ),
             ),
@@ -128,23 +208,16 @@ class LocationScreen extends StatelessWidget {
         const Text(
           'Necesitamos tu ubicación para mostrarte\npublicaciones en tu región.',
           textAlign: TextAlign.center,
-          style: TextStyle(
-            fontSize: 16,
-            color: Color(0xFF64748B),
-          ),
+          style: TextStyle(fontSize: 16, color: Color(0xFF64748B)),
         ),
         const SizedBox(height: 40),
         CustomButton(
-          text: 'Permitir ubicación',
-          onPressed: () {
-            context.go('/feed');
-          },
+          text: _detecting ? 'Detectando…' : 'Permitir ubicación',
+          onPressed: _detecting ? null : _onPermitir,
         ),
         const SizedBox(height: 20),
         GestureDetector(
-          onTap: () {
-            context.go('/feed');
-          },
+          onTap: _detecting ? null : _onManual,
           child: const Text(
             'Seleccionar ubicación manualmente',
             style: TextStyle(
