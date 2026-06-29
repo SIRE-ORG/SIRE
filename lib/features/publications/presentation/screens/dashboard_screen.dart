@@ -3,6 +3,11 @@ import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/providers/role_provider.dart';
 import '../../../notifications/presentation/widgets/notification_bell.dart';
+import '../../domain/entities/publication.dart';
+import '../../domain/entities/publication_summary_item.dart';
+import '../providers/my_publications_provider.dart';
+import '../../../reservations/domain/entities/reservation.dart';
+import '../../../reservations/presentation/providers/reservations_provider.dart';
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
@@ -10,6 +15,17 @@ class DashboardScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isPublisher = ref.watch(isPublisherProvider);
+    final pubsAsync = ref.watch(myPublicationsNotifierProvider);
+    final receivedAsync = ref.watch(receivedReservationsNotifierProvider);
+
+    final pubs = pubsAsync.value ?? [];
+    final received = receivedAsync.value ?? [];
+
+    final activeCount = pubs.where((p) => p.isActive).length;
+    final pendingCount =
+        received.where((r) => r.status == ReservationStatus.pending).length;
+    final completedCount =
+        received.where((r) => r.status == ReservationStatus.completed).length;
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -39,21 +55,21 @@ class DashboardScreen extends ConsumerWidget {
                               ),
                             ),
                             const SizedBox(height: 32),
-                            _buildTopStats(),
+                            _buildTopStats(activeCount, pendingCount, completedCount),
                             const SizedBox(height: 48),
                             _buildSectionHeader(
                               'Mis publicaciones',
                               () => context.push('/my-publications'),
                             ),
                             const SizedBox(height: 16),
-                            _buildMyPublicationsList(),
+                            _buildMyPublicationsList(pubs),
                             const SizedBox(height: 48),
                             _buildSectionHeader(
                               'Reservas recibidas',
                               () => context.push('/received-reservations'),
                             ),
                             const SizedBox(height: 16),
-                            _buildReceivedReservationsList(isWeb: true),
+                            _buildReceivedReservationsList(received, isWeb: true),
                           ],
                         ),
                       ),
@@ -85,21 +101,21 @@ class DashboardScreen extends ConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildTopStatsMobile(),
+                  _buildTopStatsMobile(activeCount, pendingCount, completedCount),
                   const SizedBox(height: 32),
                   _buildSectionHeader(
                     'Mis publicaciones',
                     () => context.push('/my-publications'),
                   ),
                   const SizedBox(height: 16),
-                  _buildMyPublicationsList(),
+                  _buildMyPublicationsList(pubs),
                   const SizedBox(height: 32),
                   _buildSectionHeader(
                     'Reservas recibidas',
                     () => context.push('/received-reservations'),
                   ),
                   const SizedBox(height: 16),
-                  _buildReceivedReservationsList(isWeb: false),
+                  _buildReceivedReservationsList(received, isWeb: false),
                 ],
               ),
             ),
@@ -181,12 +197,12 @@ class DashboardScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildTopStats() {
+  Widget _buildTopStats(int active, int pending, int completed) {
     return Row(
       children: [
         Expanded(
           child: _buildStatCard(
-            '2',
+            '$active',
             'Publicaciones\nActivas',
             const Color(0xFFE3F2FD),
             const Color(0xFF1E70CD),
@@ -195,7 +211,7 @@ class DashboardScreen extends ConsumerWidget {
         const SizedBox(width: 24),
         Expanded(
           child: _buildStatCard(
-            '2',
+            '$pending',
             'Pendientes\npor revisar',
             const Color(0xFFFFF3E0),
             const Color(0xFFE65100),
@@ -204,7 +220,7 @@ class DashboardScreen extends ConsumerWidget {
         const SizedBox(width: 24),
         Expanded(
           child: _buildStatCard(
-            '1',
+            '$completed',
             'Completadas',
             const Color(0xFFE8F5E9),
             const Color(0xFF2E7D32),
@@ -214,14 +230,14 @@ class DashboardScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildTopStatsMobile() {
+  Widget _buildTopStatsMobile(int active, int pending, int completed) {
     return Column(
       children: [
         Row(
           children: [
             Expanded(
               child: _buildStatCard(
-                '2',
+                '$active',
                 'Publicaciones\nActivas',
                 const Color(0xFFE3F2FD),
                 const Color(0xFF1E70CD),
@@ -230,7 +246,7 @@ class DashboardScreen extends ConsumerWidget {
             const SizedBox(width: 16),
             Expanded(
               child: _buildStatCard(
-                '2',
+                '$pending',
                 'Pendientes\npor revisar',
                 const Color(0xFFFFF3E0),
                 const Color(0xFFE65100),
@@ -243,7 +259,7 @@ class DashboardScreen extends ConsumerWidget {
           children: [
             Expanded(
               child: _buildStatCard(
-                '1',
+                '$completed',
                 'Completadas',
                 const Color(0xFFE8F5E9),
                 const Color(0xFF2E7D32),
@@ -319,33 +335,29 @@ class DashboardScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildMyPublicationsList() {
+  Widget _buildMyPublicationsList(List<PublicationSummaryItem> pubs) {
+    if (pubs.isEmpty) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 16),
+        child: Text(
+          'No tienes publicaciones aún',
+          style: TextStyle(color: Colors.grey),
+        ),
+      );
+    }
     return Column(
-      children: [
-        _buildPublicationItem(
-          'Cancha de fútbol sintética',
-          'Deporte - Temuco',
-          'Activa',
-          const Color(0xFFE8F5E9),
-          const Color(0xFF2E7D32),
-        ),
-        const SizedBox(height: 12),
-        _buildPublicationItem(
-          'Consultorio de kinesiología',
-          'Salud - Temuco',
-          'Activa',
-          const Color(0xFFE8F5E9),
-          const Color(0xFF2E7D32),
-        ),
-        const SizedBox(height: 12),
-        _buildPublicationItem(
-          'Salón para baile',
-          'Eventos - Temuco',
-          'Pausada',
-          const Color(0xFFF1F5F9),
-          const Color(0xFF64748B),
-        ),
-      ],
+      children: pubs.take(3).map((p) {
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: _buildPublicationItem(
+            p.title,
+            '${_catLabel(p.category)} - ${p.region}',
+            p.isActive ? 'Activa' : 'Pausada',
+            p.isActive ? const Color(0xFFE8F5E9) : const Color(0xFFF1F5F9),
+            p.isActive ? const Color(0xFF2E7D32) : const Color(0xFF64748B),
+          ),
+        );
+      }).toList(),
     );
   }
 
@@ -406,25 +418,35 @@ class DashboardScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildReceivedReservationsList({required bool isWeb}) {
+  Widget _buildReceivedReservationsList(
+    List<Reservation> reservations, {
+    required bool isWeb,
+  }) {
+    final pending =
+        reservations.where((r) => r.status == ReservationStatus.pending).toList();
+    if (pending.isEmpty) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 16),
+        child: Text(
+          'No hay reservas pendientes',
+          style: TextStyle(color: Colors.grey),
+        ),
+      );
+    }
     return Column(
-      children: [
-        _buildReservationItem(
-          'Carlos Pérez',
-          'Cancha de fútbol sintética • Jue 15 may • 14:00-15:00',
-          'Nueva',
-          const Color(0xFFE3F2FD),
-          const Color(0xFF1E70CD),
-        ),
-        const SizedBox(height: 12),
-        _buildReservationItem(
-          'Carlos Pérez',
-          'Cancha de fútbol sintética • Jue 15 may • 14:00-15:00',
-          'Nueva',
-          const Color(0xFFE3F2FD),
-          const Color(0xFF1E70CD),
-        ),
-      ],
+      children: pending.take(3).map((r) {
+        final (label, bg, fg) = _statusInfo(r.status);
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: _buildReservationItem(
+            r.applicantName ?? 'Solicitante',
+            '${r.publicationTitle ?? 'Espacio'} • ${r.date} • ${r.startTime}-${r.endTime}',
+            label,
+            bg,
+            fg,
+          ),
+        );
+      }).toList(),
     );
   }
 
@@ -514,3 +536,38 @@ class DashboardScreen extends ConsumerWidget {
     );
   }
 }
+
+String _catLabel(PublicationCategory cat) => switch (cat) {
+  PublicationCategory.deporte => 'Deporte',
+  PublicationCategory.eventos => 'Eventos',
+  PublicationCategory.recreacion => 'Recreación',
+  PublicationCategory.otros => 'Otros',
+};
+
+(String, Color, Color) _statusInfo(ReservationStatus s) => switch (s) {
+  ReservationStatus.pending => (
+    'Nueva',
+    Color(0xFFE3F2FD),
+    Color(0xFF1E70CD),
+  ),
+  ReservationStatus.completed => (
+    'Completada',
+    Color(0xFFE8F5E9),
+    Color(0xFF2E7D32),
+  ),
+  ReservationStatus.cancelled => (
+    'Cancelada',
+    Color(0xFFF1F5F9),
+    Color(0xFF64748B),
+  ),
+  ReservationStatus.rejected => (
+    'Rechazada',
+    Color(0xFFFFEBEE),
+    Color(0xFFC62828),
+  ),
+  ReservationStatus.failed => (
+    'Fallida',
+    Color(0xFFFFEBEE),
+    Color(0xFFC62828),
+  ),
+};
