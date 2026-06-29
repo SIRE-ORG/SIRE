@@ -8,9 +8,10 @@ import '../providers/notifications_provider.dart';
 /// los AppBars (feed, dashboard, ...). Observa [unreadCountProvider], que se
 /// deriva del stream realtime → el badge se actualiza solo.
 class NotificationBell extends ConsumerWidget {
-  const NotificationBell({super.key, this.color = Colors.white});
+  const NotificationBell({super.key, this.color = Colors.white, this.onPressed});
 
   final Color color;
+  final VoidCallback? onPressed;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -22,7 +23,7 @@ class NotificationBell extends ConsumerWidget {
         IconButton(
           icon: Icon(Icons.notifications_outlined, color: color),
           tooltip: 'Notificaciones',
-          onPressed: () => context.push('/notifications'),
+          onPressed: onPressed ?? () => context.push('/notifications'),
         ),
         if (unread > 0)
           Positioned(

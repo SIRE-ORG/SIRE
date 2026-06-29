@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/providers/role_provider.dart';
 import '../../../notifications/presentation/screens/notifications_screen.dart';
+import '../../../notifications/presentation/widgets/notification_bell.dart';
 
 class FeedScreen extends ConsumerStatefulWidget {
   const FeedScreen({super.key});
@@ -245,20 +246,9 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
                   fontWeight: FontWeight.w900,
                 ),
               ),
-              GestureDetector(
-                onTap: () => _handleNotificationsClick(context, isWeb),
-                child: Container(
-                  padding: const EdgeInsets.all(6),
-                  decoration: BoxDecoration(
-                    color: isWeb ? Colors.grey.shade100 : Colors.white24,
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    Icons.notifications_none,
-                    color: isWeb ? const Color(0xFF1E70CD) : Colors.white,
-                    size: 20,
-                  ),
-                ),
+              NotificationBell(
+                color: isWeb ? const Color(0xFF1E70CD) : Colors.white,
+                onPressed: () => _handleNotificationsClick(context, isWeb),
               ),
             ],
           ),

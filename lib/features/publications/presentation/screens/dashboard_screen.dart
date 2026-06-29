@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/providers/role_provider.dart';
+import '../../../notifications/presentation/widgets/notification_bell.dart';
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
@@ -77,6 +78,7 @@ class DashboardScreen extends ConsumerWidget {
                 ),
               ),
               centerTitle: false,
+              actions: const [NotificationBell()],
             ),
             body: SingleChildScrollView(
               padding: const EdgeInsets.all(16.0),
