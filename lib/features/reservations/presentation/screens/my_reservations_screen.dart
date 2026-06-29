@@ -216,23 +216,41 @@ class _MyReservationsScreenState extends ConsumerState<MyReservationsScreen> {
     );
   }
 
-  Widget _buildBanner(String msg) => Container(
-    width: double.infinity,
-    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-    color: const Color(0xFFFFF3E0),
-    child: Row(
+  Widget _errorState() => Center(
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const Icon(Icons.error_outline, size: 48, color: Color(0xFF94A3B8)),
+        const SizedBox(height: 12),
+        const Text(
+          'No se pudieron cargar tus reservas',
+          style: TextStyle(color: Color(0xFF64748B), fontSize: 16),
+        ),
+        const SizedBox(height: 16),
+        OutlinedButton.icon(
+          onPressed: () => ref.invalidate(myReservationsNotifierProvider),
+          icon: const Icon(Icons.refresh),
+          label: const Text('Reintentar'),
+        ),
+      ],
+    ),
+  );
+
+  Widget _emptyState() => Center(
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
         const Icon(
-          Icons.warning_amber_rounded,
-          color: Color(0xFFF57C00),
-          size: 18,
+          Icons.event_busy_outlined,
+          size: 48,
+          color: Color(0xFF94A3B8),
         ),
-        const SizedBox(width: 8),
-        Flexible(
-          child: Text(
-            msg,
-            style: const TextStyle(color: Color(0xFFF57C00), fontSize: 12),
-          ),
+        const SizedBox(height: 12),
+        Text(
+          _showActivas
+              ? 'No tienes reservas activas'
+              : 'No tienes reservas en tu historial',
+          style: const TextStyle(color: Color(0xFF64748B), fontSize: 16),
         ),
       ],
     ),
@@ -343,32 +361,19 @@ class _MyReservationsScreenState extends ConsumerState<MyReservationsScreen> {
                   child: Column(
                     children: [
                       _buildHeader(isWeb: true),
-                      if (reservationsAsync.hasError)
-                        _buildBanner(
-                          'No se pudieron cargar tus reservas — mostrando datos de ejemplo',
-                        ),
                       Expanded(
-                        child: reservationsAsync.isLoading
-                            ? const Center(child: CircularProgressIndicator())
-                            : SingleChildScrollView(
-                                padding: const EdgeInsets.all(32),
-                                child: Wrap(
-                                  spacing: 24,
-                                  runSpacing: 24,
-                                  children: reservationsAsync.when(
-                                    loading: () => [],
-                                    error: (_, _) =>
-                                        (_showActivas
-                                                ? _buildActivasList(isWeb)
-                                                : _buildHistorialList(isWeb))
-                                            .map(
-                                              (w) => SizedBox(
-                                                width: 400,
-                                                child: w,
-                                              ),
-                                            )
-                                            .toList(),
-                                    data: (list) =>
+                        child: reservationsAsync.when(
+                          loading: () =>
+                              const Center(child: CircularProgressIndicator()),
+                          error: (_, _) => _errorState(),
+                          data: (list) => list.isEmpty
+                              ? _emptyState()
+                              : SingleChildScrollView(
+                                  padding: const EdgeInsets.all(32),
+                                  child: Wrap(
+                                    spacing: 24,
+                                    runSpacing: 24,
+                                    children:
                                         (_showActivas
                                                 ? _reservationsToActivas(
                                                     list,
@@ -387,7 +392,7 @@ class _MyReservationsScreenState extends ConsumerState<MyReservationsScreen> {
                                             .toList(),
                                   ),
                                 ),
-                              ),
+                        ),
                       ),
                     ],
                   ),
@@ -401,33 +406,18 @@ class _MyReservationsScreenState extends ConsumerState<MyReservationsScreen> {
             body: Column(
               children: [
                 _buildHeader(isWeb: false),
-                if (reservationsAsync.hasError)
-                  _buildBanner(
-                    'No se pudieron cargar tus reservas — mostrando datos de ejemplo',
-                  ),
                 Expanded(
-                  child: reservationsAsync.isLoading
-                      ? const Center(child: CircularProgressIndicator())
-                      : SingleChildScrollView(
-                          padding: const EdgeInsets.all(16),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: reservationsAsync.when(
-                              loading: () => [],
-                              error: (_, _) =>
-                                  (_showActivas
-                                          ? _buildActivasList(isWeb)
-                                          : _buildHistorialList(isWeb))
-                                      .map(
-                                        (w) => Padding(
-                                          padding: const EdgeInsets.only(
-                                            bottom: 12,
-                                          ),
-                                          child: w,
-                                        ),
-                                      )
-                                      .toList(),
-                              data: (list) =>
+                  child: reservationsAsync.when(
+                    loading: () =>
+                        const Center(child: CircularProgressIndicator()),
+                    error: (_, _) => _errorState(),
+                    data: (list) => list.isEmpty
+                        ? _emptyState()
+                        : SingleChildScrollView(
+                            padding: const EdgeInsets.all(16),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children:
                                   (_showActivas
                                           ? _reservationsToActivas(list, isWeb)
                                           : _reservationsToHistorial(
@@ -445,7 +435,7 @@ class _MyReservationsScreenState extends ConsumerState<MyReservationsScreen> {
                                       .toList(),
                             ),
                           ),
-                        ),
+                  ),
                 ),
               ],
             ),
@@ -631,64 +621,6 @@ class _MyReservationsScreenState extends ConsumerState<MyReservationsScreen> {
         ],
       ),
     );
-  }
-
-  List<Widget> _buildActivasList(bool isWeb) {
-    return [
-      _buildReservationCard(
-        title: 'Cancha de fútbol sintética',
-        date: 'Hoy',
-        time: '11:00 - 12:00',
-        status: 'Pendiente',
-        statusColor: const Color(0xFFFFF3E0),
-        statusTextColor: const Color(0xFFF57C00),
-        onTap: () => _handleReservationTap(context, isWeb, {
-          'id': '1',
-          'title': 'Cancha de fútbol sintética',
-          'publisher': 'Club Deportivo Temuco',
-          'date': 'Hoy',
-          'time': '11:00 - 12:00',
-          'status': 'Pendiente',
-        }),
-      ),
-    ];
-  }
-
-  List<Widget> _buildHistorialList(bool isWeb) {
-    return [
-      _buildReservationCard(
-        title: 'Consultorio de kinesiología',
-        date: 'Mar 5 may',
-        time: '11:00 - 12:00',
-        status: 'Completada',
-        statusColor: const Color(0xFFE8F5E9),
-        statusTextColor: const Color(0xFF2E7D32),
-        onTap: () => _handleReservationTap(context, isWeb, {
-          'id': '2',
-          'title': 'Consultorio de kinesiología',
-          'publisher': 'Clínica Santa María',
-          'date': 'Mar 5 may',
-          'time': '11:00 - 12:00',
-          'status': 'Completada',
-        }),
-      ),
-      _buildReservationCard(
-        title: 'Salón para baile',
-        date: 'Jue 14 may',
-        time: '15:00 - 16:00',
-        status: 'Cancelada',
-        statusColor: const Color(0xFFF5F5F5),
-        statusTextColor: const Color(0xFF757575),
-        onTap: () => _handleReservationTap(context, isWeb, {
-          'id': '3',
-          'title': 'Salón para baile',
-          'publisher': 'Espacio El Ático',
-          'date': 'Jue 14 may',
-          'time': '15:00 - 16:00',
-          'status': 'Cancelada',
-        }),
-      ),
-    ];
   }
 
   Widget _buildReservationCard({

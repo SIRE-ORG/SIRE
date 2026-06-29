@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/widgets/custom_button.dart';
@@ -30,14 +30,51 @@ class ReservationConfirmScreen extends ConsumerStatefulWidget {
 class _ReservationConfirmScreenState
     extends ConsumerState<ReservationConfirmScreen> {
   bool _loading = false;
+  final _nombreCtrl = TextEditingController();
+  final _correoCtrl = TextEditingController();
+  final _telefonoCtrl = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    for (final c in [_nombreCtrl, _correoCtrl, _telefonoCtrl]) {
+      c.addListener(() => setState(() {}));
+    }
+  }
+
+  @override
+  void dispose() {
+    _nombreCtrl.dispose();
+    _correoCtrl.dispose();
+    _telefonoCtrl.dispose();
+    super.dispose();
+  }
+
+  bool get _emailValido =>
+      RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(_correoCtrl.text.trim());
+
+  bool get _formValido =>
+      _nombreCtrl.text.trim().isNotEmpty &&
+      _emailValido &&
+      _telefonoCtrl.text.trim().isNotEmpty;
 
   Future<void> _handleConfirm() async {
+    if (!_formValido) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Completa nombre, correo válido y teléfono'),
+        ),
+      );
+      return;
+    }
     setState(() => _loading = true);
     try {
       final parts = widget.time.contains('-')
           ? widget.time.split('-')
           : [widget.time, widget.time];
-      await ref.read(reservationActionNotifierProvider.notifier).create(
+      await ref
+          .read(reservationActionNotifierProvider.notifier)
+          .create(
             params: CreateReservationParams(
               publicationId: widget.id,
               date: widget.date,
@@ -270,29 +307,36 @@ class _ReservationConfirmScreenState
                         ),
                       ),
                       const SizedBox(height: 32),
-                      const CustomTextField(
+                      CustomTextField(
                         label: 'Nombre Completo',
                         hintText: 'Ej: María Torres',
+                        controller: _nombreCtrl,
                       ),
                       const SizedBox(height: 16),
-                      const CustomTextField(
+                      CustomTextField(
                         label: 'Correo',
                         hintText: 'Ej: mariatorres@gmail.com',
                         keyboardType: TextInputType.emailAddress,
+                        controller: _correoCtrl,
                       ),
                       const SizedBox(height: 16),
-                      const CustomTextField(
+                      CustomTextField(
                         label: 'Teléfono',
                         hintText: 'Ej: +56911223344',
                         keyboardType: TextInputType.phone,
+                        controller: _telefonoCtrl,
                       ),
                       const SizedBox(height: 40),
                       SizedBox(
                         width: double.infinity,
                         height: 50,
                         child: CustomButton(
-                          text: _loading ? 'Confirmando...' : 'Confirmar Reserva',
-                          onPressed: _loading ? null : _handleConfirm,
+                          text: _loading
+                              ? 'Confirmando...'
+                              : 'Confirmar Reserva',
+                          onPressed: (_loading || !_formValido)
+                              ? null
+                              : _handleConfirm,
                         ),
                       ),
                       const SizedBox(height: 12),
