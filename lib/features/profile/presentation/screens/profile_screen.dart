@@ -4,6 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/providers/role_provider.dart';
 import '../../../auth/domain/entities/user_profile.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
+import '../../../publications/presentation/providers/my_publications_provider.dart';
+import '../../../reservations/domain/entities/reservation.dart';
+import '../../../reservations/presentation/providers/reservations_provider.dart';
 
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
@@ -21,6 +24,14 @@ class ProfileScreen extends ConsumerWidget {
         : (profile.accountStatus == AccountStatus.active
               ? 'Cuenta activa'
               : 'Invitado');
+
+    final pubCount = ref.watch(myPublicationsNotifierProvider).value?.length ?? 0;
+    final myRes = ref.watch(myReservationsNotifierProvider).value ?? [];
+    final received = ref.watch(receivedReservationsNotifierProvider).value ?? [];
+    final totalReservations = myRes.length;
+    final completedCount =
+        myRes.where((r) => r.status == ReservationStatus.completed).length;
+    final receivedCount = received.length;
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -62,6 +73,10 @@ class ProfileScreen extends ConsumerWidget {
                                     email: email,
                                     estado: estado,
                                     isWeb: true,
+                                    pubCount: pubCount,
+                                    receivedCount: receivedCount,
+                                    totalReservations: totalReservations,
+                                    completedCount: completedCount,
                                   ),
                                 ),
                                 const SizedBox(width: 32),
@@ -95,6 +110,10 @@ class ProfileScreen extends ConsumerWidget {
                   nombre: nombre,
                   email: email,
                   estado: estado,
+                  pubCount: pubCount,
+                  receivedCount: receivedCount,
+                  totalReservations: totalReservations,
+                  completedCount: completedCount,
                 ),
                 Expanded(
                   child: SingleChildScrollView(
@@ -202,6 +221,10 @@ class ProfileScreen extends ConsumerWidget {
     required String nombre,
     required String email,
     required String estado,
+    required int pubCount,
+    required int receivedCount,
+    required int totalReservations,
+    required int completedCount,
   }) {
     return Container(
       width: double.infinity,
@@ -272,8 +295,8 @@ class ProfileScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 32),
           isPublisher
-              ? _buildPublisherStatsMobile()
-              : _buildSolicitanteStatsMobile(),
+              ? _buildPublisherStatsMobile(pubCount)
+              : _buildSolicitanteStatsMobile(totalReservations, completedCount),
         ],
       ),
     );
@@ -286,6 +309,10 @@ class ProfileScreen extends ConsumerWidget {
     required String nombre,
     required String email,
     required String estado,
+    required int pubCount,
+    required int receivedCount,
+    required int totalReservations,
+    required int completedCount,
   }) {
     return Container(
       padding: const EdgeInsets.all(32),
@@ -376,7 +403,9 @@ class ProfileScreen extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 24),
-          isPublisher ? _buildPublisherStatsWeb() : _buildSolicitanteStatsWeb(),
+          isPublisher
+              ? _buildPublisherStatsWeb(pubCount, receivedCount)
+              : _buildSolicitanteStatsWeb(totalReservations, completedCount),
         ],
       ),
     );
@@ -532,23 +561,23 @@ class ProfileScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildSolicitanteStatsWeb() => const Row(
+  Widget _buildSolicitanteStatsWeb(int total, int completed) => Row(
     children: [
       Expanded(
-        child: _WebStatCard('4', 'Reservas Totales', Icons.calendar_today),
+        child: _WebStatCard('$total', 'Reservas Totales', Icons.calendar_today),
       ),
-      SizedBox(width: 16),
+      const SizedBox(width: 16),
       Expanded(
-        child: _WebStatCard('2', 'Completadas', Icons.check_circle_outline),
+        child: _WebStatCard('$completed', 'Completadas', Icons.check_circle_outline),
       ),
     ],
   );
-  Widget _buildPublisherStatsWeb() => const Row(
+  Widget _buildPublisherStatsWeb(int pubs, int received) => Row(
     children: [
-      Expanded(child: _WebStatCard('4', 'Publicaciones', Icons.corporate_fare)),
-      SizedBox(width: 16),
+      Expanded(child: _WebStatCard('$pubs', 'Publicaciones', Icons.corporate_fare)),
+      const SizedBox(width: 16),
       Expanded(
-        child: _WebStatCard('28', 'Reservas Recibidas', Icons.receipt_long),
+        child: _WebStatCard('$received', 'Reservas Recibidas', Icons.receipt_long),
       ),
     ],
   );
@@ -676,16 +705,16 @@ class ProfileScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildSolicitanteStatsMobile() => Row(
+  Widget _buildSolicitanteStatsMobile(int total, int completed) => Row(
     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
     children: [
-      _buildStatItem('4', 'Reservas'),
-      _buildStatItem('2', 'Completadas'),
+      _buildStatItem('$total', 'Reservas'),
+      _buildStatItem('$completed', 'Completadas'),
     ],
   );
-  Widget _buildPublisherStatsMobile() => Row(
+  Widget _buildPublisherStatsMobile(int pubs) => Row(
     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-    children: [_buildStatItem('4', 'Publicaciones')],
+    children: [_buildStatItem('$pubs', 'Publicaciones')],
   );
   Widget _buildStatItem(String value, String label) => Column(
     children: [
