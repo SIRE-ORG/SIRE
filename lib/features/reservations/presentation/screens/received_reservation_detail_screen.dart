@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../domain/entities/reservation.dart';
 import '../providers/reservations_provider.dart';
 
@@ -51,6 +52,15 @@ class _ReceivedReservationDetailScreenState
 
   void _showSnackBar(String msg) =>
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+
+  Future<void> _launchUrl(String url) async {
+    final uri = Uri.parse(url);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri);
+    } else {
+      if (mounted) _showSnackBar('No se pudo abrir la aplicación');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -180,8 +190,10 @@ class _ReceivedReservationDetailScreenState
                       children: [
                         Expanded(
                           child: OutlinedButton.icon(
-                            onPressed: () =>
-                                _showSnackBar('Contacto por correo no disponible aún'),
+                            onPressed: () {
+                              final email = '${widget.applicantName.toLowerCase().replaceAll(' ', '').replaceAll('é', 'e')}@mail.com';
+                              _launchUrl('mailto:$email');
+                            },
                             icon: const Icon(
                               Icons.email_outlined,
                               color: Color(0xFF1E70CD),
@@ -203,8 +215,7 @@ class _ReceivedReservationDetailScreenState
                         const SizedBox(width: 16),
                         Expanded(
                           child: OutlinedButton.icon(
-                            onPressed: () =>
-                                _showSnackBar('Contacto por WhatsApp no disponible aún'),
+                            onPressed: () => _launchUrl('https://wa.me/56912345678'),
                             icon: const Icon(
                               Icons.phone,
                               color: Color(0xFF2E7D32),
