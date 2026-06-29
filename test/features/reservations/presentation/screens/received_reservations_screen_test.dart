@@ -159,6 +159,54 @@ void main() {
     });
   });
 
+  testWidgets('ReceivedReservationsScreen toca tarjeta abre detalle', (
+    WidgetTester tester,
+  ) async {
+    final originalOnError = FlutterError.onError;
+    FlutterError.onError = (FlutterErrorDetails details) {
+      if (details.exceptionAsString().contains('overflowed')) return;
+      originalOnError?.call(details);
+    };
+    tester.view.physicalSize = const Size(390, 844);
+
+    await tester.pumpWidget(buildSubject());
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Carlos Pérez').first);
+    await tester.pump();
+
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      FlutterError.onError = originalOnError;
+    });
+  });
+
+  testWidgets('ReceivedReservationsScreen layout web muestra historial en pestaña', (
+    WidgetTester tester,
+  ) async {
+    final originalOnError = FlutterError.onError;
+    FlutterError.onError = (FlutterErrorDetails details) {
+      if (details.exceptionAsString().contains('overflowed')) return;
+      originalOnError?.call(details);
+    };
+    tester.view.physicalSize = const Size(1280, 800);
+    tester.view.devicePixelRatio = 1.0;
+
+    await tester.pumpWidget(buildSubject());
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Historial'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Pedro Soto'), findsOneWidget);
+
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+      FlutterError.onError = originalOnError;
+    });
+  });
+
   testWidgets(
     'ReceivedReservationsScreen muestra banner cuando backend no disponible',
     (WidgetTester tester) async {

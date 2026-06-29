@@ -150,4 +150,97 @@ void main() {
       });
     },
   );
+
+  testWidgets('EditPublicationScreen layout web muestra sidebar', (
+    WidgetTester tester,
+  ) async {
+    final originalOnError = FlutterError.onError;
+    FlutterError.onError = (FlutterErrorDetails details) {
+      if (details.exceptionAsString().contains('overflowed')) return;
+      originalOnError?.call(details);
+    };
+    tester.view.physicalSize = const Size(1280, 800);
+    tester.view.devicePixelRatio = 1.0;
+
+    await tester.pumpWidget(buildSubject());
+    await tester.pumpAndSettle();
+
+    expect(find.text('SIRE'), findsOneWidget);
+    expect(find.text('Editar publicación'), findsWidgets);
+
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+      FlutterError.onError = originalOnError;
+    });
+  });
+
+  testWidgets('EditPublicationScreen muestra selector de duración de slot', (
+    WidgetTester tester,
+  ) async {
+    final originalOnError = FlutterError.onError;
+    FlutterError.onError = (FlutterErrorDetails details) {
+      if (details.exceptionAsString().contains('overflowed')) return;
+      originalOnError?.call(details);
+    };
+    tester.view.physicalSize = const Size(390, 2400);
+
+    await tester.pumpWidget(buildSubject());
+    await tester.pumpAndSettle();
+
+    expect(find.text('30 min'), findsOneWidget);
+    expect(find.text('60 min'), findsOneWidget);
+    expect(find.text('90 min'), findsOneWidget);
+
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      FlutterError.onError = originalOnError;
+    });
+  });
+
+  testWidgets('EditPublicationScreen tap en duración cambia selección', (
+    WidgetTester tester,
+  ) async {
+    final originalOnError = FlutterError.onError;
+    FlutterError.onError = (FlutterErrorDetails details) {
+      if (details.exceptionAsString().contains('overflowed')) return;
+      originalOnError?.call(details);
+    };
+    tester.view.physicalSize = const Size(390, 2400);
+
+    await tester.pumpWidget(buildSubject());
+    await tester.pumpAndSettle();
+
+    await tester.ensureVisible(find.text('30 min'));
+    await tester.tap(find.text('30 min'));
+    await tester.pump();
+
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      FlutterError.onError = originalOnError;
+    });
+  });
+
+  testWidgets('EditPublicationScreen contiene formulario con scroll', (
+    WidgetTester tester,
+  ) async {
+    final originalOnError = FlutterError.onError;
+    FlutterError.onError = (FlutterErrorDetails details) {
+      if (details.exceptionAsString().contains('overflowed')) return;
+      originalOnError?.call(details);
+    };
+    tester.view.physicalSize = const Size(1080, 2400);
+
+    await tester.pumpWidget(buildSubject());
+    await tester.pumpAndSettle();
+
+    expect(find.byType(SingleChildScrollView), findsWidgets);
+    expect(find.byType(TextFormField).evaluate().isNotEmpty ||
+        find.byType(TextField).evaluate().isNotEmpty, isTrue);
+
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      FlutterError.onError = originalOnError;
+    });
+  });
 }

@@ -1,21 +1,22 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:sire/features/reservations/presentation/screens/reservation_confirm_screen.dart';
 
 void main() {
-  Widget buildSubject() {
+  Widget buildSubject({String time = '10:00'}) {
     final mockRouter = GoRouter(
       initialLocation: '/confirm',
       routes: [
         GoRoute(
           path: '/confirm',
-          builder: (_, _) => const ReservationConfirmScreen(
+          builder: (_, _) => ReservationConfirmScreen(
             id: 'pub-001',
             title: 'Cancha de fútbol sintética',
             subtitle: 'Club Deportivo Temuco',
             date: 'Lun 15 jun',
-            time: '10:00',
+            time: time,
           ),
         ),
         GoRoute(
@@ -24,7 +25,7 @@ void main() {
         ),
       ],
     );
-    return MaterialApp.router(routerConfig: mockRouter);
+    return ProviderScope(child: MaterialApp.router(routerConfig: mockRouter));
   }
 
   testWidgets('ReservationConfirmScreen muestra encabezado y título', (
@@ -167,4 +168,46 @@ void main() {
       });
     },
   );
+
+  testWidgets('ReservationConfirmScreen time con guión muestra rango horario', (
+    WidgetTester tester,
+  ) async {
+    final originalOnError = FlutterError.onError;
+    FlutterError.onError = (FlutterErrorDetails details) {
+      if (details.exceptionAsString().contains('overflowed')) return;
+      originalOnError?.call(details);
+    };
+    tester.view.physicalSize = const Size(390, 2400);
+
+    await tester.pumpWidget(buildSubject(time: '10:00-11:00'));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('10:00-11:00'), findsOneWidget);
+
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      FlutterError.onError = originalOnError;
+    });
+  });
+
+  testWidgets('ReservationConfirmScreen AppBar tiene botón de retroceso', (
+    WidgetTester tester,
+  ) async {
+    final originalOnError = FlutterError.onError;
+    FlutterError.onError = (FlutterErrorDetails details) {
+      if (details.exceptionAsString().contains('overflowed')) return;
+      originalOnError?.call(details);
+    };
+    tester.view.physicalSize = const Size(390, 844);
+
+    await tester.pumpWidget(buildSubject());
+    await tester.pumpAndSettle();
+
+    expect(find.byIcon(Icons.arrow_back_ios_new), findsOneWidget);
+
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      FlutterError.onError = originalOnError;
+    });
+  });
 }

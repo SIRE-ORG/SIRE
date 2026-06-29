@@ -163,6 +163,51 @@ void main() {
     });
   });
 
+  testWidgets('MyReservationsScreen layout web muestra SIRE en sidebar', (
+    WidgetTester tester,
+  ) async {
+    final originalOnError = FlutterError.onError;
+    FlutterError.onError = (FlutterErrorDetails details) {
+      if (details.exceptionAsString().contains('overflowed')) return;
+      originalOnError?.call(details);
+    };
+    tester.view.physicalSize = const Size(1280, 800);
+    tester.view.devicePixelRatio = 1.0;
+
+    await tester.pumpWidget(buildSubject(seed: [_pending]));
+    await tester.pumpAndSettle();
+
+    expect(find.text('SIRE'), findsOneWidget);
+    expect(find.text('Mis Reservas'), findsWidgets);
+
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+      FlutterError.onError = originalOnError;
+    });
+  });
+
+  testWidgets('MyReservationsScreen sin pendientes muestra Sin reservas activas', (
+    WidgetTester tester,
+  ) async {
+    final originalOnError = FlutterError.onError;
+    FlutterError.onError = (FlutterErrorDetails details) {
+      if (details.exceptionAsString().contains('overflowed')) return;
+      originalOnError?.call(details);
+    };
+    tester.view.physicalSize = const Size(390, 844);
+
+    await tester.pumpWidget(buildSubject(seed: [_completed]));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Sin reservas activas'), findsOneWidget);
+
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      FlutterError.onError = originalOnError;
+    });
+  });
+
   testWidgets('MyReservationsScreen toca tarjeta de reserva activa', (
     WidgetTester tester,
   ) async {
