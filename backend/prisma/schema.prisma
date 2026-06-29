@@ -4,8 +4,8 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
 }
 
@@ -32,11 +32,11 @@ model Profile {
   avatarUrl     String?
   createdAt     DateTime      @default(now())
 
-  // Relaciones: Un perfil puede ser dueño de muchas publicaciones y hacer muchas reservas
-  publications Publication[]
-  reservations Reservation[]
+  // Relaciones: Un perfil puede ser dueño de publicaciones, hacer reservas y recibir notificaciones
+  publications  Publication[]
+  reservations  Reservation[]
+  notifications Notification[]
 
-  // Esto le dice a Prisma que en Supabase la tabla se llama "profiles" (en minúscula y plural)
   @@map("profiles")
 }
 
@@ -56,12 +56,12 @@ model Publication {
   region       String
   city         String?
   isActive     Boolean             @default(true)
-  availability Json // Aquí guardaremos los horarios en formato JSON
+  availability Json
   createdAt    DateTime            @default(now())
 
   // Llave Foránea: Quién es el dueño de esta publicación
-  ownerId String
-  owner   Profile @relation(fields: [ownerId], references: [id])
+  ownerId      String
+  owner        Profile             @relation(fields: [ownerId], references: [id])
 
   // Relación: Una publicación puede tener muchas reservas
   reservations Reservation[]
@@ -70,20 +70,47 @@ model Publication {
 }
 
 model Reservation {
-  id        String            @id @default(uuid())
-  date      DateTime
-  startTime String
-  endTime   String
-  status    ReservationStatus @default(pending)
-  createdAt DateTime          @default(now())
+  id            String            @id @default(uuid())
+  date          DateTime
+  startTime     String
+  endTime       String
+  status        ReservationStatus @default(pending)
+  createdAt     DateTime          @default(now())
 
   // Llave Foránea: A qué publicación pertenece la reserva
   publicationId String
-  publication   Publication @relation(fields: [publicationId], references: [id])
+  publication   Publication       @relation(fields: [publicationId], references: [id])
 
   // Llave Foránea: Quién solicitó la reserva
   solicitanteId String
-  solicitante   Profile @relation(fields: [solicitanteId], references: [id])
+  solicitante   Profile           @relation(fields: [solicitanteId], references: [id])
+
+  // Relaciones inversas
+  notifications Notification[]
 
   @@map("reservations")
+}
+
+model Notification {
+  id            String       @id @default(uuid())
+  
+  // Relación con el usuario destinatario (en cascada)
+  userId        String       @map("user_id")
+  user          Profile      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  type          String
+  title         String
+  body          String
+  
+  // Relación opcional con la reserva que disparó el evento (on delete set null)
+  reservationId String?      @map("reservation_id")
+  reservation   Reservation? @relation(fields: [reservationId], references: [id], onDelete: SetNull)
+  
+  read          Boolean      @default(false)
+  createdAt     DateTime     @default(now()) @map("created_at")
+
+  // Índice para optimizar consultas en Realtime (ordenado por fecha descendente)
+  @@index([userId, createdAt(sort: Desc)])
+  
+  @@map("notifications")
 }
