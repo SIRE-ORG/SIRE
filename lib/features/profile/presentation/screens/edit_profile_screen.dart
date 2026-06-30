@@ -64,7 +64,9 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     }
     setState(() => _saving = true);
     try {
-      await ref.read(profileNotifierProvider.notifier).updateProfile(
+      await ref
+          .read(profileNotifierProvider.notifier)
+          .updateProfile(
             userId: userId,
             name: name.isNotEmpty ? name : null,
             phone: phone.isNotEmpty ? phone : null,
@@ -72,9 +74,9 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
             avatarExtension: _avatarExtension,
           );
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Perfil actualizado')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Perfil actualizado')));
         context.pop();
       }
     } catch (_) {
@@ -326,8 +328,9 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
             height: 50,
             child: CustomButton(
               text: _saving ? 'Guardando...' : 'Guardar cambios',
-              onPressed:
-                  _saving || userId.isEmpty ? null : () => _handleSave(userId),
+              onPressed: _saving || userId.isEmpty
+                  ? null
+                  : () => _handleSave(userId),
             ),
           ),
         ],
@@ -385,8 +388,9 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
           height: 50,
           child: CustomButton(
             text: _saving ? 'Guardando...' : 'Guardar cambios',
-            onPressed:
-                _saving || userId.isEmpty ? null : () => _handleSave(userId),
+            onPressed: _saving || userId.isEmpty
+                ? null
+                : () => _handleSave(userId),
           ),
         ),
       ],
@@ -440,9 +444,9 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
       return CachedNetworkImage(
         imageUrl: existingAvatarUrl,
         fit: BoxFit.cover,
-        placeholder: (_, _a) =>
+        placeholder: (_, a) =>
             const Icon(Icons.person, size: 70, color: Color(0xFF94A3B8)),
-        errorWidget: (_, _a, _b) =>
+        errorWidget: (_, a, b) =>
             const Icon(Icons.person, size: 70, color: Color(0xFF94A3B8)),
       );
     }

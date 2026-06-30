@@ -27,12 +27,15 @@ class ProfileScreen extends ConsumerWidget {
               : 'Invitado');
 
     final avatarUrl = profile?.avatarUrl;
-    final pubCount = ref.watch(myPublicationsNotifierProvider).value?.length ?? 0;
+    final pubCount =
+        ref.watch(myPublicationsNotifierProvider).value?.length ?? 0;
     final myRes = ref.watch(myReservationsNotifierProvider).value ?? [];
-    final received = ref.watch(receivedReservationsNotifierProvider).value ?? [];
+    final received =
+        ref.watch(receivedReservationsNotifierProvider).value ?? [];
     final totalReservations = myRes.length;
-    final completedCount =
-        myRes.where((r) => r.status == ReservationStatus.completed).length;
+    final completedCount = myRes
+        .where((r) => r.status == ReservationStatus.completed)
+        .length;
     final receivedCount = received.length;
 
     return LayoutBuilder(
@@ -258,8 +261,11 @@ class ProfileScreen extends ConsumerWidget {
                     ? CachedNetworkImage(
                         imageUrl: avatarUrl,
                         fit: BoxFit.cover,
-                        errorWidget: (_, _a, _b) =>
-                            const Icon(Icons.person, size: 50, color: Colors.white),
+                        errorWidget: (_, a, b) => const Icon(
+                          Icons.person,
+                          size: 50,
+                          color: Colors.white,
+                        ),
                       )
                     : const Icon(Icons.person, size: 50, color: Colors.white),
               ),
@@ -359,7 +365,7 @@ class ProfileScreen extends ConsumerWidget {
                     ? CachedNetworkImage(
                         imageUrl: avatarUrl,
                         fit: BoxFit.cover,
-                        errorWidget: (_, _a, _b) => const Icon(
+                        errorWidget: (_, a, b) => const Icon(
                           Icons.person,
                           size: 60,
                           color: Color(0xFF94A3B8),
@@ -593,16 +599,26 @@ class ProfileScreen extends ConsumerWidget {
       ),
       const SizedBox(width: 16),
       Expanded(
-        child: _WebStatCard('$completed', 'Completadas', Icons.check_circle_outline),
+        child: _WebStatCard(
+          '$completed',
+          'Completadas',
+          Icons.check_circle_outline,
+        ),
       ),
     ],
   );
   Widget _buildPublisherStatsWeb(int pubs, int received) => Row(
     children: [
-      Expanded(child: _WebStatCard('$pubs', 'Publicaciones', Icons.corporate_fare)),
+      Expanded(
+        child: _WebStatCard('$pubs', 'Publicaciones', Icons.corporate_fare),
+      ),
       const SizedBox(width: 16),
       Expanded(
-        child: _WebStatCard('$received', 'Reservas Recibidas', Icons.receipt_long),
+        child: _WebStatCard(
+          '$received',
+          'Reservas Recibidas',
+          Icons.receipt_long,
+        ),
       ),
     ],
   );
