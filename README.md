@@ -310,6 +310,64 @@ npx tsc --noEmit
 | `npx prisma studio` | `backend/` | Abrir Prisma Studio (GUI para explorar la BD) |
 | `npx tsc --noEmit` | `backend/` | Compilar TypeScript sin emitir JS (solo verificación) |
 | `flutter build apk --debug` | Raíz del proyecto | Generar APK de desarrollo para Android |
+| `flutter test` | Raíz del proyecto | Correr todos los tests unitarios de Flutter |
+| `flutter test --coverage` | Raíz del proyecto | Correr tests y generar reporte de cobertura en `coverage/lcov.info` |
+| `flutter test --reporter expanded` | Raíz del proyecto | Correr tests con salida detallada test a test |
+| `flutter test <ruta/al/test_file.dart>` | Raíz del proyecto | Correr un archivo de test específico |
+| `npm test` | `backend/` | Correr tests en modo watch (Vitest interactivo) |
+| `npm run test:run` | `backend/` | Correr todos los tests una sola vez y salir |
+| `npm run coverage` | `backend/` | Correr tests y generar reporte de cobertura (lcov) |
+
+---
+
+## Pruebas
+
+### Frontend (Flutter)
+
+```bash
+# Correr toda la suite
+flutter test
+
+# Con reporte de cobertura
+flutter test --coverage
+
+# Ver detalle de cada test (útil para presentaciones)
+flutter test --reporter expanded
+
+# Correr un módulo específico (ej: reservas)
+flutter test test/features/reservations/
+```
+
+El reporte de cobertura se genera en `coverage/lcov.info`. Para visualizarlo en HTML:
+
+```bash
+# Requiere genhtml (incluido en lcov)
+genhtml coverage/lcov.info -o coverage/html
+# Abrir coverage/html/index.html en el navegador
+```
+
+### Backend (Node.js + Vitest)
+
+```bash
+cd backend
+
+# Correr todos los tests una vez
+npm run test:run
+
+# Modo watch (re-corre al guardar cambios)
+npm test
+
+# Generar reporte de cobertura
+npm run coverage
+```
+
+Los tests cubren los 3 módulos principales:
+
+| Archivo | Módulo | Tests |
+|---|---|---|
+| `tests/auth.controller.test.ts` | Autenticación y perfiles | 6 |
+| `tests/publication.controller.test.ts` | Publicaciones | 10 |
+| `tests/reservation.controller.test.ts` | Reservas | 22 |
 
 ---
 
