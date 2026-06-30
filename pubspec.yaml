@@ -24,8 +24,10 @@ dependencies:
   dio: ^5.7.0
 
   # Geolocalización
+  # geolocator: permiso + coordenadas del dispositivo.
+  # El reverse-geocoding (lat/lon -> región) se hace vía API externa (Nominatim),
+  # no con el geocoder nativo, por lo que ya no se usa el paquete `geocoding`.
   geolocator: ^13.0.2
-  geocoding: ^3.0.0
 
   # Almacenamiento local (token, preferencias)
   flutter_secure_storage: ^9.2.2
