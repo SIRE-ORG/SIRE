@@ -1,4 +1,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Red: necesario para release (en debug Flutter lo añade solo). Lo usan el
+         backend REST y el reverse-geocoding de Nominatim. -->
+    <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- Ubicación: sin estos permisos declarados, Geolocator.requestPermission()
+         devuelve "denied" en silencio y NUNCA muestra el diálogo nativo. -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
     <application

@@ -33,6 +33,7 @@ class _ReservationConfirmScreenState
   final _nombreCtrl = TextEditingController();
   final _correoCtrl = TextEditingController();
   final _telefonoCtrl = TextEditingController();
+  DateTime? _fecha;
 
   @override
   void initState() {
@@ -56,7 +57,19 @@ class _ReservationConfirmScreenState
   bool get _formValido =>
       _nombreCtrl.text.trim().isNotEmpty &&
       _emailValido &&
-      _telefonoCtrl.text.trim().isNotEmpty;
+      _telefonoCtrl.text.trim().isNotEmpty &&
+      _fecha != null;
+
+  Future<void> _pickDate() async {
+    final now = DateTime.now();
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: now.add(const Duration(days: 1)),
+      firstDate: now,
+      lastDate: now.add(const Duration(days: 365)),
+    );
+    if (picked != null) setState(() => _fecha = picked);
+  }
 
   Future<void> _handleConfirm() async {
     if (!_formValido) {
@@ -69,17 +82,23 @@ class _ReservationConfirmScreenState
     }
     setState(() => _loading = true);
     try {
-      final parts = widget.time.contains('-')
-          ? widget.time.split('-')
-          : [widget.time, widget.time];
+      // Fecha real en YYYY-MM-DD (el backend rechaza placeholders como "Hoy").
+      final dateStr = _fecha!.toIso8601String().split('T').first;
+      final parts = widget.time.split('-');
+      final startTime = (parts.isNotEmpty && parts[0].trim().contains(':'))
+          ? parts[0].trim()
+          : '10:00';
+      final endTime = (parts.length > 1 && parts[1].trim().contains(':'))
+          ? parts[1].trim()
+          : '11:00';
       await ref
           .read(reservationActionNotifierProvider.notifier)
           .create(
             params: CreateReservationParams(
               publicationId: widget.id,
-              date: widget.date,
-              startTime: parts[0].trim(),
-              endTime: parts.length > 1 ? parts[1].trim() : parts[0].trim(),
+              date: dateStr,
+              startTime: startTime,
+              endTime: endTime,
             ),
           );
       if (mounted) _showSuccessDialog(context);
@@ -325,6 +344,62 @@ class _ReservationConfirmScreenState
                         hintText: 'Ej: +56911223344',
                         keyboardType: TextInputType.phone,
                         controller: _telefonoCtrl,
+                      ),
+                      const SizedBox(height: 16),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Fecha',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                              color: Color(0xFF666666),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          InkWell(
+                            onTap: _pickDate,
+                            borderRadius: BorderRadius.circular(12),
+                            child: Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 14,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: const Color(0xFFE0E0E0),
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(
+                                    Icons.calendar_today,
+                                    size: 18,
+                                    color: Color(0xFF1E70CD),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Text(
+                                    _fecha == null
+                                        ? 'Selecciona una fecha'
+                                        : '${_fecha!.day.toString().padLeft(2, '0')}/'
+                                              '${_fecha!.month.toString().padLeft(2, '0')}/'
+                                              '${_fecha!.year}',
+                                    style: TextStyle(
+                                      color: _fecha == null
+                                          ? const Color(0xFFB3B3B3)
+                                          : const Color(0xFF1E293B),
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                       const SizedBox(height: 40),
                       SizedBox(

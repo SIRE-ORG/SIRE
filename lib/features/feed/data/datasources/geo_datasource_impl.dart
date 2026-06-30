@@ -1,12 +1,15 @@
-import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 
 import '../../../../core/network/app_exception.dart';
 import '../../domain/entities/geo_location.dart';
 import 'geo_datasource.dart';
+import 'reverse_geocoding_datasource.dart';
 
 class GeoDatasourceImpl implements GeoDatasource {
-  const GeoDatasourceImpl();
+  const GeoDatasourceImpl({required this.reverseGeocoder});
+
+  /// Resuelve lat/lon → región vía API externa (Nominatim).
+  final ReverseGeocodingDatasource reverseGeocoder;
 
   @override
   Future<GeoLocation> getCurrentLocation() async {
@@ -38,23 +41,10 @@ class GeoDatasourceImpl implements GeoDatasource {
       locationSettings: settings,
     );
 
-    final placemarks = await placemarkFromCoordinates(
-      position.latitude,
-      position.longitude,
-    );
-    if (placemarks.isEmpty) {
-      throw ServerException(
-        code: 'LOCATION_GEOCODING_EMPTY',
-        message: 'No se pudo determinar la región a partir de las coordenadas.',
-      );
-    }
-
-    final placemark = placemarks.first;
-    final region = placemark.administrativeArea ?? '';
-    final city = placemark.locality;
-    return GeoLocation(
-      region: region,
-      city: (city == null || city.isEmpty) ? null : city,
+    // Reverse-geocoding vía API externa (Nominatim), no por el geocoder del SO.
+    return reverseGeocoder.reverse(
+      lat: position.latitude,
+      lon: position.longitude,
     );
   }
 }
