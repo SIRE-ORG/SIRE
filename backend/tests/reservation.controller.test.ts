@@ -14,6 +14,12 @@ const prismaMock = vi.hoisted(() => ({
         findMany: vi.fn(),
         findUnique: vi.fn(),
         update: vi.fn(),
+    },
+    publication: {
+        findUnique: vi.fn(),
+    },
+    notification: {
+        create: vi.fn(),
     }
 }));
 
@@ -25,7 +31,7 @@ vi.mock('@prisma/client', () => ({
         rejected: 'rejected',
         completed: 'completed',
         failed: 'failed',
-        accepted: 'accepted' // legacy compat para tests existentes
+        accepted: 'accepted'
     }
 }));
 
@@ -42,9 +48,15 @@ describe('Módulo 3: Reservas', () => {
         };
     });
 
-    // ========== POST /reservations ==========
+    //POST /reservations
     it('Creación: Debería crear la reserva con estado inicial PENDING y retornar 201', async () => {
         mockRequest.body = { publicationId: 'cancha-1', date: '2026-06-20', startTime: '18:00', endTime: '19:00' };
+
+        prismaMock.publication.findUnique.mockResolvedValue({
+            id: 'cancha-1',
+            ownerId: 'dueño-1',
+            title: 'Cancha Central'
+        });
 
         prismaMock.reservation.create.mockResolvedValue({ id: 'res-123', status: 'pending' });
 
@@ -66,7 +78,7 @@ describe('Módulo 3: Reservas', () => {
         expect(mockReply.status).toHaveBeenCalledWith(400);
     });
 
-    // ========== GET /reservations/mine ==========
+    //GET /reservations/mine
     it('Mis Reservas: Debería retornar las reservas del usuario (200)', async () => {
         prismaMock.reservation.findMany.mockResolvedValue([{ id: 'res-123', publicationId: 'cancha-1' }]);
 
@@ -81,7 +93,7 @@ describe('Módulo 3: Reservas', () => {
         expect(mockReply.status).toHaveBeenCalledWith(401);
     });
 
-    // ========== GET /reservations/received (NUEVO) ==========
+    //GET /reservations/received
     it('Recibidas: Debería retornar las reservas sobre publicaciones del publisher (200)', async () => {
         mockRequest.headers['x-user-id'] = 'dueño-1';
         prismaMock.reservation.findMany.mockResolvedValue([
@@ -107,7 +119,7 @@ describe('Módulo 3: Reservas', () => {
         expect(mockReply.status).toHaveBeenCalledWith(500);
     });
 
-    // ========== GET /reservations/:id (NUEVO) ==========
+    //GET /reservations/:id
     it('Detalle: Debería retornar la reserva por id con su publication (200) — solicitante dueño', async () => {
         mockRequest.params = { id: 'res-123' };
         mockRequest.headers['x-user-id'] = 'jugador-1';
@@ -177,7 +189,7 @@ describe('Módulo 3: Reservas', () => {
         expect(mockReply.status).toHaveBeenCalledWith(500);
     });
 
-    // ========== PATCH /reservations/:id/status ==========
+    //PATCH /reservations/:id/status
     it('Gestión Dueño: Debería permitir al dueño cambiar el estado (200)', async () => {
         mockRequest.params = { id: 'res-123' };
         mockRequest.body = { status: 'accepted' };
@@ -231,12 +243,18 @@ describe('Módulo 3: Reservas', () => {
         expect(mockReply.status).toHaveBeenCalledWith(404);
     });
 
-    // ========== PATCH /reservations/:id/cancel ==========
+    //PATCH /reservations/:id/cancel
     it('Cancelación Jugador: Debería permitir al solicitante cancelar si está PENDING (200)', async () => {
         mockRequest.params = { id: 'res-123' };
         mockRequest.headers['x-user-id'] = 'jugador-1';
 
-        prismaMock.reservation.findUnique.mockResolvedValue({ id: 'res-123', status: 'pending', solicitanteId: 'jugador-1' });
+        prismaMock.reservation.findUnique.mockResolvedValue({
+            id: 'res-123',
+            status: 'pending',
+            solicitanteId: 'jugador-1',
+            publication: { ownerId: 'dueño-1', title: 'Cancha Central' }
+        });
+
         prismaMock.reservation.update.mockResolvedValue({ id: 'res-123', status: 'cancelled' });
 
         await cancelReservation(mockRequest, mockReply);
@@ -263,7 +281,20 @@ describe('Módulo 3: Reservas', () => {
         expect(mockReply.status).toHaveBeenCalledWith(400);
     });
 
-    // ========== MÓDULO 4: EXCEPCIONES GLOBALES ==========
+    //Nuevos tests
+
+    // Protege la lógica contra intentos de cancelar IDs de reservas que ya fueron borrados o no existen
+    it('Cancelación Jugador: Debería fallar con 404 si la reserva no existe', async () => {
+        mockRequest.params = { id: 'res-falsa' };
+        mockRequest.headers['x-user-id'] = 'jugador-1';
+
+        prismaMock.reservation.findUnique.mockResolvedValue(null);
+
+        await cancelReservation(mockRequest, mockReply);
+        expect(mockReply.status).toHaveBeenCalledWith(404);
+    });
+
+    //MÓDULO 4: EXCEPCIONES GLOBALES
     it('Excepciones: Debería retornar 500 si Prisma falla al crear la reserva', async () => {
         mockRequest.body = { publicationId: 'cancha-1', date: '2026-06-20', startTime: '18:00', endTime: '19:00' };
         prismaMock.reservation.create.mockRejectedValue(new Error('Caída de BD'));

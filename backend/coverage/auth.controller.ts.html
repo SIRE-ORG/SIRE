@@ -23,9 +23,9 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">92.59% </span>
+                <span class="strong">96.29% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>25/27</span>
+                <span class='fraction'>26/27</span>
             </div>
         
             
@@ -44,9 +44,9 @@
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">92.59% </span>
+                <span class="strong">96.29% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>25/27</span>
+                <span class='fraction'>26/27</span>
             </div>
         
             
@@ -150,8 +150,7 @@
 <a name='L85'></a><a href='#L85'>85</a>
 <a name='L86'></a><a href='#L86'>86</a>
 <a name='L87'></a><a href='#L87'>87</a>
-<a name='L88'></a><a href='#L88'>88</a>
-<a name='L89'></a><a href='#L89'>89</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L88'></a><a href='#L88'>88</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">1x</span>
@@ -189,24 +188,23 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">2x</span>
-<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-yes">3x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">3x</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -259,7 +257,7 @@ export const registerGuest = async (request: FastifyRequest, reply: FastifyReply
 &nbsp;
         const newProfile = await prisma.profile.create({
             data: {
-                id, //Se guarda el mismo ID que genero Supabase
+                id,
                 email,
                 name,
                 phone,
@@ -281,12 +279,11 @@ export const updateAccountStatus = async (request: FastifyRequest, reply: Fastif
         const userId = request.headers['x-user-id'] as string;
 &nbsp;
         if (!userId) {
-            return reply.status(400).send({
-                error: { code: 'MISSING_CREDENTIALS', message: 'Se requiere identificar el header x-user-id' }
+            return reply.status(401).send({
+                error: { code: 'AUTH_UNAUTHORIZED', message: 'Request a endpoint protegido con token inválido o expirado' }
             });
         }
 &nbsp;
-        //El contrato exige que el endpoint actualice a ACTIVE
         const updateProfile = await prisma.profile.update({
             where: { id: userId },
             data: { accountStatus: AccountStatus.active }
@@ -294,7 +291,7 @@ export const updateAccountStatus = async (request: FastifyRequest, reply: Fastif
 &nbsp;
         return reply.status(200).send({ data: updateProfile });
     } catch (error) {
-<span class="cstat-no" title="statement not covered" >        return reply.status(500).send({</span>
+        return reply.status(500).send({
             error: { code: 'INTERNAL_SERVER_ERROR', message: 'Error al actualizar el estado de la cuenta' }
         });
     }
@@ -306,8 +303,8 @@ export const getMe = async (request: FastifyRequest, reply: FastifyReply) =&gt; 
         const userId = request.headers['x-user-id'] as string;
 &nbsp;
         if (!userId) {
-            return reply.status(400).send({
-                error: { code: 'MISSING_CREDENTIALS', message: 'Se requiere identificar el header x-user-id' }
+            return reply.status(401).send({
+                error: { code: 'AUTH_UNAUTHORIZED', message: 'Request a endpoint protegido con token inválido o expirado' }
             });
         }
 &nbsp;
@@ -334,7 +331,7 @@ export const getMe = async (request: FastifyRequest, reply: FastifyReply) =&gt; 
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-06-16T02:01:08.319Z
+                at 2026-06-30T01:17:27.945Z
             </div>
         <script src="prettify.js"></script>
         <script>

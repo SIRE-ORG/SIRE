@@ -79,10 +79,25 @@ describe('Módulo 1: Autenticación y Perfiles', () => {
         mockRequest.headers = {}; // Sin header de seguridad
 
         await getMe(mockRequest, mockReply);
-        expect(mockReply.status).toHaveBeenCalledWith(400);
+        expect(mockReply.status).toHaveBeenCalledWith(401);
 
         await updateAccountStatus(mockRequest, mockReply);
-        expect(mockReply.status).toHaveBeenCalledWith(400);
+        expect(mockReply.status).toHaveBeenCalledWith(401);
+    });
+
+    //Nuevos tests
+
+    // Evalúa qué hace el controlador si se intenta activar una cuenta que no está registrada en Prisma.
+    it('Estado Cuenta: Debería fallar si el perfil a actualizar no existe (404/500)', async () => {
+        mockRequest.headers['x-user-id'] = 'uuid-inexistente';
+
+        // Prisma arroja un error cuando se intenta hacer update de un registro que no existe
+        prismaMock.profile.update.mockRejectedValue(new Error('Record to update not found'));
+
+        await updateAccountStatus(mockRequest, mockReply);
+
+        // Verifica que no pase como exitoso; el estado devuelto dependerá de tu manejo de catch en el controlador (usualmente 500 o 404).
+        expect(mockReply.status).not.toHaveBeenCalledWith(200);
     });
 
     //MÓDULO 4: EXCEPCIONES GLOBALES

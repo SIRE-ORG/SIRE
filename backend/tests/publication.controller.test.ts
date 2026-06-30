@@ -52,7 +52,7 @@ describe('Módulo 2: Publicaciones', () => {
     it('Mis Publicaciones: Debería bloquear con 400 si falta el header x-user-id', async () => {
         mockRequest.headers = {};
         await getMyPublications(mockRequest, mockReply);
-        expect(mockReply.status).toHaveBeenCalledWith(400);
+        expect(mockReply.status).toHaveBeenCalledWith(401);
     });
 
     //POST /publications
@@ -126,6 +126,48 @@ describe('Módulo 2: Publicaciones', () => {
         prismaMock.publication.delete.mockResolvedValue({ id: 'pub-1' });
 
         await deletePublication(mockRequest, mockReply);
+        expect(mockReply.status).toHaveBeenCalledWith(200);
+    });
+
+    //Nuevos tests
+
+    // Verifica que se pueda leer correctamente una publicación individual si el ID existe.
+    it('Detalle: Debería retornar una publicación por ID (200)', async () => {
+        mockRequest.params = { id: 'pub-1' };
+        prismaMock.publication.findUnique.mockResolvedValue({ id: 'pub-1', title: 'Cancha Central' });
+
+        await getPublicationById(mockRequest, mockReply);
+        expect(mockReply.status).toHaveBeenCalledWith(200);
+    });
+
+    // Asegura que el backend maneje amigablemente la búsqueda de un ID que no existe (ej. un link viejo).
+    it('Detalle: Debería retornar 404 si la publicación no existe', async () => {
+        mockRequest.params = { id: 'pub-invalida' };
+        prismaMock.publication.findUnique.mockResolvedValue(null);
+
+        await getPublicationById(mockRequest, mockReply);
+        expect(mockReply.status).toHaveBeenCalledWith(404);
+    });
+
+    // Valida el "Happy Path" del panel de control del dueño: ver sus propias canchas.
+    it('Mis Publicaciones: Debería retornar la lista del dueño (200)', async () => {
+        mockRequest.headers['x-user-id'] = 'dueño-1';
+        prismaMock.publication.findMany.mockResolvedValue([{ id: 'pub-1', title: 'Mi Cancha' }]);
+
+        await getMyPublications(mockRequest, mockReply);
+        expect(mockReply.status).toHaveBeenCalledWith(200);
+    });
+
+    // Comprueba que el dueño legítimo efectivamente puede cambiar los datos de su publicación.
+    it('Edición: Debería actualizar la publicación (200) si es el dueño legítimo', async () => {
+        mockRequest.params = { id: 'pub-1' };
+        mockRequest.headers['x-user-id'] = 'dueño-1';
+        mockRequest.body = { title: 'Cancha Remodelada' };
+
+        prismaMock.publication.findUnique.mockResolvedValue({ id: 'pub-1', ownerId: 'dueño-1' });
+        prismaMock.publication.update.mockResolvedValue({ id: 'pub-1', title: 'Cancha Remodelada' });
+
+        await updatePublication(mockRequest, mockReply);
         expect(mockReply.status).toHaveBeenCalledWith(200);
     });
 
