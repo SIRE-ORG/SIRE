@@ -310,6 +310,64 @@ npx tsc --noEmit
 | `npx prisma studio` | `backend/` | Abrir Prisma Studio (GUI para explorar la BD) |
 | `npx tsc --noEmit` | `backend/` | Compilar TypeScript sin emitir JS (solo verificación) |
 | `flutter build apk --debug` | Raíz del proyecto | Generar APK de desarrollo para Android |
+| `flutter test` | Raíz del proyecto | Correr todos los tests unitarios de Flutter |
+| `flutter test --coverage` | Raíz del proyecto | Correr tests y generar reporte de cobertura en `coverage/lcov.info` |
+| `flutter test --reporter expanded` | Raíz del proyecto | Correr tests con salida detallada test a test |
+| `flutter test <ruta/al/test_file.dart>` | Raíz del proyecto | Correr un archivo de test específico |
+| `npm test` | `backend/` | Correr tests en modo watch (Vitest interactivo) |
+| `npm run test:run` | `backend/` | Correr todos los tests una sola vez y salir |
+| `npm run coverage` | `backend/` | Correr tests y generar reporte de cobertura (lcov) |
+
+---
+
+## Pruebas
+
+### Frontend (Flutter)
+
+```bash
+# Correr toda la suite
+flutter test
+
+# Con reporte de cobertura
+flutter test --coverage
+
+# Ver detalle de cada test (útil para presentaciones)
+flutter test --reporter expanded
+
+# Correr un módulo específico (ej: reservas)
+flutter test test/features/reservations/
+```
+
+El reporte de cobertura se genera en `coverage/lcov.info`. Para visualizarlo en HTML:
+
+```bash
+# Requiere genhtml (incluido en lcov)
+genhtml coverage/lcov.info -o coverage/html
+# Abrir coverage/html/index.html en el navegador
+```
+
+### Backend (Node.js + Vitest)
+
+```bash
+cd backend
+
+# Correr todos los tests una vez
+npm run test:run
+
+# Modo watch (re-corre al guardar cambios)
+npm test
+
+# Generar reporte de cobertura
+npm run coverage
+```
+
+Los tests cubren los 3 módulos principales:
+
+| Archivo | Módulo | Tests |
+|---|---|---|
+| `tests/auth.controller.test.ts` | Autenticación y perfiles | 6 |
+| `tests/publication.controller.test.ts` | Publicaciones | 10 |
+| `tests/reservation.controller.test.ts` | Reservas | 22 |
 
 ---
 
@@ -376,6 +434,41 @@ cerrar manualmente la ventana del backend** (titulada "SIRE Backend — Fastify 
 - Gestión de reservas para publicadores (aceptar, rechazar, completar, contactar)
 - Notificaciones in-app via Supabase Realtime
 - Comunicación con el cliente vía correo (Resend) o WhatsApp (deep link wa.me)
+
+---
+
+## Análisis de calidad (SonarQube)
+
+El proyecto incluye configuración de SonarQube con el plugin **sonar-flutter** para análisis de código Dart.
+
+### Configuración inicial (una sola vez)
+
+```bash
+# 1. Descargar el plugin de Dart/Flutter para SonarQube
+bash sonar/download-plugins.sh
+
+# 2. Levantar SonarQube
+docker-compose -f docker-compose.sonar.yml up -d
+# SonarQube disponible en http://localhost:9000 (usuario: admin / contraseña: admin)
+
+# 3. Generar cobertura de Flutter
+flutter test --coverage
+
+# 4. Ejecutar el análisis (requiere sonar-scanner instalado)
+sonar-scanner
+```
+
+> **Instalar sonar-scanner:** https://docs.sonarsource.com/sonarqube/latest/analyzing-source-code/scanners/sonarscanner/
+
+### Qué analiza
+
+| Configuración | Valor |
+|---|---|
+| Fuentes | `lib/` |
+| Tests | `test/**/*_test.dart` |
+| Exclusiones | `*.g.dart`, `*.freezed.dart`, `generated/**` |
+| Cobertura | `coverage/lcov.info` (generado con `flutter test --coverage`) |
+| Plugin Dart | `sonar-flutter 0.4.0` (en `sonar/plugins/`) |
 
 ---
 
