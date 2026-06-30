@@ -210,4 +210,94 @@ void main() {
       FlutterError.onError = originalOnError;
     });
   });
+
+  // ── Validaciones de formulario (B3) ─────────────────────────────────────
+
+  testWidgets(
+    'validación: formulario vacío deja botón Confirmar deshabilitado',
+    (WidgetTester tester) async {
+      final originalOnError = FlutterError.onError;
+      FlutterError.onError = (FlutterErrorDetails details) {
+        if (details.exceptionAsString().contains('overflowed')) return;
+        originalOnError?.call(details);
+      };
+      tester.view.physicalSize = const Size(390, 2400);
+
+      await tester.pumpWidget(buildSubject());
+      await tester.pumpAndSettle();
+
+      // Con campos vacíos el ElevatedButton del submit tiene onPressed == null
+      final btn = tester.widget<ElevatedButton>(
+        find.widgetWithText(ElevatedButton, 'Confirmar Reserva'),
+      );
+      expect(btn.onPressed, isNull);
+
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        FlutterError.onError = originalOnError;
+      });
+    },
+  );
+
+  testWidgets(
+    'validación: correo con formato inválido mantiene botón deshabilitado',
+    (WidgetTester tester) async {
+      final originalOnError = FlutterError.onError;
+      FlutterError.onError = (FlutterErrorDetails details) {
+        if (details.exceptionAsString().contains('overflowed')) return;
+        originalOnError?.call(details);
+      };
+      tester.view.physicalSize = const Size(390, 2400);
+
+      await tester.pumpWidget(buildSubject());
+      await tester.pumpAndSettle();
+
+      final fields = find.byType(TextField);
+      await tester.enterText(fields.at(0), 'María Torres');
+      await tester.enterText(fields.at(1), 'esto-no-es-un-correo');
+      await tester.enterText(fields.at(2), '+56912345678');
+      await tester.pump();
+
+      final btn = tester.widget<ElevatedButton>(
+        find.widgetWithText(ElevatedButton, 'Confirmar Reserva'),
+      );
+      expect(btn.onPressed, isNull);
+
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        FlutterError.onError = originalOnError;
+      });
+    },
+  );
+
+  testWidgets(
+    'validación: formulario completo con correo válido habilita el botón',
+    (WidgetTester tester) async {
+      final originalOnError = FlutterError.onError;
+      FlutterError.onError = (FlutterErrorDetails details) {
+        if (details.exceptionAsString().contains('overflowed')) return;
+        originalOnError?.call(details);
+      };
+      tester.view.physicalSize = const Size(390, 2400);
+
+      await tester.pumpWidget(buildSubject());
+      await tester.pumpAndSettle();
+
+      final fields = find.byType(TextField);
+      await tester.enterText(fields.at(0), 'María Torres');
+      await tester.enterText(fields.at(1), 'maria@correo.com');
+      await tester.enterText(fields.at(2), '+56912345678');
+      await tester.pump();
+
+      final btn = tester.widget<ElevatedButton>(
+        find.widgetWithText(ElevatedButton, 'Confirmar Reserva'),
+      );
+      expect(btn.onPressed, isNotNull);
+
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        FlutterError.onError = originalOnError;
+      });
+    },
+  );
 }
