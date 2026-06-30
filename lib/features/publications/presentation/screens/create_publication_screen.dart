@@ -63,24 +63,64 @@ class _CreatePublicationScreenState
     }
   }
 
+  AvailabilityConfig _buildAvailabilityConfig() {
+    const dayOfWeekMap = [
+      DayOfWeek.monday,
+      DayOfWeek.tuesday,
+      DayOfWeek.wednesday,
+      DayOfWeek.thursday,
+      DayOfWeek.friday,
+      DayOfWeek.saturday,
+      DayOfWeek.sunday,
+    ];
+
+    final firstEnabled = _days.firstWhere(
+      (d) => !(d['disabled'] as bool),
+      orElse: () => _days.first,
+    );
+    final defaultSchedule = DaySchedule(
+      startTime: firstEnabled['start'] as String,
+      endTime: firstEnabled['end'] as String,
+    );
+
+    final overrides = <DayOverride>[];
+    for (int i = 0; i < _days.length; i++) {
+      final day = _days[i];
+      final disabled = day['disabled'] as bool;
+      if (disabled) {
+        overrides.add(DayOverride(
+          dayOfWeek: dayOfWeekMap[i],
+          isClosed: true,
+          schedules: const [],
+        ));
+      } else if (!_sameSchedule) {
+        final s = day['start'] as String;
+        final e = day['end'] as String;
+        if (s != defaultSchedule.startTime || e != defaultSchedule.endTime) {
+          overrides.add(DayOverride(
+            dayOfWeek: dayOfWeekMap[i],
+            isClosed: false,
+            schedules: [DaySchedule(startTime: s, endTime: e)],
+          ));
+        }
+      }
+    }
+
+    return AvailabilityConfig(
+      slotDurationMinutes: _selectedDuration,
+      sameScheduleAllDays: _sameSchedule,
+      defaultSchedules: [defaultSchedule],
+      dayOverrides: overrides,
+    );
+  }
+
   Future<void> _guardar() async {
     final params = CreatePublicationParams(
       title: _nombreCtrl.text.trim(),
       description: _descripcionCtrl.text.trim(),
       category: _parseCat(_categoriaCtrl.text),
       region: _regionCtrl.text.trim(),
-      availability: const AvailabilityConfig(
-        slotDurationMinutes: 60,
-        sameScheduleAllDays: true,
-        defaultSchedules: [DaySchedule(startTime: '09:00', endTime: '18:00')],
-        dayOverrides: [
-          DayOverride(
-            dayOfWeek: DayOfWeek.sunday,
-            isClosed: true,
-            schedules: [],
-          ),
-        ],
-      ),
+      availability: _buildAvailabilityConfig(),
     );
 
     setState(() => _guardando = true);

@@ -241,28 +241,42 @@ void main() {
     );
   });
 
-  group('getReceivedReservations y getReservationDetail (stubs)', () {
+  group('getReceivedReservations y getReservationDetail', () {
     test(
-      'getReceivedReservations lanza ServerException ENDPOINT_NOT_AVAILABLE',
+      'getReceivedReservations 200 → lista de modelos con applicant',
       () async {
-        try {
-          await datasourceCon().getReceivedReservations();
-          fail('Se esperaba una excepción');
-        } on ServerException catch (e) {
-          expect(e.code, 'ENDPOINT_NOT_AVAILABLE');
-        }
+        adapter.onGet(
+          ApiConstants.reservationsReceived,
+          (server) => server.reply(200, {
+            'data': [
+              {
+                ...reservationJson(id: 'recv-1', status: 'pending'),
+                'applicant': {'name': 'Carlos Pérez', 'email': 'c@mail.com'},
+              },
+            ],
+          }),
+        );
+
+        final results = await datasourceCon().getReceivedReservations();
+        expect(results, hasLength(1));
+        expect(results.first.id, 'recv-1');
+        expect(results.first.applicantName, 'Carlos Pérez');
       },
     );
 
     test(
-      'getReservationDetail lanza ServerException ENDPOINT_NOT_AVAILABLE',
+      'getReservationDetail 200 → modelo con id correcto',
       () async {
-        try {
-          await datasourceCon().getReservationDetail(id: 'res-1');
-          fail('Se esperaba una excepción');
-        } on ServerException catch (e) {
-          expect(e.code, 'ENDPOINT_NOT_AVAILABLE');
-        }
+        adapter.onGet(
+          ApiConstants.reservationById('res-1'),
+          (server) => server.reply(200, {
+            'data': reservationJson(id: 'res-1', status: 'pending'),
+          }),
+        );
+
+        final result = await datasourceCon().getReservationDetail(id: 'res-1');
+        expect(result.id, 'res-1');
+        expect(result.status, 'pending');
       },
     );
   });

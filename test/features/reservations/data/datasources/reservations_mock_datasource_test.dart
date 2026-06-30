@@ -139,10 +139,14 @@ void main() {
         expect(results, isNotEmpty);
       });
 
-      test('retorna las mismas reservas que getMyReservations', () async {
-        final mine = await datasource.getMyReservations();
+      test('retorna reservas con nombres de solicitante', () async {
         final received = await datasource.getReceivedReservations();
-        expect(mine.length, received.length);
+        expect(received, hasLength(3));
+        expect(received.map((r) => r.applicantName), containsAll([
+          'Carlos Pérez',
+          'Ana Ruiz',
+          'Pedro Soto',
+        ]));
       });
     });
 

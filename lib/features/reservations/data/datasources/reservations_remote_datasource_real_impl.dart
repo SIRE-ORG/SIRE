@@ -1,7 +1,6 @@
 import 'package:dio/dio.dart';
 
 import '../../../../core/network/api_constants.dart';
-import '../../../../core/network/app_exception.dart';
 import '../models/create_reservation_request_model.dart';
 import '../models/reservation_model.dart';
 import 'reservations_remote_datasource.dart';
@@ -56,9 +55,6 @@ class ReservationsRemoteDatasourceRealImpl
 
   @override
   Future<ReservationModel> cancelReservation({required String id}) async {
-    // H8: la ruta PATCH /reservations/:id/cancel no está registrada en el
-    // backend; responde 404. Se implementa igual para que cuando se registre
-    // la ruta, el cliente ya esté listo.
     final response = await dio.patch(ApiConstants.reservationCancel(id));
     final json =
         (response.data as Map<String, dynamic>)['data'] as Map<String, dynamic>;
@@ -66,16 +62,21 @@ class ReservationsRemoteDatasourceRealImpl
   }
 
   @override
-  Future<List<ReservationModel>> getReceivedReservations() =>
-      throw ServerException(
-        code: 'ENDPOINT_NOT_AVAILABLE',
-        message: 'GET /reservations/received no implementado en el backend',
-      );
+  Future<List<ReservationModel>> getReceivedReservations() async {
+    final response = await dio.get(ApiConstants.reservationsReceived);
+    final raw =
+        ((response.data as Map<String, dynamic>)['data'] as List?) ?? [];
+    return raw
+        .cast<Map<String, dynamic>>()
+        .map(ReservationModel.fromJson)
+        .toList();
+  }
 
   @override
-  Future<ReservationModel> getReservationDetail({required String id}) =>
-      throw ServerException(
-        code: 'ENDPOINT_NOT_AVAILABLE',
-        message: 'GET /reservations/:id no implementado en el backend',
-      );
+  Future<ReservationModel> getReservationDetail({required String id}) async {
+    final response = await dio.get(ApiConstants.reservationById(id));
+    final json =
+        (response.data as Map<String, dynamic>)['data'] as Map<String, dynamic>;
+    return ReservationModel.fromJson(json);
+  }
 }

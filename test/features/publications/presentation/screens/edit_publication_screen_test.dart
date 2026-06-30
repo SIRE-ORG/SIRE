@@ -70,9 +70,9 @@ void main() {
     await tester.pumpWidget(buildSubject());
     await tester.pumpAndSettle();
 
-    expect(find.text('Cancha de fútbol sintética'), findsOneWidget);
+    expect(find.text('Cancha de fútbol El Estadio'), findsOneWidget);
     expect(find.text('Deporte'), findsOneWidget);
-    expect(find.text('Temuco'), findsOneWidget);
+    expect(find.text('Región de La Araucanía'), findsOneWidget);
 
     addTearDown(() {
       tester.view.resetPhysicalSize();
