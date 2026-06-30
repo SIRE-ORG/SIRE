@@ -271,7 +271,7 @@ void main() {
   );
 
   testWidgets(
-    'validación: formulario completo con correo válido habilita el botón',
+    'validación: formulario completo pero SIN fecha mantiene el botón deshabilitado',
     (WidgetTester tester) async {
       final originalOnError = FlutterError.onError;
       FlutterError.onError = (FlutterErrorDetails details) {
@@ -289,10 +289,12 @@ void main() {
       await tester.enterText(fields.at(2), '+56912345678');
       await tester.pump();
 
+      // Aunque nombre/correo/teléfono sean válidos, falta elegir fecha:
+      // el selector de fecha es obligatorio, así que el botón sigue inhabilitado.
       final btn = tester.widget<ElevatedButton>(
         find.widgetWithText(ElevatedButton, 'Confirmar Reserva'),
       );
-      expect(btn.onPressed, isNotNull);
+      expect(btn.onPressed, isNull);
 
       addTearDown(() {
         tester.view.resetPhysicalSize();

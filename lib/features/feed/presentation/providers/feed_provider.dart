@@ -10,6 +10,7 @@ import '../../data/datasources/feed_remote_datasource_mock_impl.dart';
 import '../../data/datasources/feed_remote_datasource_real_impl.dart';
 import '../../data/datasources/geo_datasource.dart';
 import '../../data/datasources/geo_datasource_impl.dart';
+import '../../data/datasources/nominatim_reverse_geocoding_datasource_impl.dart';
 import '../../data/repositories/feed_repository_impl.dart';
 import '../../domain/entities/feed_page.dart';
 import '../../domain/repositories/feed_repository.dart';
@@ -29,7 +30,9 @@ FeedRemoteDatasource feedRemoteDatasource(Ref ref) => ApiFlags.useRealBackend
     : const FeedRemoteDatasourceMockImpl();
 
 @riverpod
-GeoDatasource geoDatasource(Ref ref) => const GeoDatasourceImpl();
+GeoDatasource geoDatasource(Ref ref) => GeoDatasourceImpl(
+  reverseGeocoder: NominatimReverseGeocodingDatasourceImpl(),
+);
 
 @riverpod
 FeedRepository feedRepository(Ref ref) => FeedRepositoryImpl(
