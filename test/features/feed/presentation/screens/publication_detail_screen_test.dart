@@ -72,8 +72,8 @@ void main() {
 
     await pumpScreen(tester);
 
-    expect(find.text('Cancha de fútbol sintética'), findsOneWidget);
-    expect(find.text('Club Deportivo Temuco'), findsOneWidget);
+    expect(find.text('Cancha de fútbol El Estadio'), findsOneWidget);
+    expect(find.text('Pedro González'), findsOneWidget);
 
     addTearDown(() {
       tester.view.resetPhysicalSize();

@@ -12,6 +12,8 @@ class ReservationModel {
     this.publicationTitle,
     this.publicationCity,
     this.publicationImageUrl,
+    this.applicantName,
+    this.applicantEmail,
   });
 
   final String id;
@@ -24,11 +26,16 @@ class ReservationModel {
   final String? publicationTitle;
   final String? publicationCity;
   final String? publicationImageUrl;
+  final String? applicantName;
+  final String? applicantEmail;
 
   factory ReservationModel.fromJson(Map<String, dynamic> json) {
     // publication solo se incluye en GET /mine; en create/update está ausente.
     final pub =
         (json['publication'] as Map?)?.cast<String, dynamic>() ?? const {};
+    // applicant se incluye en GET /received
+    final applicant =
+        (json['applicant'] as Map?)?.cast<String, dynamic>() ?? const {};
     return ReservationModel(
       id: json['id'] as String,
       publicationId: json['publicationId'] as String,
@@ -40,6 +47,8 @@ class ReservationModel {
       publicationTitle: pub['title'] as String?,
       publicationCity: pub['city'] as String?,
       publicationImageUrl: pub['imageUrl'] as String?,
+      applicantName: applicant['name'] as String? ?? json['applicantName'] as String?,
+      applicantEmail: applicant['email'] as String? ?? json['applicantEmail'] as String?,
     );
   }
 
@@ -54,5 +63,7 @@ class ReservationModel {
     publicationTitle: publicationTitle,
     publicationCity: publicationCity,
     publicationImageUrl: publicationImageUrl,
+    applicantName: applicantName,
+    applicantEmail: applicantEmail,
   );
 }

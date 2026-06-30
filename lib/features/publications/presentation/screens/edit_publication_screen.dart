@@ -8,6 +8,13 @@ import '../../../publications/domain/entities/publication.dart';
 import '../../../publications/domain/usecases/update_publication_usecase.dart';
 import '../providers/my_publications_provider.dart';
 
+String _catToString(PublicationCategory cat) => switch (cat) {
+  PublicationCategory.deporte => 'Deporte',
+  PublicationCategory.eventos => 'Eventos',
+  PublicationCategory.recreacion => 'Recreación',
+  PublicationCategory.otros => 'Otros',
+};
+
 class EditPublicationScreen extends ConsumerStatefulWidget {
   final String id;
   const EditPublicationScreen({super.key, required this.id});
@@ -20,6 +27,7 @@ class EditPublicationScreen extends ConsumerStatefulWidget {
 class _EditPublicationScreenState extends ConsumerState<EditPublicationScreen> {
   int _selectedDuration = 60;
   bool _sameSchedule = true;
+  bool _initialized = false;
 
   late TextEditingController _nameController;
   late TextEditingController _descController;
@@ -40,16 +48,11 @@ class _EditPublicationScreenState extends ConsumerState<EditPublicationScreen> {
   @override
   void initState() {
     super.initState();
-    _nameController = TextEditingController(text: 'Cancha de fútbol sintética');
-    _descController = TextEditingController(
-      text:
-          'Cancha de pasto sintético de última generación, con iluminación LED y camarines. Ideal para partidos y entrenamientos.',
-    );
-    _catController = TextEditingController(text: 'Deporte');
-    _urlController = TextEditingController(
-      text: 'https://ejemplo.com/cancha.jpg',
-    );
-    _regionController = TextEditingController(text: 'Temuco');
+    _nameController = TextEditingController();
+    _descController = TextEditingController();
+    _catController = TextEditingController();
+    _urlController = TextEditingController();
+    _regionController = TextEditingController();
   }
 
   bool _saving = false;
@@ -149,6 +152,19 @@ class _EditPublicationScreenState extends ConsumerState<EditPublicationScreen> {
   @override
   Widget build(BuildContext context) {
     final isPublisher = ref.watch(isPublisherProvider);
+
+    // Pre-fill controllers with real publication data on first load
+    ref.watch(publicationDetailProvider(widget.id)).whenData((pub) {
+      if (_initialized) return;
+      _initialized = true;
+      _nameController.text = pub.title;
+      _descController.text = pub.description;
+      _catController.text = _catToString(pub.category);
+      _urlController.text = pub.imageUrl ?? '';
+      _regionController.text = pub.region;
+      _selectedDuration = pub.availability.slotDurationMinutes;
+      _sameSchedule = pub.availability.sameScheduleAllDays;
+    });
 
     return LayoutBuilder(
       builder: (context, constraints) {

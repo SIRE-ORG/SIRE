@@ -1,6 +1,10 @@
+import 'dart:typed_data';
+
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../../../core/providers/role_provider.dart';
 import '../../../../core/widgets/custom_button.dart';
 import '../../../../core/widgets/custom_text_field.dart';
@@ -17,6 +21,8 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   late final TextEditingController _nameController;
   late final TextEditingController _phoneController;
   bool _saving = false;
+  Uint8List? _avatarBytes;
+  String? _avatarExtension;
 
   @override
   void initState() {
@@ -30,6 +36,21 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     _nameController.dispose();
     _phoneController.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickImage() async {
+    final picked = await ImagePicker().pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 80,
+      maxWidth: 512,
+    );
+    if (picked == null) return;
+    final bytes = await picked.readAsBytes();
+    final ext = picked.name.split('.').last.toLowerCase();
+    setState(() {
+      _avatarBytes = bytes;
+      _avatarExtension = ext.isEmpty ? 'jpg' : ext;
+    });
   }
 
   Future<void> _handleSave(String userId) async {
@@ -47,6 +68,8 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
             userId: userId,
             name: name.isNotEmpty ? name : null,
             phone: phone.isNotEmpty ? phone : null,
+            avatarBytes: _avatarBytes,
+            avatarExtension: _avatarExtension,
           );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -70,7 +93,6 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     final isPublisher = ref.watch(isPublisherProvider);
     final profileAsync = ref.watch(currentProfileProvider);
 
-    // Pre-fill controllers when profile loads
     profileAsync.whenData((profile) {
       if (profile != null) {
         if (_nameController.text.isEmpty) {
@@ -83,6 +105,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     });
 
     final userId = profileAsync.value?.id ?? '';
+    final existingAvatarUrl = profileAsync.value?.avatarUrl;
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -100,7 +123,12 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                     child: Center(
                       child: ConstrainedBox(
                         constraints: const BoxConstraints(maxWidth: 800),
-                        child: _buildFormCard(context, userId: userId, isWeb: true),
+                        child: _buildFormCard(
+                          context,
+                          userId: userId,
+                          isWeb: true,
+                          existingAvatarUrl: existingAvatarUrl,
+                        ),
                       ),
                     ),
                   ),
@@ -133,7 +161,11 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
             ),
             body: SingleChildScrollView(
               padding: const EdgeInsets.all(24.0),
-              child: _buildFormMobile(context, userId: userId),
+              child: _buildFormMobile(
+                context,
+                userId: userId,
+                existingAvatarUrl: existingAvatarUrl,
+              ),
             ),
           );
         }
@@ -213,6 +245,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     BuildContext context, {
     required String userId,
     required bool isWeb,
+    String? existingAvatarUrl,
   }) {
     return Container(
       padding: const EdgeInsets.all(40),
@@ -249,7 +282,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
             ],
           ),
           const SizedBox(height: 40),
-          _buildPhotoEditor(),
+          _buildPhotoEditor(existingAvatarUrl: existingAvatarUrl),
           const SizedBox(height: 40),
           CustomTextField(
             label: 'Nombre completo',
@@ -293,7 +326,8 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
             height: 50,
             child: CustomButton(
               text: _saving ? 'Guardando...' : 'Guardar cambios',
-              onPressed: _saving || userId.isEmpty ? null : () => _handleSave(userId),
+              onPressed:
+                  _saving || userId.isEmpty ? null : () => _handleSave(userId),
             ),
           ),
         ],
@@ -301,11 +335,15 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     );
   }
 
-  Widget _buildFormMobile(BuildContext context, {required String userId}) {
+  Widget _buildFormMobile(
+    BuildContext context, {
+    required String userId,
+    String? existingAvatarUrl,
+  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildPhotoEditor(),
+        _buildPhotoEditor(existingAvatarUrl: existingAvatarUrl),
         const SizedBox(height: 32),
         CustomTextField(
           label: 'Nombre completo',
@@ -347,45 +385,67 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
           height: 50,
           child: CustomButton(
             text: _saving ? 'Guardando...' : 'Guardar cambios',
-            onPressed: _saving || userId.isEmpty ? null : () => _handleSave(userId),
+            onPressed:
+                _saving || userId.isEmpty ? null : () => _handleSave(userId),
           ),
         ),
       ],
     );
   }
 
-  Widget _buildPhotoEditor() {
+  Widget _buildPhotoEditor({String? existingAvatarUrl}) {
     return Center(
-      child: Stack(
-        children: [
-          Container(
-            width: 120,
-            height: 120,
-            decoration: BoxDecoration(
-              color: Colors.grey.shade100,
-              shape: BoxShape.circle,
-              border: Border.all(color: const Color(0xFFE2E8F0), width: 4),
-            ),
-            child: const Icon(Icons.person, size: 70, color: Color(0xFF94A3B8)),
-          ),
-          Positioned(
-            bottom: 0,
-            right: 0,
-            child: Container(
-              padding: const EdgeInsets.all(8),
-              decoration: const BoxDecoration(
-                color: Color(0xFF1E70CD),
+      child: GestureDetector(
+        onTap: _pickImage,
+        child: Stack(
+          children: [
+            Container(
+              width: 120,
+              height: 120,
+              decoration: BoxDecoration(
+                color: Colors.grey.shade100,
                 shape: BoxShape.circle,
+                border: Border.all(color: const Color(0xFFE2E8F0), width: 4),
               ),
-              child: const Icon(
-                Icons.camera_alt_outlined,
-                color: Colors.white,
-                size: 20,
+              clipBehavior: Clip.antiAlias,
+              child: _buildAvatarContent(existingAvatarUrl),
+            ),
+            Positioned(
+              bottom: 0,
+              right: 0,
+              child: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: const BoxDecoration(
+                  color: Color(0xFF1E70CD),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.camera_alt_outlined,
+                  color: Colors.white,
+                  size: 20,
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
+  }
+
+  Widget _buildAvatarContent(String? existingAvatarUrl) {
+    if (_avatarBytes != null) {
+      return Image.memory(_avatarBytes!, fit: BoxFit.cover);
+    }
+    if (existingAvatarUrl != null && existingAvatarUrl.isNotEmpty) {
+      return CachedNetworkImage(
+        imageUrl: existingAvatarUrl,
+        fit: BoxFit.cover,
+        placeholder: (_, _a) =>
+            const Icon(Icons.person, size: 70, color: Color(0xFF94A3B8)),
+        errorWidget: (_, _a, _b) =>
+            const Icon(Icons.person, size: 70, color: Color(0xFF94A3B8)),
+      );
+    }
+    return const Icon(Icons.person, size: 70, color: Color(0xFF94A3B8));
   }
 }
