@@ -48,9 +48,17 @@ class FeedNotifier extends _$FeedNotifier {
   Future<FeedPage> build() async {
     final repo = ref.read(feedRepositoryProvider);
     final cached = await const LocalStorageService().read(StorageKeys.region);
-    final region = (cached != null && cached.isNotEmpty)
-        ? cached
-        : (await DetectRegionUseCase(repo).call()).region;
+    String region;
+    if (cached != null && cached.isNotEmpty) {
+      region = cached;
+    } else {
+      try {
+        region = (await DetectRegionUseCase(repo).call()).region;
+      } catch (_) {
+        // Geo no disponible (p. ej. Windows): sin filtro → todo el feed.
+        region = '';
+      }
+    }
     return GetFeedUseCase(repo).call(region: region);
   }
 

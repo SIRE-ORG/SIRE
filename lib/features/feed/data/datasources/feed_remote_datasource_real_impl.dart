@@ -29,7 +29,8 @@ class FeedRemoteDatasourceRealImpl implements FeedRemoteDatasource {
   }) async {
     final response = await dio.get(
       ApiConstants.publicationsFeedLive,
-      queryParameters: {'region': region},
+      // Sin región (geo no disponible) → no filtrar, traer todo el feed.
+      queryParameters: {if (region.isNotEmpty) 'region': region},
     );
 
     final raw =
