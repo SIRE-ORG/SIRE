@@ -437,6 +437,41 @@ cerrar manualmente la ventana del backend** (titulada "SIRE Backend — Fastify 
 
 ---
 
+## Análisis de calidad (SonarQube)
+
+El proyecto incluye configuración de SonarQube con el plugin **sonar-flutter** para análisis de código Dart.
+
+### Configuración inicial (una sola vez)
+
+```bash
+# 1. Descargar el plugin de Dart/Flutter para SonarQube
+bash sonar/download-plugins.sh
+
+# 2. Levantar SonarQube
+docker-compose -f docker-compose.sonar.yml up -d
+# SonarQube disponible en http://localhost:9000 (usuario: admin / contraseña: admin)
+
+# 3. Generar cobertura de Flutter
+flutter test --coverage
+
+# 4. Ejecutar el análisis (requiere sonar-scanner instalado)
+sonar-scanner
+```
+
+> **Instalar sonar-scanner:** https://docs.sonarsource.com/sonarqube/latest/analyzing-source-code/scanners/sonarscanner/
+
+### Qué analiza
+
+| Configuración | Valor |
+|---|---|
+| Fuentes | `lib/` |
+| Tests | `test/**/*_test.dart` |
+| Exclusiones | `*.g.dart`, `*.freezed.dart`, `generated/**` |
+| Cobertura | `coverage/lcov.info` (generado con `flutter test --coverage`) |
+| Plugin Dart | `sonar-flutter 0.4.0` (en `sonar/plugins/`) |
+
+---
+
 ## Estado del proyecto
 
 🚧 En desarrollo — Proyecto académico · Universidad de la Frontera - Temuco · 2026
