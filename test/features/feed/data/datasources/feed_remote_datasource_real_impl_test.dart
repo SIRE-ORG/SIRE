@@ -63,27 +63,61 @@ void main() {
       // manda region=Maule, no hay mock que responda y la prueba falla.
       adapter.onGet(
         ApiConstants.publicationsFeedLive,
-        (server) => server.reply(200, {'data': []}),
+        (server) => server.reply(200, {
+          'data': [
+            {
+              'id': 'pub-m',
+              'title': 'Pub Maule',
+              'description': '',
+              'region': 'Maule',
+              'category': 'OTROS',
+              'ownerId': 'o',
+              'owner': {'name': 'X'},
+              'createdAt': '2026-06-01T12:00:00Z',
+            },
+          ],
+        }),
         queryParameters: {'region': 'Maule'},
       );
 
       final result = await datasource.getFeed(region: 'Maule');
 
-      expect(result.items, isEmpty);
+      expect(result.items, hasLength(1));
     });
 
     test(
-      'PI-FEED-01: una lista de datos vacía produce un feed vacío sin romper',
+      'PI-FEED-04: si la región no devuelve nada, reintenta sin filtro (fallback)',
       () async {
+        // Primer intento (con región) → vacío.
         adapter.onGet(
           ApiConstants.publicationsFeedLive,
           (server) => server.reply(200, {'data': []}),
-          queryParameters: {'region': 'Araucania'},
+          queryParameters: {'region': 'RegionQueNoMatchea'},
+        );
+        // Reintento (sin región) → trae publicaciones.
+        adapter.onGet(
+          ApiConstants.publicationsFeedLive,
+          (server) => server.reply(200, {
+            'data': [
+              {
+                'id': 'pub-x',
+                'title': 'Pub Global',
+                'description': '',
+                'region': 'La Araucania',
+                'category': 'OTROS',
+                'ownerId': 'o',
+                'owner': {'name': 'X'},
+                'createdAt': '2026-06-01T12:00:00Z',
+              },
+            ],
+          }),
+          queryParameters: {},
         );
 
-        final result = await datasource.getFeed(region: 'Araucania');
+        final result = await datasource.getFeed(region: 'RegionQueNoMatchea');
 
-        expect(result.items, isEmpty);
+        expect(result.items, hasLength(1));
+        expect(result.items.first.title, 'Pub Global');
       },
     );
   });

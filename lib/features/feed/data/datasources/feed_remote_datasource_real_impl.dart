@@ -27,15 +27,13 @@ class FeedRemoteDatasourceRealImpl implements FeedRemoteDatasource {
     int page = 1,
     int limit = 20,
   }) async {
-    final response = await dio.get(
-      ApiConstants.publicationsFeedLive,
-      // Sin región (geo no disponible) → no filtrar, traer todo el feed.
-      queryParameters: {if (region.isNotEmpty) 'region': region},
-    );
-
-    final raw =
-        ((response.data as Map<String, dynamic>)['data'] as List?) ?? [];
-    final items = raw.cast<Map<String, dynamic>>().map(_mapToSummary).toList();
+    var items = await _fetch(region);
+    // Si filtrar por región no devuelve nada (strings de región inconsistentes
+    // entre el selector y el backend, o región vacía), reintenta SIN filtro para
+    // no dejar el feed vacío. El filtro fino por región queda pendiente (normalizador).
+    if (items.isEmpty && region.isNotEmpty) {
+      items = await _fetch('');
+    }
 
     return FeedResponseModel(
       items: items,
@@ -44,6 +42,16 @@ class FeedRemoteDatasourceRealImpl implements FeedRemoteDatasource {
       total: items.length,
       hasMore: false,
     );
+  }
+
+  Future<List<PublicationSummaryModel>> _fetch(String region) async {
+    final response = await dio.get(
+      ApiConstants.publicationsFeedLive,
+      queryParameters: {if (region.isNotEmpty) 'region': region},
+    );
+    final raw =
+        ((response.data as Map<String, dynamic>)['data'] as List?) ?? [];
+    return raw.cast<Map<String, dynamic>>().map(_mapToSummary).toList();
   }
 
   PublicationSummaryModel _mapToSummary(Map<String, dynamic> json) {
