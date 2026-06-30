@@ -6,7 +6,7 @@ const prisma = new PrismaClient();
 // Helper: valida que un string de fecha "YYYY-MM-DD" sea parseable
 function parseDate(dateStr: string): Date {
     const d = new Date(dateStr);
-    if (Number.isNaN(d.getTime)) {
+    if (Number.isNaN(d.getTime())) {
         throw new Error(`Formato de fecha inválido: ${dateStr}`);
     }
     return d;
