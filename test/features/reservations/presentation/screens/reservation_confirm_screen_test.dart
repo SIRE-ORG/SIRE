@@ -2,11 +2,71 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:mocktail/mocktail.dart';
+import 'package:sire/core/network/app_exception.dart';
+import 'package:sire/features/auth/domain/entities/auth_result.dart';
+import 'package:sire/features/auth/domain/entities/user_profile.dart';
+import 'package:sire/features/auth/domain/repositories/auth_repository.dart';
+import 'package:sire/features/auth/presentation/providers/auth_provider.dart';
+import 'package:sire/features/reservations/domain/entities/reservation.dart';
+import 'package:sire/features/reservations/domain/entities/reservation_eligibility.dart';
+import 'package:sire/features/reservations/domain/repositories/reservations_repository.dart';
+import 'package:sire/features/reservations/presentation/providers/reservation_eligibility_provider.dart';
+import 'package:sire/features/reservations/presentation/providers/reservations_provider.dart';
 import 'package:sire/features/reservations/presentation/screens/reservation_confirm_screen.dart';
 
+class MockAuthRepository extends Mock implements AuthRepository {}
+
+class MockReservationsRepository extends Mock
+    implements ReservationsRepository {}
+
+const _guestProfile = UserProfile(
+  id: 'guest-1',
+  name: 'María Torres',
+  email: 'maria@correo.com',
+  accountStatus: AccountStatus.guest,
+  emailVerified: false,
+);
+
+const _createdReservation = Reservation(
+  id: 'res-1',
+  publicationId: 'pub-001',
+  date: '2026-07-15',
+  startTime: '10:00',
+  endTime: '11:00',
+  status: ReservationStatus.pending,
+  createdAt: '2026-07-01T00:00:00Z',
+);
+
 void main() {
-  Widget buildSubject({String time = '10:00'}) {
-    final mockRouter = GoRouter(
+  late MockAuthRepository authRepo;
+  late MockReservationsRepository resRepo;
+
+  setUp(() {
+    authRepo = MockAuthRepository();
+    resRepo = MockReservationsRepository();
+  });
+
+  void suppressOverflow(WidgetTester tester) {
+    final original = FlutterError.onError;
+    FlutterError.onError = (details) {
+      if (details.exceptionAsString().contains('overflowed')) return;
+      original?.call(details);
+    };
+    addTearDown(() {
+      FlutterError.onError = original;
+      tester.view.resetPhysicalSize();
+    });
+    tester.view.physicalSize = const Size(1080, 2400);
+  }
+
+  Widget buildSubject({
+    required ReservationEligibility eligibility,
+    UserProfile? profile,
+    String date = '2026-07-15',
+    String time = '10:00',
+  }) {
+    final router = GoRouter(
       initialLocation: '/confirm',
       routes: [
         GoRoute(
@@ -15,7 +75,7 @@ void main() {
             id: 'pub-001',
             title: 'Cancha de fútbol sintética',
             subtitle: 'Club Deportivo Temuco',
-            date: 'Lun 15 jun',
+            date: date,
             time: time,
           ),
         ),
@@ -23,233 +83,79 @@ void main() {
           path: '/my-reservations',
           builder: (_, _) => const Scaffold(body: Text('Mis Reservas')),
         ),
+        GoRoute(
+          path: '/verify-otp',
+          builder: (_, _) => const Scaffold(body: Text('Verificar OTP')),
+        ),
       ],
     );
-    return ProviderScope(child: MaterialApp.router(routerConfig: mockRouter));
+
+    return ProviderScope(
+      overrides: [
+        reservationEligibilityProvider.overrideWith((ref) async => eligibility),
+        currentProfileProvider.overrideWith((ref) async => profile),
+        authRepositoryProvider.overrideWithValue(authRepo),
+        reservationsRepositoryProvider.overrideWithValue(resRepo),
+      ],
+      child: MaterialApp.router(routerConfig: router),
+    );
   }
 
-  testWidgets('ReservationConfirmScreen muestra encabezado y título', (
-    WidgetTester tester,
-  ) async {
-    final originalOnError = FlutterError.onError;
-    FlutterError.onError = (FlutterErrorDetails details) {
-      if (details.exceptionAsString().contains('overflowed')) return;
-      originalOnError?.call(details);
-    };
-    tester.view.physicalSize = const Size(1080, 2400);
+  group('needsGuestForm', () {
+    testWidgets('muestra encabezado, título y campos del formulario', (
+      tester,
+    ) async {
+      suppressOverflow(tester);
 
-    await tester.pumpWidget(buildSubject());
-    await tester.pumpAndSettle();
-
-    expect(find.text('Confirmar Reserva'), findsWidgets);
-    expect(find.text('Cancha de fútbol sintética'), findsOneWidget);
-    expect(find.text('Club Deportivo Temuco'), findsOneWidget);
-
-    addTearDown(() {
-      tester.view.resetPhysicalSize();
-      FlutterError.onError = originalOnError;
-    });
-  });
-
-  testWidgets('ReservationConfirmScreen muestra campos del formulario', (
-    WidgetTester tester,
-  ) async {
-    final originalOnError = FlutterError.onError;
-    FlutterError.onError = (FlutterErrorDetails details) {
-      if (details.exceptionAsString().contains('overflowed')) return;
-      originalOnError?.call(details);
-    };
-    tester.view.physicalSize = const Size(1080, 2400);
-
-    await tester.pumpWidget(buildSubject());
-    await tester.pumpAndSettle();
-
-    expect(find.text('Nombre Completo'), findsOneWidget);
-    expect(find.text('Correo'), findsOneWidget);
-    expect(find.text('Teléfono'), findsOneWidget);
-
-    addTearDown(() {
-      tester.view.resetPhysicalSize();
-      FlutterError.onError = originalOnError;
-    });
-  });
-
-  testWidgets('ReservationConfirmScreen muestra botón confirmar', (
-    WidgetTester tester,
-  ) async {
-    final originalOnError = FlutterError.onError;
-    FlutterError.onError = (FlutterErrorDetails details) {
-      if (details.exceptionAsString().contains('overflowed')) return;
-      originalOnError?.call(details);
-    };
-    tester.view.physicalSize = const Size(1080, 2400);
-
-    await tester.pumpWidget(buildSubject());
-    await tester.pumpAndSettle();
-
-    expect(find.text('Confirmar Reserva'), findsWidgets);
-
-    addTearDown(() {
-      tester.view.resetPhysicalSize();
-      FlutterError.onError = originalOnError;
-    });
-  });
-
-  testWidgets('ReservationConfirmScreen muestra resumen de fecha y hora', (
-    WidgetTester tester,
-  ) async {
-    final originalOnError = FlutterError.onError;
-    FlutterError.onError = (FlutterErrorDetails details) {
-      if (details.exceptionAsString().contains('overflowed')) return;
-      originalOnError?.call(details);
-    };
-    tester.view.physicalSize = const Size(1080, 2400);
-
-    await tester.pumpWidget(buildSubject());
-    await tester.pumpAndSettle();
-
-    expect(find.textContaining('Lun 15 jun'), findsOneWidget);
-    expect(find.textContaining('10:00'), findsOneWidget);
-
-    addTearDown(() {
-      tester.view.resetPhysicalSize();
-      FlutterError.onError = originalOnError;
-    });
-  });
-
-  testWidgets('ReservationConfirmScreen permite ingresar texto en los campos', (
-    WidgetTester tester,
-  ) async {
-    final originalOnError = FlutterError.onError;
-    FlutterError.onError = (FlutterErrorDetails details) {
-      if (details.exceptionAsString().contains('overflowed')) return;
-      originalOnError?.call(details);
-    };
-    tester.view.physicalSize = const Size(1080, 2400);
-
-    await tester.pumpWidget(buildSubject());
-    await tester.pumpAndSettle();
-
-    final textFields = find.byType(TextField);
-    await tester.enterText(textFields.at(0), 'María Torres');
-    await tester.pump();
-
-    expect(find.text('María Torres'), findsOneWidget);
-
-    addTearDown(() {
-      tester.view.resetPhysicalSize();
-      FlutterError.onError = originalOnError;
-    });
-  });
-
-  testWidgets(
-    'tap Cancelar reserva muestra SnackBar de función no disponible',
-    (WidgetTester tester) async {
-      final originalOnError = FlutterError.onError;
-      FlutterError.onError = (FlutterErrorDetails details) {
-        if (details.exceptionAsString().contains('overflowed')) return;
-        originalOnError?.call(details);
-      };
-      tester.view.physicalSize = const Size(390, 2400);
-
-      await tester.pumpWidget(buildSubject());
+      await tester.pumpWidget(
+        buildSubject(eligibility: ReservationEligibility.needsGuestForm),
+      );
       await tester.pumpAndSettle();
 
-      await tester.ensureVisible(find.text('Cancelar reserva'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Cancelar reserva'));
-      await tester.pump();
-
-      expect(find.text('Función no disponible aún'), findsOneWidget);
-
-      addTearDown(() {
-        tester.view.resetPhysicalSize();
-        FlutterError.onError = originalOnError;
-      });
-    },
-  );
-
-  testWidgets('ReservationConfirmScreen time con guión muestra rango horario', (
-    WidgetTester tester,
-  ) async {
-    final originalOnError = FlutterError.onError;
-    FlutterError.onError = (FlutterErrorDetails details) {
-      if (details.exceptionAsString().contains('overflowed')) return;
-      originalOnError?.call(details);
-    };
-    tester.view.physicalSize = const Size(390, 2400);
-
-    await tester.pumpWidget(buildSubject(time: '10:00-11:00'));
-    await tester.pumpAndSettle();
-
-    expect(find.textContaining('10:00-11:00'), findsOneWidget);
-
-    addTearDown(() {
-      tester.view.resetPhysicalSize();
-      FlutterError.onError = originalOnError;
+      expect(find.text('Confirmar Reserva'), findsWidgets);
+      expect(find.text('Cancha de fútbol sintética'), findsOneWidget);
+      expect(find.text('Club Deportivo Temuco'), findsOneWidget);
+      expect(find.text('Nombre Completo'), findsOneWidget);
+      expect(find.text('Correo'), findsOneWidget);
+      expect(find.text('Teléfono'), findsOneWidget);
     });
-  });
 
-  testWidgets('ReservationConfirmScreen AppBar tiene botón de retroceso', (
-    WidgetTester tester,
-  ) async {
-    final originalOnError = FlutterError.onError;
-    FlutterError.onError = (FlutterErrorDetails details) {
-      if (details.exceptionAsString().contains('overflowed')) return;
-      originalOnError?.call(details);
-    };
-    tester.view.physicalSize = const Size(390, 844);
+    testWidgets('muestra resumen de fecha (dd/MM/yyyy) y hora', (tester) async {
+      suppressOverflow(tester);
 
-    await tester.pumpWidget(buildSubject());
-    await tester.pumpAndSettle();
-
-    expect(find.byIcon(Icons.arrow_back_ios_new), findsOneWidget);
-
-    addTearDown(() {
-      tester.view.resetPhysicalSize();
-      FlutterError.onError = originalOnError;
-    });
-  });
-
-  // ── Validaciones de formulario (B3) ─────────────────────────────────────
-
-  testWidgets(
-    'validación: formulario vacío deja botón Confirmar deshabilitado',
-    (WidgetTester tester) async {
-      final originalOnError = FlutterError.onError;
-      FlutterError.onError = (FlutterErrorDetails details) {
-        if (details.exceptionAsString().contains('overflowed')) return;
-        originalOnError?.call(details);
-      };
-      tester.view.physicalSize = const Size(390, 2400);
-
-      await tester.pumpWidget(buildSubject());
+      await tester.pumpWidget(
+        buildSubject(eligibility: ReservationEligibility.needsGuestForm),
+      );
       await tester.pumpAndSettle();
 
-      // Con campos vacíos el ElevatedButton del submit tiene onPressed == null
+      expect(find.textContaining('15/07/2026'), findsOneWidget);
+      expect(find.textContaining('10:00'), findsOneWidget);
+    });
+
+    testWidgets('formulario vacío deja el botón Confirmar deshabilitado', (
+      tester,
+    ) async {
+      suppressOverflow(tester);
+
+      await tester.pumpWidget(
+        buildSubject(eligibility: ReservationEligibility.needsGuestForm),
+      );
+      await tester.pumpAndSettle();
+
       final btn = tester.widget<ElevatedButton>(
         find.widgetWithText(ElevatedButton, 'Confirmar Reserva'),
       );
       expect(btn.onPressed, isNull);
+    });
 
-      addTearDown(() {
-        tester.view.resetPhysicalSize();
-        FlutterError.onError = originalOnError;
-      });
-    },
-  );
+    testWidgets('correo con formato inválido mantiene botón deshabilitado', (
+      tester,
+    ) async {
+      suppressOverflow(tester);
 
-  testWidgets(
-    'validación: correo con formato inválido mantiene botón deshabilitado',
-    (WidgetTester tester) async {
-      final originalOnError = FlutterError.onError;
-      FlutterError.onError = (FlutterErrorDetails details) {
-        if (details.exceptionAsString().contains('overflowed')) return;
-        originalOnError?.call(details);
-      };
-      tester.view.physicalSize = const Size(390, 2400);
-
-      await tester.pumpWidget(buildSubject());
+      await tester.pumpWidget(
+        buildSubject(eligibility: ReservationEligibility.needsGuestForm),
+      );
       await tester.pumpAndSettle();
 
       final fields = find.byType(TextField);
@@ -262,25 +168,144 @@ void main() {
         find.widgetWithText(ElevatedButton, 'Confirmar Reserva'),
       );
       expect(btn.onPressed, isNull);
+    });
 
-      addTearDown(() {
-        tester.view.resetPhysicalSize();
-        FlutterError.onError = originalOnError;
-      });
-    },
-  );
+    testWidgets(
+      'formulario válido confirma: registerGuest → createReservation → '
+      'modal de éxito',
+      (tester) async {
+        suppressOverflow(tester);
+        when(
+          () => authRepo.registerGuest(
+            name: any(named: 'name'),
+            email: any(named: 'email'),
+            phone: any(named: 'phone'),
+          ),
+        ).thenAnswer(
+          (_) async => const AuthResult(
+            userId: 'guest-1',
+            accountStatus: AccountStatus.guest,
+            userCreated: true,
+          ),
+        );
+        when(
+          () => resRepo.createReservation(
+            publicationId: any(named: 'publicationId'),
+            date: any(named: 'date'),
+            startTime: any(named: 'startTime'),
+            endTime: any(named: 'endTime'),
+          ),
+        ).thenAnswer((_) async => _createdReservation);
 
-  testWidgets(
-    'validación: formulario completo pero SIN fecha mantiene el botón deshabilitado',
-    (WidgetTester tester) async {
-      final originalOnError = FlutterError.onError;
-      FlutterError.onError = (FlutterErrorDetails details) {
-        if (details.exceptionAsString().contains('overflowed')) return;
-        originalOnError?.call(details);
-      };
-      tester.view.physicalSize = const Size(390, 2400);
+        await tester.pumpWidget(
+          buildSubject(eligibility: ReservationEligibility.needsGuestForm),
+        );
+        await tester.pumpAndSettle();
 
-      await tester.pumpWidget(buildSubject());
+        final fields = find.byType(TextField);
+        await tester.enterText(fields.at(0), 'María Torres');
+        await tester.enterText(fields.at(1), 'maria@correo.com');
+        await tester.enterText(fields.at(2), '+56912345678');
+        await tester.pump();
+
+        await tester.tap(
+          find.widgetWithText(ElevatedButton, 'Confirmar Reserva'),
+        );
+        await tester.pumpAndSettle();
+
+        verify(
+          () => authRepo.registerGuest(
+            name: 'María Torres',
+            email: 'maria@correo.com',
+            phone: '+56912345678',
+          ),
+        ).called(1);
+        // La fecha enviada es la del slot (widget.date, ISO), no un DatePicker.
+        verify(
+          () => resRepo.createReservation(
+            publicationId: 'pub-001',
+            date: '2026-07-15',
+            startTime: '10:00',
+            endTime: '11:00',
+          ),
+        ).called(1);
+        expect(find.text('¡Reserva confirmada!'), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'correo ya registrado (ConflictException) muestra aviso y no crea '
+      'la reserva',
+      (tester) async {
+        suppressOverflow(tester);
+        when(
+          () => authRepo.registerGuest(
+            name: any(named: 'name'),
+            email: any(named: 'email'),
+            phone: any(named: 'phone'),
+          ),
+        ).thenThrow(ConflictException(code: 'EMAIL_TAKEN'));
+
+        await tester.pumpWidget(
+          buildSubject(eligibility: ReservationEligibility.needsGuestForm),
+        );
+        await tester.pumpAndSettle();
+
+        final fields = find.byType(TextField);
+        await tester.enterText(fields.at(0), 'María Torres');
+        await tester.enterText(fields.at(1), 'maria@correo.com');
+        await tester.enterText(fields.at(2), '+56912345678');
+        await tester.pump();
+
+        await tester.tap(
+          find.widgetWithText(ElevatedButton, 'Confirmar Reserva'),
+        );
+        await tester.pumpAndSettle();
+
+        expect(
+          find.text('Este correo ya tiene cuenta; inicia sesión'),
+          findsOneWidget,
+        );
+        verifyNever(
+          () => resRepo.createReservation(
+            publicationId: any(named: 'publicationId'),
+            date: any(named: 'date'),
+            startTime: any(named: 'startTime'),
+            endTime: any(named: 'endTime'),
+          ),
+        );
+      },
+    );
+
+    testWidgets('fallo de red al crear la reserva muestra SnackBar genérico', (
+      tester,
+    ) async {
+      suppressOverflow(tester);
+      when(
+        () => authRepo.registerGuest(
+          name: any(named: 'name'),
+          email: any(named: 'email'),
+          phone: any(named: 'phone'),
+        ),
+      ).thenAnswer(
+        (_) async => const AuthResult(
+          userId: 'guest-1',
+          accountStatus: AccountStatus.guest,
+          userCreated: true,
+        ),
+      );
+      when(
+        () => resRepo.createReservation(
+          publicationId: any(named: 'publicationId'),
+          date: any(named: 'date'),
+          startTime: any(named: 'startTime'),
+          endTime: any(named: 'endTime'),
+        ),
+      ).thenThrow(NetworkException());
+
+      await tester.pumpWidget(
+        buildSubject(eligibility: ReservationEligibility.needsGuestForm),
+      );
       await tester.pumpAndSettle();
 
       final fields = find.byType(TextField);
@@ -289,17 +314,183 @@ void main() {
       await tester.enterText(fields.at(2), '+56912345678');
       await tester.pump();
 
-      // Aunque nombre/correo/teléfono sean válidos, falta elegir fecha:
-      // el selector de fecha es obligatorio, así que el botón sigue inhabilitado.
-      final btn = tester.widget<ElevatedButton>(
+      await tester.tap(
         find.widgetWithText(ElevatedButton, 'Confirmar Reserva'),
       );
-      expect(btn.onPressed, isNull);
+      await tester.pumpAndSettle();
 
-      addTearDown(() {
-        tester.view.resetPhysicalSize();
-        FlutterError.onError = originalOnError;
+      expect(find.text('No se pudo confirmar la reserva'), findsOneWidget);
+    });
+
+    testWidgets(
+      'fecha del slot no parseable (no ISO) muestra error controlado y no '
+      'llama al backend',
+      (tester) async {
+        suppressOverflow(tester);
+
+        await tester.pumpWidget(
+          buildSubject(
+            eligibility: ReservationEligibility.needsGuestForm,
+            date: 'Lun 15 jun',
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        final fields = find.byType(TextField);
+        await tester.enterText(fields.at(0), 'María Torres');
+        await tester.enterText(fields.at(1), 'maria@correo.com');
+        await tester.enterText(fields.at(2), '+56912345678');
+        await tester.pump();
+
+        await tester.tap(
+          find.widgetWithText(ElevatedButton, 'Confirmar Reserva'),
+        );
+        await tester.pump();
+
+        expect(
+          find.textContaining('No se pudo determinar la fecha'),
+          findsOneWidget,
+        );
+        verifyNever(
+          () => authRepo.registerGuest(
+            name: any(named: 'name'),
+            email: any(named: 'email'),
+            phone: any(named: 'phone'),
+          ),
+        );
+      },
+    );
+  });
+
+  group('allowed / allowedExistingProfile', () {
+    for (final elig in [
+      ReservationEligibility.allowed,
+      ReservationEligibility.allowedExistingProfile,
+    ]) {
+      testWidgets('($elig) oculta el formulario y confirma directo', (
+        tester,
+      ) async {
+        suppressOverflow(tester);
+        when(
+          () => resRepo.createReservation(
+            publicationId: any(named: 'publicationId'),
+            date: any(named: 'date'),
+            startTime: any(named: 'startTime'),
+            endTime: any(named: 'endTime'),
+          ),
+        ).thenAnswer((_) async => _createdReservation);
+
+        await tester.pumpWidget(
+          buildSubject(eligibility: elig, profile: _guestProfile),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.text('Nombre Completo'), findsNothing);
+        expect(find.text('Correo'), findsNothing);
+
+        final btn = tester.widget<ElevatedButton>(
+          find.widgetWithText(ElevatedButton, 'Confirmar Reserva'),
+        );
+        expect(btn.onPressed, isNotNull);
+
+        await tester.tap(
+          find.widgetWithText(ElevatedButton, 'Confirmar Reserva'),
+        );
+        await tester.pumpAndSettle();
+
+        verifyNever(
+          () => authRepo.registerGuest(
+            name: any(named: 'name'),
+            email: any(named: 'email'),
+            phone: any(named: 'phone'),
+          ),
+        );
+        verify(
+          () => resRepo.createReservation(
+            publicationId: 'pub-001',
+            date: '2026-07-15',
+            startTime: '10:00',
+            endTime: '11:00',
+          ),
+        ).called(1);
+        expect(find.text('¡Reserva confirmada!'), findsOneWidget);
       });
-    },
-  );
+    }
+  });
+
+  group('needsActivation', () {
+    testWidgets('oculta form y botón Confirmar; muestra aviso y Activar '
+        'cuenta', (tester) async {
+      suppressOverflow(tester);
+
+      await tester.pumpWidget(
+        buildSubject(
+          eligibility: ReservationEligibility.needsActivation,
+          profile: _guestProfile,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Nombre Completo'), findsNothing);
+      expect(
+        find.widgetWithText(ElevatedButton, 'Confirmar Reserva'),
+        findsNothing,
+      );
+      expect(find.text('Activar cuenta'), findsOneWidget);
+      expect(find.textContaining('Ya hiciste una reserva'), findsOneWidget);
+    });
+
+    testWidgets('tap Activar cuenta llama updateEmail y navega a /verify-otp', (
+      tester,
+    ) async {
+      suppressOverflow(tester);
+      when(
+        () => authRepo.updateEmail(email: any(named: 'email')),
+      ).thenAnswer((_) async {});
+
+      await tester.pumpWidget(
+        buildSubject(
+          eligibility: ReservationEligibility.needsActivation,
+          profile: _guestProfile,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Activar cuenta'));
+      await tester.pumpAndSettle();
+
+      verify(() => authRepo.updateEmail(email: 'maria@correo.com')).called(1);
+      expect(find.text('Verificar OTP'), findsOneWidget);
+    });
+  });
+
+  group('interacciones comunes', () {
+    testWidgets('tap Cancelar reserva muestra SnackBar de función no '
+        'disponible', (tester) async {
+      suppressOverflow(tester);
+
+      await tester.pumpWidget(
+        buildSubject(eligibility: ReservationEligibility.allowed),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.ensureVisible(find.text('Cancelar reserva'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Cancelar reserva'));
+      await tester.pump();
+
+      expect(find.text('Función no disponible aún'), findsOneWidget);
+    });
+
+    testWidgets('AppBar tiene botón de retroceso', (tester) async {
+      suppressOverflow(tester);
+
+      await tester.pumpWidget(
+        buildSubject(eligibility: ReservationEligibility.allowed),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byIcon(Icons.arrow_back_ios_new), findsOneWidget);
+    });
+  });
 }

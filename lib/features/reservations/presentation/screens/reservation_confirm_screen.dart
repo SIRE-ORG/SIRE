@@ -1,10 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../core/network/app_exception.dart';
 import '../../../../core/widgets/custom_button.dart';
 import '../../../../core/widgets/custom_text_field.dart';
+import '../../../auth/presentation/providers/auth_provider.dart';
+import '../../domain/entities/reservation_eligibility.dart';
 import '../../domain/usecases/create_reservation_usecase.dart';
+import '../providers/reservation_eligibility_provider.dart';
 import '../providers/reservations_provider.dart';
+
+/// Patrón de fecha que [publication_detail_screen] envía en el query param
+/// `date`: YYYY-MM-DD (la fecha del slot elegido, no un texto libre).
+final RegExp _isoDatePattern = RegExp(r'^\d{4}-\d{2}-\d{2}$');
 
 class ReservationConfirmScreen extends ConsumerStatefulWidget {
   final String id;
@@ -33,7 +41,6 @@ class _ReservationConfirmScreenState
   final _nombreCtrl = TextEditingController();
   final _correoCtrl = TextEditingController();
   final _telefonoCtrl = TextEditingController();
-  DateTime? _fecha;
 
   @override
   void initState() {
@@ -54,36 +61,71 @@ class _ReservationConfirmScreenState
   bool get _emailValido =>
       RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(_correoCtrl.text.trim());
 
-  bool get _formValido =>
-      _nombreCtrl.text.trim().isNotEmpty &&
-      _emailValido &&
-      _telefonoCtrl.text.trim().isNotEmpty &&
-      _fecha != null;
-
-  Future<void> _pickDate() async {
-    final now = DateTime.now();
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: now.add(const Duration(days: 1)),
-      firstDate: now,
-      lastDate: now.add(const Duration(days: 365)),
-    );
-    if (picked != null) setState(() => _fecha = picked);
+  bool _formValido(ReservationEligibility elig) {
+    if (elig != ReservationEligibility.needsGuestForm) return true;
+    return _nombreCtrl.text.trim().isNotEmpty &&
+        _emailValido &&
+        _telefonoCtrl.text.trim().isNotEmpty;
   }
 
-  Future<void> _handleConfirm() async {
-    if (!_formValido) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Completa nombre, correo válido y teléfono'),
-        ),
+  /// La fecha de la reserva es la del slot elegido (`widget.date`), NUNCA un
+  /// DatePicker propio del formulario. Se parsea de forma defensiva: si no
+  /// calza con YYYY-MM-DD, se trata como error controlado (nunca se cae a
+  /// `DateTime.now()` silenciosamente).
+  String? get _slotDateIso {
+    final raw = widget.date.trim();
+    return _isoDatePattern.hasMatch(raw) ? raw : null;
+  }
+
+  /// Fecha para mostrar en el resumen: dd/MM/yyyy si `widget.date` es ISO;
+  /// si no (p. ej. datos de prueba legacy), se muestra tal cual llegó.
+  String get _displayDate {
+    final iso = _slotDateIso;
+    if (iso == null) return widget.date.isNotEmpty ? widget.date : 'Hoy';
+    final parts = iso.split('-');
+    return '${parts[2]}/${parts[1]}/${parts[0]}';
+  }
+
+  void _snack(String msg) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+  }
+
+  Future<void> _handleConfirm(
+    ReservationEligibility elig,
+    String? profileEmail,
+  ) async {
+    if (!_formValido(elig)) {
+      _snack('Completa nombre, correo válido y teléfono');
+      return;
+    }
+
+    final dateIso = _slotDateIso;
+    if (dateIso == null) {
+      _snack(
+        'No se pudo determinar la fecha de la reserva. Vuelve a '
+        'seleccionar un horario.',
       );
       return;
     }
+
     setState(() => _loading = true);
     try {
-      // Fecha real en YYYY-MM-DD (el backend rechaza placeholders como "Hoy").
-      final dateStr = _fecha!.toIso8601String().split('T').first;
+      if (elig == ReservationEligibility.needsGuestForm) {
+        try {
+          await ref
+              .read(authNotifierProvider.notifier)
+              .registerGuest(
+                name: _nombreCtrl.text.trim(),
+                email: _correoCtrl.text.trim(),
+                phone: _telefonoCtrl.text.trim(),
+              );
+        } on ConflictException {
+          _snack('Este correo ya tiene cuenta; inicia sesión');
+          return;
+        }
+      }
+
       final parts = widget.time.split('-');
       final startTime = (parts.isNotEmpty && parts[0].trim().contains(':'))
           ? parts[0].trim()
@@ -96,12 +138,16 @@ class _ReservationConfirmScreenState
           .create(
             params: CreateReservationParams(
               publicationId: widget.id,
-              date: dateStr,
+              date: dateIso,
               startTime: startTime,
               endTime: endTime,
             ),
           );
-      if (mounted) _showSuccessDialog(context);
+
+      final email = elig == ReservationEligibility.needsGuestForm
+          ? _correoCtrl.text.trim()
+          : profileEmail;
+      if (mounted) _showSuccessDialog(context, email);
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -113,7 +159,39 @@ class _ReservationConfirmScreenState
     }
   }
 
-  void _showSuccessDialog(BuildContext context) {
+  /// Paso 1 de la activación (fase 3): adjunta [email] al usuario Supabase y
+  /// navega a verificar el OTP de cambio de correo. Compartido por el modal
+  /// de éxito ("Crear contraseña") y el aviso de `needsActivation`
+  /// ("Activar cuenta"). Usa el `context` propio del State (no uno recibido
+  /// por parámetro) para que el guard `mounted` sea válido tras el `await`.
+  Future<void> _goToActivation(String? email) async {
+    if (email == null || email.isEmpty) {
+      _snack('No se pudo determinar tu correo. Intenta más tarde.');
+      return;
+    }
+
+    setState(() => _loading = true);
+    try {
+      await ref
+          .read(authNotifierProvider.notifier)
+          .startActivation(email: email);
+      if (!mounted) return;
+
+      if (ref.read(authNotifierProvider).hasError) {
+        _snack('No se pudo iniciar la activación; intenta más tarde');
+        return;
+      }
+
+      context.go(
+        '/verify-otp',
+        extra: {'email': email, 'otpType': 'emailChange'},
+      );
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  void _showSuccessDialog(BuildContext context, String? guestEmail) {
     showGeneralDialog(
       context: context,
       barrierDismissible: false,
@@ -168,24 +246,15 @@ class _ReservationConfirmScreenState
                     ),
                   ),
                   const SizedBox(height: 32),
-                  const CustomTextField(
-                    label: 'Contraseña',
-                    hintText: 'Mínimo 8 caracteres',
-                    isPassword: true,
-                  ),
-                  const SizedBox(height: 16),
-                  const CustomTextField(
-                    label: 'Confirmar contraseña',
-                    hintText: 'Repite tu contraseña',
-                    isPassword: true,
-                  ),
-                  const SizedBox(height: 32),
                   SizedBox(
                     width: double.infinity,
                     height: 50,
                     child: CustomButton(
                       text: 'Crear contraseña',
-                      onPressed: () => context.go('/my-reservations'),
+                      onPressed: () async {
+                        Navigator.of(context).pop();
+                        await _goToActivation(guestEmail);
+                      },
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -224,8 +293,201 @@ class _ReservationConfirmScreenState
     );
   }
 
+  Widget _buildSummaryBanner() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFE3F2FD),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.blue.shade100),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  widget.title.isNotEmpty
+                      ? widget.title
+                      : 'Cancha de fútbol sintética',
+                  style: const TextStyle(
+                    color: Color(0xFF1E70CD),
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  widget.subtitle.isNotEmpty
+                      ? widget.subtitle
+                      : 'Club Deportivo Temuco',
+                  style: const TextStyle(color: Colors.grey, fontSize: 12),
+                ),
+              ],
+            ),
+          ),
+          Text(
+            '$_displayDate • ${widget.time.isNotEmpty ? widget.time : "11:00"}',
+            style: const TextStyle(color: Colors.grey, fontSize: 12),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNeedsActivationNotice(String? profileEmail) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: const Color(0xFFFFF3E0),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.orange.shade100),
+          ),
+          child: const Text(
+            'Ya hiciste una reserva como invitado. Activa tu cuenta con una '
+            'contraseña para poder reservar de nuevo.',
+            style: TextStyle(color: Color(0xFF7A4B00), fontSize: 13),
+          ),
+        ),
+        const SizedBox(height: 24),
+        SizedBox(
+          width: double.infinity,
+          height: 50,
+          child: CustomButton(
+            text: _loading ? 'Activando...' : 'Activar cuenta',
+            onPressed: _loading ? null : () => _goToActivation(profileEmail),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildFormAndConfirm(
+    BuildContext context,
+    ReservationEligibility elig,
+    String? profileEmail,
+  ) {
+    final needsForm = elig == ReservationEligibility.needsGuestForm;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (needsForm) ...[
+          CustomTextField(
+            label: 'Nombre Completo',
+            hintText: 'Ej: María Torres',
+            controller: _nombreCtrl,
+          ),
+          const SizedBox(height: 16),
+          CustomTextField(
+            label: 'Correo',
+            hintText: 'Ej: mariatorres@gmail.com',
+            keyboardType: TextInputType.emailAddress,
+            controller: _correoCtrl,
+          ),
+          const SizedBox(height: 16),
+          CustomTextField(
+            label: 'Teléfono',
+            hintText: 'Ej: +56911223344',
+            keyboardType: TextInputType.phone,
+            controller: _telefonoCtrl,
+          ),
+          const SizedBox(height: 16),
+        ],
+        SizedBox(
+          width: double.infinity,
+          height: 50,
+          child: CustomButton(
+            text: _loading ? 'Confirmando...' : 'Confirmar Reserva',
+            onPressed: (_loading || !_formValido(elig))
+                ? null
+                : () => _handleConfirm(elig, profileEmail),
+          ),
+        ),
+        const SizedBox(height: 12),
+        SizedBox(
+          width: double.infinity,
+          height: 50,
+          child: OutlinedButton(
+            onPressed: () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Función no disponible aún')),
+              );
+            },
+            style: OutlinedButton.styleFrom(
+              side: const BorderSide(color: Color(0xFFEF9A9A)),
+              backgroundColor: const Color(0xFFFFEBEE),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            child: const Text(
+              'Cancelar reserva',
+              style: TextStyle(
+                color: Color(0xFFC62828),
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildBody(
+    BuildContext context,
+    ReservationEligibility elig,
+    String? profileEmail,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSummaryBanner(),
+        const SizedBox(height: 32),
+        if (elig == ReservationEligibility.needsActivation)
+          _buildNeedsActivationNotice(profileEmail)
+        else
+          _buildFormAndConfirm(context, elig, profileEmail),
+      ],
+    );
+  }
+
+  Widget _buildEligibilityError() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 48),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.error_outline, size: 48, color: Colors.grey),
+          const SizedBox(height: 16),
+          const Text(
+            'No se pudo verificar tu cuenta para continuar',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: Colors.grey),
+          ),
+          const SizedBox(height: 16),
+          TextButton(
+            onPressed: () => ref.invalidate(reservationEligibilityProvider),
+            child: const Text('Reintentar'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final eligibilityAsync = ref.watch(reservationEligibilityProvider);
+    // Watch (no solo read) para que el provider no se auto-elimine entre el
+    // build y el tap de un botón: sin esto, currentProfileProvider (autoDispose
+    // y sin otro watcher en este árbol) podía quedar sin resolver a tiempo.
+    final profileEmail = ref.watch(currentProfileProvider).valueOrNull?.email;
+
     return LayoutBuilder(
       builder: (context, constraints) {
         final isWeb = constraints.maxWidth >= 800;
@@ -275,174 +537,17 @@ class _ReservationConfirmScreenState
                           ],
                         )
                       : null,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFE3F2FD),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Colors.blue.shade100),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    widget.title.isNotEmpty
-                                        ? widget.title
-                                        : 'Cancha de fútbol sintética',
-                                    style: const TextStyle(
-                                      color: Color(0xFF1E70CD),
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 16,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    widget.subtitle.isNotEmpty
-                                        ? widget.subtitle
-                                        : 'Club Deportivo Temuco',
-                                    style: const TextStyle(
-                                      color: Colors.grey,
-                                      fontSize: 12,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            Text(
-                              '${widget.date.isNotEmpty ? widget.date : "Hoy"} • ${widget.time.isNotEmpty ? widget.time : "11:00"}',
-                              style: const TextStyle(
-                                color: Colors.grey,
-                                fontSize: 12,
-                              ),
-                            ),
-                          ],
+                  child: eligibilityAsync.when(
+                    loading: () => const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 48),
+                      child: Center(
+                        child: CircularProgressIndicator(
+                          color: Color(0xFF1E70CD),
                         ),
                       ),
-                      const SizedBox(height: 32),
-                      CustomTextField(
-                        label: 'Nombre Completo',
-                        hintText: 'Ej: María Torres',
-                        controller: _nombreCtrl,
-                      ),
-                      const SizedBox(height: 16),
-                      CustomTextField(
-                        label: 'Correo',
-                        hintText: 'Ej: mariatorres@gmail.com',
-                        keyboardType: TextInputType.emailAddress,
-                        controller: _correoCtrl,
-                      ),
-                      const SizedBox(height: 16),
-                      CustomTextField(
-                        label: 'Teléfono',
-                        hintText: 'Ej: +56911223344',
-                        keyboardType: TextInputType.phone,
-                        controller: _telefonoCtrl,
-                      ),
-                      const SizedBox(height: 16),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'Fecha',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w500,
-                              color: Color(0xFF666666),
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          InkWell(
-                            onTap: _pickDate,
-                            borderRadius: BorderRadius.circular(12),
-                            child: Container(
-                              width: double.infinity,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 14,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(
-                                  color: const Color(0xFFE0E0E0),
-                                ),
-                              ),
-                              child: Row(
-                                children: [
-                                  const Icon(
-                                    Icons.calendar_today,
-                                    size: 18,
-                                    color: Color(0xFF1E70CD),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Text(
-                                    _fecha == null
-                                        ? 'Selecciona una fecha'
-                                        : '${_fecha!.day.toString().padLeft(2, '0')}/'
-                                              '${_fecha!.month.toString().padLeft(2, '0')}/'
-                                              '${_fecha!.year}',
-                                    style: TextStyle(
-                                      color: _fecha == null
-                                          ? const Color(0xFFB3B3B3)
-                                          : const Color(0xFF1E293B),
-                                      fontSize: 14,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 40),
-                      SizedBox(
-                        width: double.infinity,
-                        height: 50,
-                        child: CustomButton(
-                          text: _loading
-                              ? 'Confirmando...'
-                              : 'Confirmar Reserva',
-                          onPressed: (_loading || !_formValido)
-                              ? null
-                              : _handleConfirm,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      SizedBox(
-                        width: double.infinity,
-                        height: 50,
-                        child: OutlinedButton(
-                          onPressed: () {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Función no disponible aún'),
-                              ),
-                            );
-                          },
-                          style: OutlinedButton.styleFrom(
-                            side: const BorderSide(color: Color(0xFFEF9A9A)),
-                            backgroundColor: const Color(0xFFFFEBEE),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                          ),
-                          child: const Text(
-                            'Cancelar reserva',
-                            style: TextStyle(
-                              color: Color(0xFFC62828),
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
+                    ),
+                    error: (e, _) => _buildEligibilityError(),
+                    data: (elig) => _buildBody(context, elig, profileEmail),
                   ),
                 ),
               ),

@@ -7,7 +7,7 @@ part of 'reservations_provider.dart';
 // **************************************************************************
 
 String _$reservationsRemoteDatasourceHash() =>
-    r'0bf77ce02566bdc3a01d125776df643da7e007cf';
+    r'450464797ebd38ee9b76590a1aac1e6389e1e902';
 
 /// See also [reservationsRemoteDatasource].
 @ProviderFor(reservationsRemoteDatasource)
