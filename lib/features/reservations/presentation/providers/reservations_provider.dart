@@ -24,9 +24,9 @@ part 'reservations_provider.g.dart';
 
 @riverpod
 ReservationsRemoteDatasource reservationsRemoteDatasource(Ref ref) =>
-    ApiFlags.useRealBackend
-    ? ReservationsRemoteDatasourceRealImpl(dio: DioClient.createSync().dio)
-    : ReservationsRemoteDatasourceMockImpl();
+    ApiFlags.useMocks
+    ? ReservationsRemoteDatasourceMockImpl()
+    : ReservationsRemoteDatasourceRealImpl(dio: DioClient.createSync().dio);
 
 @riverpod
 ReservationsRepository reservationsRepository(Ref ref) =>
@@ -40,8 +40,9 @@ ReservationsRepository reservationsRepository(Ref ref) =>
 
 @riverpod
 Future<List<Reservation>> receivedReservations(Ref ref) =>
-    GetReceivedReservationsUseCase(ref.read(reservationsRepositoryProvider))
-        .call();
+    GetReceivedReservationsUseCase(
+      ref.read(reservationsRepositoryProvider),
+    ).call();
 
 // ---------------------------------------------------------------------------
 // ReservationDetail — detalle de una reserva por id
@@ -49,8 +50,9 @@ Future<List<Reservation>> receivedReservations(Ref ref) =>
 
 @riverpod
 Future<Reservation> reservationDetail(Ref ref, String id) =>
-    GetReservationDetailUseCase(ref.read(reservationsRepositoryProvider))
-        .call(id: id);
+    GetReservationDetailUseCase(
+      ref.read(reservationsRepositoryProvider),
+    ).call(id: id);
 
 // ---------------------------------------------------------------------------
 // MyReservationsNotifier — listado de reservas del solicitante

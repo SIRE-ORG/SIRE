@@ -22,7 +22,7 @@ El objetivo de este doc es que puedas priorizar las entregas sabiendo exactament
 | Recurso | Estado | Para qué lo uso |
 |---|---|---|
 | `SUPABASE_URL`, `SUPABASE_ANON_KEY` en `.env` | ✅ | `Supabase.initialize()` en `main.dart`. |
-| `API_BASE_URL` en `.env` | ✅ | Backend vivo en Render (`.env` apunta ahí). `ApiConstants.baseUrl` lo lee con `dotenv`; la capa de red real se habilita con `--dart-define=USE_REAL_BACKEND=true` (default sigue en mocks). |
+| `API_BASE_URL` en `.env` | ✅ | Backend vivo en Render (`.env` apunta ahí). `ApiConstants.baseUrl` lo lee con `dotenv`; la app usa la capa de red real por defecto. Los mocks quedan tras `--dart-define=USE_MOCKS=true`. |
 | `GOOGLE_GEOCODING_KEY` en `.env` | 🔧 *opcional* | El paquete `geocoding` usa el servicio nativo del dispositivo por defecto XD. La api de geocoding de google solo se necesita si más adelante usamos fallback de Google (para Windows x ej), pero ahora mismo no la estaríamos necesitando (pq estamos en mobile-first). |
 | Bucket Supabase Storage `avatars` con política `SELECT public` | 🔧 | `AvatarStorageDatasourceImpl.uploadAvatar` (Sprint 1). Sin esto la Emilia no puede testear edición de avatar en UI. |
 | Bucket Supabase Storage `publications` con política `SELECT public` | 🔧 | `PublicationImageDatasourceImpl.uploadImage` (Sprint 2). Sin esto la creación de publicación con imagen falla (lo mismo que el otro, sólo necesito que configures los buckets de ambos en storage). |

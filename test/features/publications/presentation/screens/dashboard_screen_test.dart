@@ -3,7 +3,11 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:sire/core/providers/role_provider.dart';
+import 'package:sire/features/publications/data/datasources/publications_remote_datasource_mock_impl.dart';
+import 'package:sire/features/publications/presentation/providers/my_publications_provider.dart';
 import 'package:sire/features/publications/presentation/screens/dashboard_screen.dart';
+import 'package:sire/features/reservations/data/datasources/reservations_remote_datasource_mock_impl.dart';
+import 'package:sire/features/reservations/presentation/providers/reservations_provider.dart';
 
 void main() {
   Widget buildSubject({
@@ -33,7 +37,18 @@ void main() {
       ],
     );
     return ProviderScope(
-      overrides: [isPublisherProvider.overrideWith((ref) => isPublisher)],
+      overrides: [
+        isPublisherProvider.overrideWith((ref) => isPublisher),
+        // DashboardScreen observa mis publicaciones y reservas recibidas:
+        // se fuerzan los datasources mock porque ApiFlags.useMocks ahora es
+        // false por defecto (backend real).
+        publicationsRemoteDatasourceProvider.overrideWithValue(
+          PublicationsRemoteDatasourceMockImpl(),
+        ),
+        reservationsRemoteDatasourceProvider.overrideWithValue(
+          ReservationsRemoteDatasourceMockImpl(),
+        ),
+      ],
       child: MaterialApp.router(routerConfig: mockRouter),
     );
   }

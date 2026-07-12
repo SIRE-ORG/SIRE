@@ -1,5 +1,5 @@
 // PI-AUTH-MOCK-DS — El datasource mock de auth devuelve respuestas canned
-// estables: es la fuente que usa la app cuando USE_REAL_BACKEND=false.
+// estables: es la fuente que usa la app cuando USE_MOCKS=true.
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sire/features/auth/data/datasources/auth_remote_datasource_mock_impl.dart';

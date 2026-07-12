@@ -3,6 +3,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:sire/features/feed/presentation/screens/publication_detail_screen.dart';
+import 'package:sire/features/publications/data/datasources/publications_remote_datasource_mock_impl.dart';
+import 'package:sire/features/publications/presentation/providers/my_publications_provider.dart';
 
 void main() {
   Widget buildSubject() {
@@ -23,7 +25,18 @@ void main() {
         ),
       ],
     );
-    return ProviderScope(child: MaterialApp.router(routerConfig: mockRouter));
+    return ProviderScope(
+      // El detalle sale de publicationDetailProvider → el datasource mock
+      // trae el fixture "Cancha de fútbol El Estadio" con owner "Pedro
+      // González" que esta pantalla verifica. Se fuerza explícitamente
+      // porque ApiFlags.useMocks ahora es false por defecto (backend real).
+      overrides: [
+        publicationsRemoteDatasourceProvider.overrideWithValue(
+          PublicationsRemoteDatasourceMockImpl(),
+        ),
+      ],
+      child: MaterialApp.router(routerConfig: mockRouter),
+    );
   }
 
   Future<void> pumpScreen(WidgetTester tester) async {

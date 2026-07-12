@@ -1,12 +1,16 @@
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
-import 'package:sire/features/auth/data/datasources/auth_remote_datasource_mock_impl.dart';
+import 'package:sire/core/network/api_flags.dart';
+import 'package:sire/features/auth/data/datasources/auth_remote_datasource_real_impl.dart';
 import 'package:sire/features/auth/data/datasources/avatar_storage_datasource.dart';
 import 'package:sire/features/auth/domain/entities/auth_result.dart';
 import 'package:sire/features/auth/domain/entities/user_profile.dart';
 import 'package:sire/features/auth/domain/repositories/auth_repository.dart';
 import 'package:sire/features/auth/presentation/providers/auth_provider.dart';
+
+import '../../../../helpers/test_doubles.dart';
 
 class MockAuthRepository extends Mock implements AuthRepository {}
 
@@ -14,14 +18,32 @@ class MockAvatarStorageDatasource extends Mock
     implements AvatarStorageDatasource {}
 
 void main() {
-  group('PI-PROV-03: flag por defecto selecciona el mock', () {
-    test('sin overrides, el datasource remoto de auth es el mock', () {
-      final container = ProviderContainer();
+  group('PI-PROV-03: flag por defecto selecciona el backend real', () {
+    test('ApiFlags.useMocks es false por defecto', () {
+      expect(ApiFlags.useMocks, isFalse);
+    });
+
+    // La rama `useMocks == false` construye AuthRemoteDatasourceRealImpl con
+    // Supabase.instance.client, que exige Supabase inicializado (no
+    // disponible en este entorno de test). Se inyectan dio/supabase de
+    // prueba para verificar que esa rama resuelve al tipo real esperado.
+    test('con dio/supabase inyectados, la rama real resuelve '
+        'AuthRemoteDatasourceRealImpl', () {
+      final container = ProviderContainer(
+        overrides: [
+          authRemoteDatasourceProvider.overrideWithValue(
+            AuthRemoteDatasourceRealImpl(
+              dio: Dio(),
+              supabase: MockSupabaseClient(),
+            ),
+          ),
+        ],
+      );
       addTearDown(container.dispose);
 
       expect(
         container.read(authRemoteDatasourceProvider),
-        isA<AuthRemoteDatasourceMockImpl>(),
+        isA<AuthRemoteDatasourceRealImpl>(),
       );
     });
   });

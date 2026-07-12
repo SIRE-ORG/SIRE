@@ -20,10 +20,9 @@ part 'notifications_provider.g.dart';
 // ---------------------------------------------------------------------------
 
 @riverpod
-NotificationsDatasource notificationsDatasource(Ref ref) =>
-    ApiFlags.useRealBackend
-    ? NotificationsRemoteDatasourceRealImpl(dio: DioClient.createSync().dio)
-    : NotificationsMockDatasourceImpl();
+NotificationsDatasource notificationsDatasource(Ref ref) => ApiFlags.useMocks
+    ? NotificationsMockDatasourceImpl()
+    : NotificationsRemoteDatasourceRealImpl(dio: DioClient.createSync().dio);
 
 @riverpod
 NotificationsRepository notificationsRepository(Ref ref) =>

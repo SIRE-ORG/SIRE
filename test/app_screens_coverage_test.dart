@@ -2,12 +2,40 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:sire/features/auth/data/datasources/auth_remote_datasource_mock_impl.dart';
+import 'package:sire/features/auth/presentation/providers/auth_provider.dart';
+import 'package:sire/features/notifications/data/datasources/notifications_mock_datasource_impl.dart';
+import 'package:sire/features/notifications/presentation/providers/notifications_provider.dart';
 import 'package:sire/features/notifications/presentation/screens/notifications_screen.dart';
 import 'package:sire/features/profile/presentation/screens/profile_screen.dart';
+import 'package:sire/features/publications/data/datasources/publications_remote_datasource_mock_impl.dart';
+import 'package:sire/features/publications/presentation/providers/my_publications_provider.dart';
+import 'package:sire/features/reservations/data/datasources/reservations_remote_datasource_mock_impl.dart';
+import 'package:sire/features/reservations/presentation/providers/reservations_provider.dart';
 import 'package:sire/features/reservations/presentation/screens/my_reservations_screen.dart';
 import 'package:sire/features/publications/presentation/screens/my_publications_screen.dart';
 import 'package:sire/features/publications/presentation/screens/create_publication_screen.dart';
 import 'package:sire/features/publications/presentation/screens/dashboard_screen.dart';
+
+// Estas pantallas se recorren en bloque sin overrides específicos por
+// escenario: se fuerzan los datasources mock (independientes del flag
+// ApiFlags.useMocks, que ahora por defecto apunta al backend real y
+// requiere dotenv/Supabase inicializados, no disponibles en este entorno
+// de test) para poder navegar sin tocar red.
+List<Override> _mockDatasourceOverrides() => [
+  authRemoteDatasourceProvider.overrideWithValue(
+    AuthRemoteDatasourceMockImpl(),
+  ),
+  publicationsRemoteDatasourceProvider.overrideWithValue(
+    PublicationsRemoteDatasourceMockImpl(),
+  ),
+  reservationsRemoteDatasourceProvider.overrideWithValue(
+    ReservationsRemoteDatasourceMockImpl(),
+  ),
+  notificationsDatasourceProvider.overrideWithValue(
+    NotificationsMockDatasourceImpl(),
+  ),
+];
 
 void main() {
   testWidgets('Renderizado general de pantallas y navegacion', (
@@ -33,7 +61,10 @@ void main() {
     );
 
     await tester.pumpWidget(
-      ProviderScope(child: MaterialApp.router(routerConfig: mockRouter)),
+      ProviderScope(
+        overrides: _mockDatasourceOverrides(),
+        child: MaterialApp.router(routerConfig: mockRouter),
+      ),
     );
     await tester.pumpAndSettle();
 

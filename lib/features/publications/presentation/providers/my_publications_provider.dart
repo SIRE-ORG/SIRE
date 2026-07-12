@@ -30,12 +30,12 @@ part 'my_publications_provider.g.dart';
 
 @riverpod
 PublicationsRemoteDatasource publicationsRemoteDatasource(Ref ref) =>
-    ApiFlags.useRealBackend
-    ? PublicationsRemoteDatasourceRealImpl(
+    ApiFlags.useMocks
+    ? PublicationsRemoteDatasourceMockImpl()
+    : PublicationsRemoteDatasourceRealImpl(
         dio: DioClient.createSync().dio,
         supabase: Supabase.instance.client,
-      )
-    : PublicationsRemoteDatasourceMockImpl();
+      );
 
 @riverpod
 PublicationImageDatasource publicationImageDatasource(Ref ref) =>

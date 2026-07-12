@@ -25,9 +25,9 @@ part 'feed_provider.g.dart';
 // ---------------------------------------------------------------------------
 
 @riverpod
-FeedRemoteDatasource feedRemoteDatasource(Ref ref) => ApiFlags.useRealBackend
-    ? FeedRemoteDatasourceRealImpl(dio: DioClient.createSync().dio)
-    : const FeedRemoteDatasourceMockImpl();
+FeedRemoteDatasource feedRemoteDatasource(Ref ref) => ApiFlags.useMocks
+    ? const FeedRemoteDatasourceMockImpl()
+    : FeedRemoteDatasourceRealImpl(dio: DioClient.createSync().dio);
 
 @riverpod
 GeoDatasource geoDatasource(Ref ref) => GeoDatasourceImpl(
