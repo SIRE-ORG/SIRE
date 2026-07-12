@@ -493,4 +493,142 @@ void main() {
       expect(find.byIcon(Icons.arrow_back_ios_new), findsOneWidget);
     });
   });
+
+  // Regresión F1/F4: usa la cadena REAL de providers (authRepositoryProvider
+  // + reservationsRepositoryProvider), sin override estático de
+  // reservationEligibilityProvider ni de currentProfileProvider, para
+  // verificar que `create()` invalida de verdad la elegibilidad cacheada.
+  group('F1 (regresión) — invalidación real tras crear', () {
+    Widget buildRealSubject() {
+      final router = GoRouter(
+        initialLocation: '/confirm',
+        routes: [
+          GoRoute(
+            path: '/confirm',
+            builder: (_, _) => const ReservationConfirmScreen(
+              id: 'pub-001',
+              title: 'Cancha de fútbol sintética',
+              subtitle: 'Club Deportivo Temuco',
+              date: '2026-07-15',
+              time: '10:00',
+            ),
+          ),
+        ],
+      );
+
+      return ProviderScope(
+        overrides: [
+          authRepositoryProvider.overrideWithValue(authRepo),
+          reservationsRepositoryProvider.overrideWithValue(resRepo),
+        ],
+        child: MaterialApp.router(routerConfig: router),
+      );
+    }
+
+    testWidgets('tras crear la reserva, la elegibilidad real recalcula de '
+        'allowedExistingProfile a needsActivation para un guest', (
+      tester,
+    ) async {
+      suppressOverflow(tester);
+      when(() => authRepo.getProfile()).thenAnswer((_) async => _guestProfile);
+
+      var reservationCreated = false;
+      when(() => resRepo.getMyReservations()).thenAnswer(
+        (_) async => reservationCreated ? [_createdReservation] : [],
+      );
+      when(
+        () => resRepo.createReservation(
+          publicationId: any(named: 'publicationId'),
+          date: any(named: 'date'),
+          startTime: any(named: 'startTime'),
+          endTime: any(named: 'endTime'),
+        ),
+      ).thenAnswer((_) async {
+        reservationCreated = true;
+        return _createdReservation;
+      });
+
+      await tester.pumpWidget(buildRealSubject());
+      await tester.pumpAndSettle();
+
+      // Elegibilidad inicial real: guest con 0 reservas → confirma
+      // directo, sin formulario de invitado.
+      expect(find.text('Nombre Completo'), findsNothing);
+      final btn = tester.widget<ElevatedButton>(
+        find.widgetWithText(ElevatedButton, 'Confirmar Reserva'),
+      );
+      expect(btn.onPressed, isNotNull);
+
+      await tester.tap(
+        find.widgetWithText(ElevatedButton, 'Confirmar Reserva'),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('¡Reserva confirmada!'), findsOneWidget);
+
+      // Sin el fix F1, reservationEligibilityProvider quedaba cacheado en
+      // allowedExistingProfile tras crear y el guest podía reservar de
+      // nuevo saltándose la regla de negocio 4.
+      final context = tester.element(find.byType(ReservationConfirmScreen));
+      final container = ProviderScope.containerOf(context);
+      final eligibility = container.read(reservationEligibilityProvider);
+      expect(eligibility.value, ReservationEligibility.needsActivation);
+    });
+  });
+
+  group('F1 (regresión) — back del sistema no cierra el modal de éxito', () {
+    testWidgets(
+      'PopScope bloquea Navigator.maybePop sobre el diálogo de éxito',
+      (tester) async {
+        suppressOverflow(tester);
+        when(
+          () => authRepo.registerGuest(
+            name: any(named: 'name'),
+            email: any(named: 'email'),
+            phone: any(named: 'phone'),
+          ),
+        ).thenAnswer(
+          (_) async => const AuthResult(
+            userId: 'guest-1',
+            accountStatus: AccountStatus.guest,
+            userCreated: true,
+          ),
+        );
+        when(
+          () => resRepo.createReservation(
+            publicationId: any(named: 'publicationId'),
+            date: any(named: 'date'),
+            startTime: any(named: 'startTime'),
+            endTime: any(named: 'endTime'),
+          ),
+        ).thenAnswer((_) async => _createdReservation);
+
+        await tester.pumpWidget(
+          buildSubject(eligibility: ReservationEligibility.needsGuestForm),
+        );
+        await tester.pumpAndSettle();
+
+        final fields = find.byType(TextField);
+        await tester.enterText(fields.at(0), 'María Torres');
+        await tester.enterText(fields.at(1), 'maria@correo.com');
+        await tester.enterText(fields.at(2), '+56912345678');
+        await tester.pump();
+
+        await tester.tap(
+          find.widgetWithText(ElevatedButton, 'Confirmar Reserva'),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.text('¡Reserva confirmada!'), findsOneWidget);
+
+        // Simula el botón back del sistema (Android): sin
+        // PopScope(canPop: false), Navigator.maybePop() cerraría esta ruta
+        // modal aunque barrierDismissible sea false.
+        await tester.binding.handlePopRoute();
+        await tester.pumpAndSettle();
+
+        expect(find.text('¡Reserva confirmada!'), findsOneWidget);
+      },
+    );
+  });
 }
