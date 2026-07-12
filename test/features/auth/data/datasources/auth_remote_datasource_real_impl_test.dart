@@ -1,4 +1,4 @@
-// PI-AUTH-01 / PI-AUTH-02 — Integración de la fuente de datos real de auth.
+// PI-AUTH-01 / PI-AUTH-02 - Integración de la fuente de datos real de auth.
 //
 // getProfile consume GET /auth/me (el atajo sobre /users/profiles murió al
 // registrarse authRoutes en el backend). emailVerified no existe en la tabla
@@ -41,7 +41,7 @@ void main() {
 
   group('getProfile (PI-AUTH-01)', () {
     test(
-      '200 de /auth/me → perfil con emailVerified derivado de Supabase',
+      '200 de /auth/me -> perfil con emailVerified derivado de Supabase',
       () async {
         adapter.onGet(
           ApiConstants.authMe,
@@ -72,7 +72,7 @@ void main() {
       expect(model.name, '');
     });
 
-    test('404 (perfil no existe en profiles) → NotFoundException', () async {
+    test('404 (perfil no existe en profiles) -> NotFoundException', () async {
       adapter.onGet(
         ApiConstants.authMe,
         (server) =>
@@ -88,7 +88,7 @@ void main() {
     });
 
     test(
-      'sin sesión Supabase → UnauthorizedException sin tocar la red',
+      'sin sesión Supabase -> UnauthorizedException sin tocar la red',
       () async {
         await expectLater(
           datasourceCon(conUsuario: false).getProfile(),
@@ -109,7 +109,7 @@ void main() {
       await expectLater(datasourceCon().updateAccountStatus(), completes);
     });
 
-    test('sin sesión → UnauthorizedException', () async {
+    test('sin sesión -> UnauthorizedException', () async {
       await expectLater(
         datasourceCon(conUsuario: false).updateAccountStatus(),
         throwsA(isA<UnauthorizedException>()),
@@ -118,36 +118,39 @@ void main() {
   });
 
   group('flujos no integrables aún (PI-AUTH-02)', () {
-    test('registerGuest con sesión → POST real y respuesta correcta', () async {
-      const name = 'Dani';
-      const email = 'dani@sire.cl';
+    test(
+      'registerGuest con sesión -> POST real y respuesta correcta',
+      () async {
+        const name = 'Dani';
+        const email = 'dani@sire.cl';
 
-      adapter.onPost(
-        ApiConstants.authRegisterGuest,
-        (server) => server.reply(200, {
-          'data': profileJson(id: 'user-1', accountStatus: 'guest'),
-        }),
-        data: {
-          'id': 'user-1',
-          'email': email,
-          'name': name,
-          'phone': '+56911111111',
-        },
-      );
+        adapter.onPost(
+          ApiConstants.authRegisterGuest,
+          (server) => server.reply(200, {
+            'data': profileJson(id: 'user-1', accountStatus: 'guest'),
+          }),
+          data: {
+            'id': 'user-1',
+            'email': email,
+            'name': name,
+            'phone': '+56911111111',
+          },
+        );
 
-      final result = await datasourceCon().registerGuest(
-        name: name,
-        email: email,
-        phone: '+56911111111',
-      );
+        final result = await datasourceCon().registerGuest(
+          name: name,
+          email: email,
+          phone: '+56911111111',
+        );
 
-      expect(result.userId, 'user-1');
-      expect(result.accountStatus, 'guest');
-      expect(result.userCreated, isTrue);
-      expect(result.token, isNull);
-    });
+        expect(result.userId, 'user-1');
+        expect(result.accountStatus, 'guest');
+        expect(result.userCreated, isTrue);
+        expect(result.token, isNull);
+      },
+    );
 
-    test('registerGuest sin sesión → UnauthorizedException', () async {
+    test('registerGuest sin sesión -> UnauthorizedException', () async {
       await expectLater(
         datasourceCon(conUsuario: false).registerGuest(
           name: 'Dani',
@@ -158,7 +161,7 @@ void main() {
       );
     });
 
-    test('updateProfile → error controlado ENDPOINT_NOT_AVAILABLE', () {
+    test('updateProfile -> error controlado ENDPOINT_NOT_AVAILABLE', () {
       try {
         datasourceCon().updateProfile(name: 'Otro');
         fail('Se esperaba un ServerException');

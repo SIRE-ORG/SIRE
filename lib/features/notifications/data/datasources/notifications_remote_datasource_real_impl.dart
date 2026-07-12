@@ -6,9 +6,9 @@ import '../models/notification_model.dart';
 import 'notifications_datasource.dart';
 
 /// Implementación real:
-///   - Historial + marcar leídas → REST (`dio`); la identidad la inyecta el
+///   - Historial + marcar leídas -> REST (`dio`); la identidad la inyecta el
 ///     AuthInterceptor de DioClient.
-///   - Stream en vivo → Supabase Realtime directo a la tabla `notifications`
+///   - Stream en vivo -> Supabase Realtime directo a la tabla `notifications`
 ///     (primer uso de realtime en la app).
 ///
 /// [client] es inyectable para pruebas; en producción usa el singleton

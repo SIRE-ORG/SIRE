@@ -1,6 +1,6 @@
 @echo off
 REM =============================================================================
-REM SIRE — Ejecucion en desarrollo (Windows CMD)
+REM SIRE - Ejecucion en desarrollo (Windows CMD)
 REM =============================================================================
 REM Uso: scripts\run_dev.bat
 REM
@@ -15,7 +15,7 @@ REM ─── Banner ───────────────────�
 echo.
 echo   ╔══════════════════════════════════════════════╗
 echo   ║                                              ║
-echo   ║   SIRE — Ejecucion en desarrollo             ║
+echo   ║   SIRE - Ejecucion en desarrollo             ║
 echo   ║                                              ║
 echo   ╚══════════════════════════════════════════════╝
 echo.
@@ -23,14 +23,14 @@ echo.
 REM ─── Verificacion previa ──────────────────────────────────────────────────
 if not exist "backend\.env" (
     echo   ✗ backend\.env no encontrado.
-    echo   → Ejecuta primero: scripts\setup.bat
+    echo   -> Ejecuta primero: scripts\setup.bat
     pause
     exit /b 1
 )
 
 if not exist ".env" (
     echo   ✗ .env ^(Flutter^) no encontrado.
-    echo   → Ejecuta primero: scripts\setup.bat
+    echo   -> Ejecuta primero: scripts\setup.bat
     pause
     exit /b 1
 )
@@ -49,8 +49,8 @@ for %%v in (SUPABASE_URL SUPABASE_ANON_KEY API_BASE_URL) do (
 )
 if "!HAS_PLACEHOLDER!"=="1" (
     echo   ⚠ Algunas variables en .env aun tienen valor placeholder.
-    echo   → Edita .env con los valores reales de Supabase antes de continuar.
-    echo   → Las variables criticas son: SUPABASE_URL, SUPABASE_ANON_KEY, API_BASE_URL
+    echo   -> Edita .env con los valores reales de Supabase antes de continuar.
+    echo   -> Las variables criticas son: SUPABASE_URL, SUPABASE_ANON_KEY, API_BASE_URL
     echo.
     echo   ¿Deseas continuar de todas formas? [s/n]
     set /p CONTINUE_DESPI=
@@ -69,10 +69,10 @@ echo   [Backend] Iniciando Fastify en puerto 3000...
 echo   [Backend] Se abrira en una ventana separada. No la cierres mientras uses la app.
 echo.
 
-start "SIRE Backend — Fastify :3000" cmd /c "cd /d %CD%\backend && echo   SIRE Backend — Fastify en puerto 3000 && echo   Cierra esta ventana SOLO cuando termines de usar la app. && echo. && npm run dev"
+start "SIRE Backend - Fastify :3000" cmd /c "cd /d %CD%\backend && echo   SIRE Backend - Fastify en puerto 3000 && echo   Cierra esta ventana SOLO cuando termines de usar la app. && echo. && npm run dev"
 
 REM Esperar a que el backend esté listo (hasta 10s)
-echo   → Esperando a que el backend este listo...
+echo   -> Esperando a que el backend este listo...
 set "WAITED=0"
 :wait_backend
 timeout /t 1 /nobreak >nul
@@ -81,7 +81,7 @@ set /a WAITED+=1
 REM Intentar alcanzar el backend con curl (PowerShell fallback)
 powershell -NoProfile -Command "try { $r = Invoke-WebRequest -Uri 'http://localhost:3000/api/v1/users/profiles' -TimeoutSec 2 -UseBasicParsing; exit 0 } catch { exit 1 }" >nul 2>&1
 if %ERRORLEVEL% equ 0 (
-    echo   ✓ Backend respondiendo — listo
+    echo   ✓ Backend respondiendo - listo
     goto :backend_ready
 )
 
@@ -98,8 +98,8 @@ echo   [Flutter] Listando dispositivos disponibles...
 echo.
 flutter devices 2>nul
 echo.
-echo   → Conecta un dispositivo o inicia un emulador antes de continuar.
-echo   → Escribe el ID del dispositivo o presiona Enter para usar el predeterminado.
+echo   -> Conecta un dispositivo o inicia un emulador antes de continuar.
+echo   -> Escribe el ID del dispositivo o presiona Enter para usar el predeterminado.
 echo.
 set /p DEVICE_ID="  ID del dispositivo (Enter = predeterminado): "
 
@@ -118,7 +118,7 @@ echo.
 echo   ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
 echo.
 echo   [Flutter] App detenida.
-echo   ⚠ Recuerda cerrar la ventana del backend ^("SIRE Backend — Fastify :3000"^).
+echo   ⚠ Recuerda cerrar la ventana del backend ^("SIRE Backend - Fastify :3000"^).
 echo.
 pause
 exit /b 0

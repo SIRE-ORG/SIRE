@@ -1,4 +1,4 @@
-// PI-AUTH-SUPA-DS — AuthSupabaseDatasourceImpl es un wrapper delgado sobre el
+// PI-AUTH-SUPA-DS - AuthSupabaseDatasourceImpl es un wrapper delgado sobre el
 // GoTrueClient de Supabase: cada método delega en el SDK. Se inyecta un
 // SupabaseClient mockeado (en producción usa Supabase.instance.client).
 
@@ -152,7 +152,7 @@ void main() {
     expect(ds.getCurrentUserId(), 'user-9');
   });
 
-  test('getCurrentUserId → null sin sesión', () {
+  test('getCurrentUserId -> null sin sesión', () {
     when(() => auth.currentUser).thenReturn(null);
 
     expect(ds.getCurrentUserId(), isNull);
@@ -160,7 +160,7 @@ void main() {
 
   test('getCurrentJwt lee el accessToken de la sesión', () {
     // Sesión inline (solo accessToken): fakeSession construye internamente un
-    // fakeUser dentro de un thenReturn → `when` anidado, que aquí no hace falta.
+    // fakeUser dentro de un thenReturn -> `when` anidado, que aquí no hace falta.
     final session = MockSession();
     when(() => session.accessToken).thenReturn('jwt-xyz');
     when(() => auth.currentSession).thenReturn(session);

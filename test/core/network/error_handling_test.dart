@@ -1,4 +1,4 @@
-// PI-ERR-01 / PI-ERR-02 — Manejo de errores transversal (RNF-02, RNF-06).
+// PI-ERR-01 / PI-ERR-02 - Manejo de errores transversal (RNF-02, RNF-06).
 //
 // Monta el ErrorInterceptor real de producción sobre un Dio y verifica que
 // cada código de error del contrato se traduce al AppException tipado que la
@@ -14,7 +14,7 @@ import 'package:sire/core/network/dio_client.dart';
 import '../../helpers/fixtures.dart';
 
 void main() {
-  group('PI-ERR-02: códigos del contrato → fallos tipados del dominio', () {
+  group('PI-ERR-02: códigos del contrato -> fallos tipados del dominio', () {
     late Dio dio;
     late DioAdapter adapter;
 
@@ -40,7 +40,7 @@ void main() {
       }
     }
 
-    test('400 con fields → ValidationException con los campos', () async {
+    test('400 con fields -> ValidationException con los campos', () async {
       adapter.onPost(
         '/publications',
         (server) => server.reply(
@@ -60,7 +60,7 @@ void main() {
       expect((err as ValidationException).fields['title'], 'requerido');
     });
 
-    test('401 → UnauthorizedException', () async {
+    test('401 -> UnauthorizedException', () async {
       adapter.onGet(
         '/protegido',
         (server) =>
@@ -73,7 +73,7 @@ void main() {
       );
     });
 
-    test('403 → ServerException FORBIDDEN con mensaje del backend', () async {
+    test('403 -> ServerException FORBIDDEN con mensaje del backend', () async {
       adapter.onPut(
         '/publications/pub-1',
         (server) =>
@@ -89,7 +89,7 @@ void main() {
       expect(err.message, 'No eres el dueño');
     });
 
-    test('404 → NotFoundException con el code del backend', () async {
+    test('404 -> NotFoundException con el code del backend', () async {
       adapter.onGet(
         '/publications/no-existe',
         (server) => server.reply(404, errorBody('NOT_FOUND', 'No existe')),
@@ -101,7 +101,7 @@ void main() {
       expect((err as NotFoundException).code, 'NOT_FOUND');
     });
 
-    test('409 → ConflictException con el code del backend', () async {
+    test('409 -> ConflictException con el code del backend', () async {
       adapter.onPost(
         '/reservations',
         (server) => server.reply(409, errorBody('SLOT_TAKEN', 'Slot ocupado')),
@@ -115,7 +115,7 @@ void main() {
     });
 
     test(
-      '500 → ServerException conservando code y message del backend',
+      '500 -> ServerException conservando code y message del backend',
       () async {
         adapter.onGet(
           '/publications',
@@ -139,8 +139,8 @@ void main() {
     );
   });
 
-  group('PI-ERR-01: backend inaccesible → error de red limpio', () {
-    test('puerto cerrado real en localhost → NetworkException', () async {
+  group('PI-ERR-01: backend inaccesible -> error de red limpio', () {
+    test('puerto cerrado real en localhost -> NetworkException', () async {
       // Socket real contra un puerto sin servicio: ejercita el camino completo
       // de connectionError/connectTimeout sin simulación.
       final dio = Dio(
@@ -159,7 +159,7 @@ void main() {
       }
     });
 
-    test('timeout de lectura → NetworkException', () async {
+    test('timeout de lectura -> NetworkException', () async {
       final dio = Dio(BaseOptions(baseUrl: 'http://test.local'));
       final adapter = DioAdapter(dio: dio);
       dio.interceptors.add(ErrorInterceptor());

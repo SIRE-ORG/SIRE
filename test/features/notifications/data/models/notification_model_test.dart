@@ -80,7 +80,7 @@ void main() {
       );
     });
 
-    test('tipo desconocido → system', () {
+    test('tipo desconocido -> system', () {
       expect(notificationTypeFromString('lo_que_sea'), NotificationType.system);
     });
   });

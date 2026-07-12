@@ -1,4 +1,4 @@
-# SIRE — Contrato de API
+# SIRE - Contrato de API
 
 *Documento vivo. Las decisiones de arquitectura externa están consolidadas; cambios menores en payloads se actualizan inline al ocurrir.*
 
@@ -10,28 +10,28 @@ Resueltas tras revisión con Cristian (2026-05-10):
 
 - **`slotId`:** identificador determinista construido por el backend como `publicationId + date + startTime`. Flutter lo recibe en `GET /publications/:id/slots` y lo reenvía tal cual en `POST /reservations`.
 - **`PublicationCategory`:** enum cerrado validado por Zod en el backend. Valores: `DEPORTE`, `EVENTOS`, `RECREACION`, `OTROS`. Cualquier otro string en `category` retorna `VALIDATION_ERROR`. Si se amplía el enum, Cristian actualiza este documento y notifica al equipo.
-- **`PATCH /auth/account-status`:** el backend actualiza `accountStatus = 'ACTIVE'` en la tabla `profiles` directamente vía Prisma, en respuesta al request de Flutter después de `supabase.auth.updateUser({ password })`. No hay trigger en Supabase Auth — el control de la transición vive en el código del backend.
-- **Contacto publicador → solicitante:** dividido en dos canales con manejo distinto. Email vía `POST /reservations/:id/contact` (fire-and-forget, dispara Resend, no persiste en BD). WhatsApp se construye **localmente en Flutter** usando `requester.phone` que viene en el detalle de la reserva — no requiere endpoint.
+- **`PATCH /auth/account-status`:** el backend actualiza `accountStatus = 'ACTIVE'` en la tabla `profiles` directamente vía Prisma, en respuesta al request de Flutter después de `supabase.auth.updateUser({ password })`. No hay trigger en Supabase Auth - el control de la transición vive en el código del backend.
+- **Contacto publicador -> solicitante:** dividido en dos canales con manejo distinto. Email vía `POST /reservations/:id/contact` (fire-and-forget, dispara Resend, no persiste en BD). WhatsApp se construye **localmente en Flutter** usando `requester.phone` que viene en el detalle de la reserva - no requiere endpoint.
 
 ---
 
 ## Arquitectura de comunicación
 
-SIRE usa una arquitectura híbrida. Flutter no habla exclusivamente con el backend — consume Supabase directamente para lo que el SDK maneja de forma nativa, y usa el backend REST solo para la lógica de negocio que requiere validación, transacciones o comunicación externa.
+SIRE usa una arquitectura híbrida. Flutter no habla exclusivamente con el backend - consume Supabase directamente para lo que el SDK maneja de forma nativa, y usa el backend REST solo para la lógica de negocio que requiere validación, transacciones o comunicación externa.
 
 ```
 Flutter
-  ├── Supabase SDK      → Auth (login, magic link, JWT, updateUser)
-  │                     → Realtime (suscripciones en tiempo real)
-  │                     → Storage (subida de imágenes)
-  └── Backend REST      → Lógica de negocio (reservas, publicaciones, slots)
-                        → Validación de permisos
-                        → Comunicación externa (Resend, wa.me)
-                        → Escritura en BD via Prisma
+  ├── Supabase SDK      -> Auth (login, magic link, JWT, updateUser)
+  │                     -> Realtime (suscripciones en tiempo real)
+  │                     -> Storage (subida de imágenes)
+  └── Backend REST      -> Lógica de negocio (reservas, publicaciones, slots)
+                        -> Validación de permisos
+                        -> Comunicación externa (Resend, wa.me)
+                        -> Escritura en BD via Prisma
 
 Backend
-  └── Supabase          → Base de datos via Prisma
-                        → Verifica JWT de los requests entrantes
+  └── Supabase          -> Base de datos via Prisma
+                        -> Verifica JWT de los requests entrantes
 ```
 
 ---
@@ -40,16 +40,17 @@ Backend
 
 - Base URL backend: `https://[dominio-render]/api/v1`
 - Todos los requests y responses usan `Content-Type: application/json`
-- Los endpoints protegidos requieren header `Authorization: Bearer <jwt_token>` — el JWT lo emite Supabase Auth y el backend lo verifica
+- Los endpoints protegidos requieren header `Authorization: Bearer <jwt_token>` - el JWT lo emite Supabase Auth y el backend lo verifica
 - Los IDs son UUIDs v4 generados por Supabase
 - Las fechas siguen el formato ISO 8601: `"2025-04-07T10:00:00Z"`
 - Los horarios de slots usan formato `"HH:MM"`: `"09:00"`, `"10:30"`
 
-
 ---
 
 ### Tipado de Datos: Categorías (Enum)
+
 Para garantizar la integridad de los filtros en el feed, la categoría de una publicación (`category`) no es texto libre. Debe ser estrictamente uno de los siguientes valores:
+
 - `DEPORTE` (Canchas de fútbol, tenis, basketball, etc.)
 - `EVENTOS` (Quinchos, salones, espacios para cumpleaños)
 - `RECREACION` (Bares, mesas de pool, juegos)
@@ -77,7 +78,7 @@ Todos los errores del backend siguen esta estructura:
 | Código | HTTP | Cuándo ocurre | Cómo lo maneja Flutter |
 |---|---|---|---|
 | `AUTH_EMAIL_ALREADY_EXISTS` | 409 | Formulario de reserva con correo que ya tiene cuenta ACTIVE | Redirige al login con mensaje explicativo |
-| `AUTH_UNAUTHORIZED` | 401 | Request a endpoint protegido con token inválido o expirado | Interceptado globalmente — Supabase SDK refresca el token automáticamente antes de reintentar |
+| `AUTH_UNAUTHORIZED` | 401 | Request a endpoint protegido con token inválido o expirado | Interceptado globalmente - Supabase SDK refresca el token automáticamente antes de reintentar |
 | `SLOT_NOT_AVAILABLE` | 409 | Dos usuarios intentan reservar el mismo slot simultáneamente; el segundo en llegar recibe este error | Recarga los slots disponibles y muestra aviso |
 | `SLOT_NOT_FOUND` | 404 | El slotId no corresponde a la publicación y fecha; ocurre si la agenda fue modificada mientras el usuario tenía la pantalla abierta | Vuelve al calendario y recarga disponibilidad |
 | `PUBLICATION_NOT_FOUND` | 404 | La publicación fue eliminada o pausada mientras el usuario navegaba hacia ella | Vuelve al feed con aviso de no disponibilidad |
@@ -89,7 +90,7 @@ Todos los errores del backend siguen esta estructura:
 
 ---
 
-## Supabase SDK — lo que Flutter maneja directamente
+## Supabase SDK - lo que Flutter maneja directamente
 
 Estos flujos no pasan por el backend. Flutter los ejecuta directamente contra Supabase Auth y Supabase Storage.
 
@@ -102,7 +103,7 @@ await supabase.auth.signInWithPassword(email: email, password: password);
 // Magic link (fallback para GUEST sin sesión)
 await supabase.auth.signInWithOtp(email: email);
 
-// Establecer contraseña desde sesión activa (GUEST → ACTIVE en Supabase Auth)
+// Establecer contraseña desde sesión activa (GUEST -> ACTIVE en Supabase Auth)
 await supabase.auth.updateUser(UserAttributes(password: password));
 
 // Reenviar correo de verificación
@@ -189,7 +190,7 @@ Crea una cuenta GUEST. El backend crea el usuario en Supabase Auth y el perfil e
 }
 ```
 
-**Response 201 — cuenta nueva:**
+**Response 201 - cuenta nueva:**
 
 ```json
 {
@@ -200,7 +201,7 @@ Crea una cuenta GUEST. El backend crea el usuario en Supabase Auth y el perfil e
 }
 ```
 
-**Response 200 — correo ya existía como GUEST:**
+**Response 200 - correo ya existía como GUEST:**
 
 ```json
 {
@@ -211,7 +212,7 @@ Crea una cuenta GUEST. El backend crea el usuario en Supabase Auth y el perfil e
 }
 ```
 
-**Response 409 — correo ya registrado como ACTIVE:**
+**Response 409 - correo ya registrado como ACTIVE:**
 
 ```json
 {
@@ -332,7 +333,7 @@ Retorna el perfil público de un usuario sin datos de contacto. Campos de segund
 
 ### Descripción
 
-Vista de descubrimiento público: lista paginada de publicaciones activas filtradas por región. No requiere autenticación. La región llega como parámetro desde Flutter — el backend no hace geolocalización, solo filtra.
+Vista de descubrimiento público: lista paginada de publicaciones activas filtradas por región. No requiere autenticación. La región llega como parámetro desde Flutter - el backend no hace geolocalización, solo filtra.
 
 Distinto al módulo de Publicaciones: el feed es solo lectura y público; Publicaciones gestiona el CRUD del publicador autenticado.
 
@@ -351,8 +352,8 @@ Retorna el feed paginado filtrado por región.
 
 | Param | Tipo | Requerido | Default | Descripción |
 |---|---|---|---|---|
-| `region` | string | Sí | — | Región detectada o seleccionada por el usuario |
-| `city` | string | No | — | Ciudad para refinamiento (segunda capa) |
+| `region` | string | Sí | - | Región detectada o seleccionada por el usuario |
+| `city` | string | No | - | Ciudad para refinamiento (segunda capa) |
 | `order` | string | No | `recent` | `recent` \| `rating` \| `popular` |
 | `page` | number | No | `1` | Número de página |
 | `limit` | number | No | `20` | Resultados por página |
@@ -399,7 +400,7 @@ Las imágenes se suben directamente a Supabase Storage desde Flutter. El backend
 
 **Categorías:** el campo `category` está restringido al enum `DEPORTE | EVENTOS | RECREACION | OTROS`. El backend valida con Zod y rechaza cualquier otro valor con `VALIDATION_ERROR`.
 
-**`slotId`:** los IDs de slot son deterministas, construidos por el backend como `publicationId + date + startTime`. Flutter los recibe vía `GET /publications/:id/slots` y los pasa tal cual en `POST /reservations` — no se intenta reconstruir ni validar la forma en el cliente.
+**`slotId`:** los IDs de slot son deterministas, construidos por el backend como `publicationId + date + startTime`. Flutter los recibe vía `GET /publications/:id/slots` y los pasa tal cual en `POST /reservations` - no se intenta reconstruir ni validar la forma en el cliente.
 
 ### Se comunica con
 
@@ -625,10 +626,10 @@ Gestiona el ciclo de vida completo de una reserva. Conecta a un solicitante con 
 
 ```
 PENDIENTE
-    ├── → CANCELADA     (acción del solicitante)
-    ├── → RECHAZADA     (acción del publicador)
-    ├── → COMPLETADA    (acción del publicador)
-    └── → FALLIDA       (acción del publicador)
+    ├── -> CANCELADA     (acción del solicitante)
+    ├── -> RECHAZADA     (acción del publicador)
+    ├── -> COMPLETADA    (acción del publicador)
+    └── -> FALLIDA       (acción del publicador)
 ```
 
 El publicador contacta al solicitante eligiendo el canal desde la app. Los datos de contacto del solicitante están disponibles en el detalle de la reserva recibida.
@@ -697,9 +698,9 @@ Retorna las reservas del usuario autenticado como solicitante.
 
 | Param | Tipo | Default | Descripción |
 |---|---|---|---|
-| `status` | string | — | Filtro: `pending`, `completed`, `failed`, `cancelled`, `rejected` |
-| `page` | number | `1` | — |
-| `limit` | number | `20` | — |
+| `status` | string | - | Filtro: `pending`, `completed`, `failed`, `cancelled`, `rejected` |
+| `page` | number | `1` | - |
+| `limit` | number | `20` | - |
 
 **Response 200:**
 
@@ -847,12 +848,12 @@ Actualiza el estado de una reserva. Solo el publicador. Transiciones válidas de
 
 ### POST /reservations/:id/contact-email
 
-Dispara la comunicación por correo electrónico usando Resend. 
+Dispara la comunicación por correo electrónico usando Resend.
 
 *Nota: Este endpoint no registra el evento en la base de datos ni altera el estado de la reserva. El contacto por WhatsApp lo maneja Flutter nativamente via deep link utilizando el teléfono obtenido en el endpoint GET /reservations/received.*
 Dispara un correo al solicitante vía Resend. Fire-and-forget: el endpoint **no persiste el evento en la base de datos** y retorna inmediatamente sin esperar confirmación de entrega de Resend.
 
-WhatsApp **no pasa por este endpoint** — Flutter construye el `wa.me/...` localmente usando `requester.phone` que viene en el detalle de la reserva (`GET /reservations/:id`).
+WhatsApp **no pasa por este endpoint** - Flutter construye el `wa.me/...` localmente usando `requester.phone` que viene en el detalle de la reserva (`GET /reservations/:id`).
 
 **Headers:** `Authorization: Bearer <jwt_token>`
 
@@ -890,9 +891,9 @@ No hay notificaciones push nativas en el MVP.
 
 Eventos que generan notificaciones:
 
-- Nueva reserva recibida → `new_reservation` (para el publicador)
-- Estado de reserva actualizado → `status_updated` (para el solicitante)
-- Reserva cancelada por el solicitante → `reservation_cancelled` (para el publicador)
+- Nueva reserva recibida -> `new_reservation` (para el publicador)
+- Estado de reserva actualizado -> `status_updated` (para el solicitante)
+- Reserva cancelada por el solicitante -> `reservation_cancelled` (para el publicador)
 
 ### Se comunica con
 
@@ -912,8 +913,8 @@ Retorna las notificaciones del usuario en orden cronológico inverso.
 | Param | Tipo | Default | Descripción |
 |---|---|---|---|
 | `unreadOnly` | boolean | `false` | Solo no leídas |
-| `page` | number | `1` | — |
-| `limit` | number | `20` | — |
+| `page` | number | `1` | - |
+| `limit` | number | `20` | - |
 
 **Response 200:**
 
@@ -977,6 +978,6 @@ Marca todas las notificaciones del usuario como leídas.
 
 ## Changelog del contrato
 
-- **2026-05-10** — Resueltas 4 decisiones pendientes con Cristian. Ver sección **Decisiones de arquitectura definidas** al inicio del documento. WhatsApp removido de `POST /reservations/:id/contact`; ahora se construye en Flutter usando `requester.phone` del detalle de la reserva.
+- **2026-05-10** - Resueltas 4 decisiones pendientes con Cristian. Ver sección **Decisiones de arquitectura definidas** al inicio del documento. WhatsApp removido de `POST /reservations/:id/contact`; ahora se construye en Flutter usando `requester.phone` del detalle de la reserva.
 
 ---

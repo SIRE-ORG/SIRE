@@ -1,4 +1,4 @@
-// PI-FEED-01..05 — Prueba de integración de la capa de datos del feed.
+// PI-FEED-01..05 - Prueba de integración de la capa de datos del feed.
 //
 // Conecta la fuente de datos REAL (FeedRemoteDatasourceRealImpl) con un Dio real,
 // simulando solo la frontera de red con http_mock_adapter. Así se ejercita el
@@ -89,13 +89,13 @@ void main() {
     test(
       'PI-FEED-04: si la región no devuelve nada, reintenta sin filtro (fallback)',
       () async {
-        // Primer intento (con región) → vacío.
+        // Primer intento (con región) -> vacío.
         adapter.onGet(
           ApiConstants.publicationsFeedLive,
           (server) => server.reply(200, {'data': []}),
           queryParameters: {'region': 'RegionQueNoMatchea'},
         );
-        // Reintento (sin región) → trae publicaciones.
+        // Reintento (sin región) -> trae publicaciones.
         adapter.onGet(
           ApiConstants.publicationsFeedLive,
           (server) => server.reply(200, {
@@ -125,13 +125,13 @@ void main() {
     test(
       'PI-FEED-05: si ni con región ni sin ella hay datos, el feed queda vacío sin romper',
       () async {
-        // Con región → vacío.
+        // Con región -> vacío.
         adapter.onGet(
           ApiConstants.publicationsFeedLive,
           (server) => server.reply(200, {'data': []}),
           queryParameters: {'region': 'Araucania'},
         );
-        // Fallback sin región → también vacío.
+        // Fallback sin región -> también vacío.
         adapter.onGet(
           ApiConstants.publicationsFeedLive,
           (server) => server.reply(200, {'data': []}),

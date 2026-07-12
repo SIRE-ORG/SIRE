@@ -28,9 +28,7 @@ void main() {
     const availability = AvailabilityConfig(
       slotDurationMinutes: 60,
       sameScheduleAllDays: true,
-      defaultSchedules: [
-        DaySchedule(startTime: '09:00', endTime: '17:00'),
-      ],
+      defaultSchedules: [DaySchedule(startTime: '09:00', endTime: '17:00')],
       dayOverrides: [],
     );
 
@@ -313,7 +311,7 @@ void main() {
         'createdAt': '2026-03-15T00:00:00.000Z',
       };
 
-      test('mapea id → userId correctamente', () {
+      test('mapea id -> userId correctamente', () {
         final model = UserProfileModel.fromBackendProfile(
           backendJson,
           emailVerified: true,
@@ -367,21 +365,21 @@ void main() {
 
     // ── toEntity ──
     group('toEntity', () {
-      test('convierte accountStatus active → AccountStatus.active', () {
+      test('convierte accountStatus active -> AccountStatus.active', () {
         final model = UserProfileModel.fromJson(fullJson);
         final entity = model.toEntity();
 
         expect(entity.accountStatus, AccountStatus.active);
       });
 
-      test('convierte accountStatus guest → AccountStatus.guest', () {
+      test('convierte accountStatus guest -> AccountStatus.guest', () {
         final model = UserProfileModel.fromJson(minimalJson);
         final entity = model.toEntity();
 
         expect(entity.accountStatus, AccountStatus.guest);
       });
 
-      test('mapea userId → entity.id', () {
+      test('mapea userId -> entity.id', () {
         final model = UserProfileModel.fromJson(fullJson);
         final entity = model.toEntity();
 
@@ -456,12 +454,7 @@ void main() {
   group('FeedResponseModel', () {
     // JSON completo simulando respuesta real del backend
     final fullFeedJson = {
-      'pagination': {
-        'page': 2,
-        'limit': 10,
-        'total': 45,
-        'hasMore': true,
-      },
+      'pagination': {'page': 2, 'limit': 10, 'total': 45, 'hasMore': true},
       'data': [
         {
           'id': 'pub-001',
@@ -513,10 +506,7 @@ void main() {
     });
 
     test('fromJson con pagination vacía usa valores por defecto', () {
-      final model = FeedResponseModel.fromJson({
-        'pagination': {},
-        'data': [],
-      });
+      final model = FeedResponseModel.fromJson({'pagination': {}, 'data': []});
 
       expect(model.page, 1);
       expect(model.limit, 20);
@@ -535,12 +525,7 @@ void main() {
 
     test('fromJson hasMore false se parsea correctamente', () {
       final json = {
-        'pagination': {
-          'page': 3,
-          'limit': 10,
-          'total': 25,
-          'hasMore': false,
-        },
+        'pagination': {'page': 3, 'limit': 10, 'total': 25, 'hasMore': false},
         'data': [],
       };
 
@@ -567,12 +552,7 @@ void main() {
 
     test('fromJson primera página con items y hasMore true', () {
       final json = {
-        'pagination': {
-          'page': 1,
-          'limit': 5,
-          'total': 30,
-          'hasMore': true,
-        },
+        'pagination': {'page': 1, 'limit': 5, 'total': 30, 'hasMore': true},
         'data': [
           {
             'id': 'pub-x',
@@ -605,10 +585,7 @@ void main() {
     });
 
     test('fromJson con pagination nula no lanza excepción', () {
-      final json = <String, dynamic>{
-        'pagination': null,
-        'data': [],
-      };
+      final json = <String, dynamic>{'pagination': null, 'data': []};
 
       expect(() => FeedResponseModel.fromJson(json), returnsNormally);
     });

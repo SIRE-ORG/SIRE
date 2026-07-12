@@ -58,7 +58,7 @@ Future<Publication> publicationDetail(Ref ref, String id) {
 }
 
 // ---------------------------------------------------------------------------
-// MyPublicationsNotifier — listado paginado del publicador
+// MyPublicationsNotifier - listado paginado del publicador
 // ---------------------------------------------------------------------------
 
 @riverpod
@@ -97,7 +97,7 @@ class MyPublicationsNotifier extends _$MyPublicationsNotifier {
 }
 
 // ---------------------------------------------------------------------------
-// PublicationFormNotifier — create / update / toggle / delete
+// PublicationFormNotifier - create / update / toggle / delete
 // ---------------------------------------------------------------------------
 
 @riverpod

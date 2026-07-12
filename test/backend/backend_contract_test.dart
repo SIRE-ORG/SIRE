@@ -1,7 +1,7 @@
 @Tags(['backend'])
 library;
 
-// Costura B — Pruebas de contrato contra el backend real.
+// Costura B - Pruebas de contrato contra el backend real.
 //
 // Se activa solo si se define la variable de compilación SIRE_BACKEND_URL:
 //   flutter test test/backend --dart-define=SIRE_BACKEND_URL=http://localhost:3000/api/v1
@@ -77,7 +77,7 @@ void main() {
     // Auto-siembra idempotente del fixture activo (sin depender de datos previos
     // ni de un paso manual). Tres etapas, todas tolerantes a fallo:
 
-    // 1) Crear la fila de profile. En reruns ya existe → el controller responde
+    // 1) Crear la fila de profile. En reruns ya existe -> el controller responde
     //    500 por unique constraint; se descarta. (register-guest tiene el
     //    desajuste H3 pero igual crea la fila, que es lo único que necesitamos.)
     try {
@@ -114,7 +114,7 @@ void main() {
       ownerId = null;
     }
 
-    // ——— Siembra del solicitante (para pruebas de reservas) ———
+    // --- Siembra del solicitante (para pruebas de reservas) ---
     try {
       await dio.post(
         ApiConstants.authRegisterGuest,
@@ -206,10 +206,10 @@ void main() {
   }
 
   // -------------------------------------------------------------------------
-  // PI-PUB-04 — ciclo CRUD completo
+  // PI-PUB-04 - ciclo CRUD completo
   // -------------------------------------------------------------------------
 
-  test('PI-PUB-04 — ciclo crear → leer → editar → borrar contra el backend '
+  test('PI-PUB-04 - ciclo crear -> leer -> editar -> borrar contra el backend '
       'real', () async {
     final id = await crearPublicacion();
     if (id.isEmpty) return;
@@ -238,7 +238,7 @@ void main() {
     );
     creadas.remove(id);
 
-    // GET final → 404.
+    // GET final -> 404.
     try {
       await dio.get(ApiConstants.publicationByIdLive(id));
       fail('Se esperaba 404 tras borrar');
@@ -248,15 +248,15 @@ void main() {
   });
 
   // -------------------------------------------------------------------------
-  // PI-PUB-05 — seguridad cruzada
+  // PI-PUB-05 - seguridad cruzada
   // -------------------------------------------------------------------------
 
-  test('PI-PUB-05 — seguridad cruzada: intruso no edita ni borra', () async {
+  test('PI-PUB-05 - seguridad cruzada: intruso no edita ni borra', () async {
     final id = await crearPublicacion(sufijo: 'perm');
     if (id.isEmpty) return;
     const intruso = 'pi-test-intruso';
 
-    // PUT con header de intruso → 403 FORBIDDEN.
+    // PUT con header de intruso -> 403 FORBIDDEN.
     try {
       await dio.put(
         ApiConstants.publicationByIdLive(id),
@@ -270,7 +270,7 @@ void main() {
       expect((e.error as ServerException).code, 'FORBIDDEN');
     }
 
-    // DELETE intruso → 403.
+    // DELETE intruso -> 403.
     try {
       await dio.delete(
         ApiConstants.publicationByIdLive(id),
@@ -282,7 +282,7 @@ void main() {
       expect(e.error, isA<ServerException>());
     }
 
-    // DELETE owner → 200.
+    // DELETE owner -> 200.
     await dio.delete(
       ApiConstants.publicationByIdLive(id),
       options: Options(headers: {'x-user-id': ownerId}),
@@ -291,16 +291,16 @@ void main() {
   });
 
   // -------------------------------------------------------------------------
-  // PI-ERR-03 — endpoints protegidos sin identidad (RNF-02)
+  // PI-ERR-03 - endpoints protegidos sin identidad (RNF-02)
   // -------------------------------------------------------------------------
 
   test(
-    'PI-ERR-03 — endpoints protegidos sin identidad rechazan el acceso',
+    'PI-ERR-03 - endpoints protegidos sin identidad rechazan el acceso',
     () async {
       final id = await crearPublicacion(sufijo: 'err');
       if (id.isEmpty) return;
 
-      // PUT sin header → 401.
+      // PUT sin header -> 401.
       try {
         await dio.put(
           ApiConstants.publicationByIdLive(id),
@@ -312,7 +312,7 @@ void main() {
         expect(e.error, isA<UnauthorizedException>());
       }
 
-      // DELETE sin header → 401.
+      // DELETE sin header -> 401.
       try {
         await dio.delete(ApiConstants.publicationByIdLive(id));
         fail('Se esperaba 401');
@@ -321,7 +321,7 @@ void main() {
         expect(e.error, isA<UnauthorizedException>());
       }
 
-      // GET /publications/publications/mine sin header → 400 por H2.
+      // GET /publications/publications/mine sin header -> 400 por H2.
       // H2: el contrato exige 401; el backend hoy responde 400.
       try {
         await dio.get(ApiConstants.publicationsFeedMineLive);
@@ -349,18 +349,18 @@ void main() {
   );
 
   // -------------------------------------------------------------------------
-  // PI-AUTH-03 — perfil del autenticado
+  // PI-AUTH-03 - perfil del autenticado
   // -------------------------------------------------------------------------
 
   test(
-    'PI-AUTH-03 — perfil del autenticado se recupera por /auth/me',
+    'PI-AUTH-03 - perfil del autenticado se recupera por /auth/me',
     () async {
       if (ownerId == null) {
         markTestSkipped('No se pudo sembrar el fixture $_fixtureEmail');
         return;
       }
 
-      // GET /auth/me con header de identidad → 200, perfil del dueño.
+      // GET /auth/me con header de identidad -> 200, perfil del dueño.
       final r = await dio.get(
         ApiConstants.authMe,
         options: Options(headers: {'x-user-id': ownerId}),
@@ -370,7 +370,7 @@ void main() {
       expect(data['id'], ownerId);
       expect(data['accountStatus'], 'active');
 
-      // Header con id inexistente → 404.
+      // Header con id inexistente -> 404.
       try {
         await dio.get(
           ApiConstants.authMe,
@@ -382,7 +382,7 @@ void main() {
         expect(e.response?.statusCode, 404);
       }
 
-      // Sin header → rechazo (H2: 400 en vez de 401).
+      // Sin header -> rechazo (H2: 400 en vez de 401).
       try {
         await dio.get(ApiConstants.authMe);
         fail('Se esperaba rechazo');
@@ -397,11 +397,11 @@ void main() {
   );
 
   // -------------------------------------------------------------------------
-  // PI-FEED-04 — el feed entrega la región pedida
+  // PI-FEED-04 - el feed entrega la región pedida
   // -------------------------------------------------------------------------
 
   test(
-    'PI-FEED-04 — el feed devuelve publicaciones de la región pedida',
+    'PI-FEED-04 - el feed devuelve publicaciones de la región pedida',
     () async {
       final id = await crearPublicacion(sufijo: 'feed');
       if (id.isEmpty) return;
@@ -431,7 +431,7 @@ void main() {
   );
 
   // -------------------------------------------------------------------------
-  // PI-FEED-04b — CONTRATO (H1, rojo esperado)
+  // PI-FEED-04b - CONTRATO (H1, rojo esperado)
   // -------------------------------------------------------------------------
 
   test(
@@ -480,12 +480,12 @@ void main() {
   );
 
   // -------------------------------------------------------------------------
-  // PI-RES-01 — crear reserva y listar las mías
+  // PI-RES-01 - crear reserva y listar las mías
   // -------------------------------------------------------------------------
 
   // H10 arreglado (verificado 2026-07-11 contra Render: POST /reservations
   // devuelve 201). Test en verde, sin tag de regresión.
-  test('PI-RES-01 — crear reserva (POST /reservations) y recuperarla en '
+  test('PI-RES-01 - crear reserva (POST /reservations) y recuperarla en '
       '/mine con include de publication', () async {
     // Sembrar una publicación del owner para reservar contra ella.
     final pubId = await crearPublicacion(sufijo: 'res');
@@ -525,7 +525,7 @@ void main() {
   });
 
   // -------------------------------------------------------------------------
-  // PI-RES-02 (H8 arreglado) — cancelar reserva
+  // PI-RES-02 (H8 arreglado) - cancelar reserva
   // -------------------------------------------------------------------------
 
   test('PI-RES-02 (H8 arreglado): PATCH /:id/cancel con solicitante', () async {
@@ -558,13 +558,13 @@ void main() {
   });
 
   // -------------------------------------------------------------------------
-  // PI-RES-03 — dueño actualiza estado; seguridad cruzada
+  // PI-RES-03 - dueño actualiza estado; seguridad cruzada
   // -------------------------------------------------------------------------
 
   // tag regresion-contrato: hoy rojo por H10 (no se puede crear la reserva
   // base por el 500 de POST /reservations). Quitar el tag cuando se arregle.
   test(
-    'PI-RES-03 — dueño actualiza estado de reserva; no-dueño recibe 403',
+    'PI-RES-03 - dueño actualiza estado de reserva; no-dueño recibe 403',
     tags: ['regresion-contrato'],
     () async {
       final pubId = await crearPublicacion(sufijo: 'perm');
@@ -584,7 +584,7 @@ void main() {
       final resId = (r.data['data'] as Map)['id'] as String;
       reservasCreadas.add(resId);
 
-      // Dueño (owner) PATCH /:id/status → 200.
+      // Dueño (owner) PATCH /:id/status -> 200.
       final actualizada = await dio.patch(
         ApiConstants.reservationStatus(resId),
         data: {'status': 'rejected'},
@@ -594,7 +594,7 @@ void main() {
       final data = actualizada.data['data'] as Map<String, dynamic>;
       expect(data['status'], 'rejected');
 
-      // Cruzado: solicitante (no dueño) PATCH /:id/status → 403.
+      // Cruzado: solicitante (no dueño) PATCH /:id/status -> 403.
       try {
         await dio.patch(
           ApiConstants.reservationStatus(resId),

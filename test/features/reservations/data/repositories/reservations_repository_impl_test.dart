@@ -1,4 +1,4 @@
-// PI-RES-01 / PI-RES-03 (cadena completa) — Repositorio + datasource real +
+// PI-RES-01 / PI-RES-03 (cadena completa) - Repositorio + datasource real +
 // Dio con interceptor de errores: la respuesta del contrato termina en una
 // entidad Reservation de dominio con su status tipado.
 
@@ -29,7 +29,7 @@ void main() {
   });
 
   test(
-    'crear reserva → entidad de dominio con status tipado (PI-RES-01)',
+    'crear reserva -> entidad de dominio con status tipado (PI-RES-01)',
     () async {
       adapter.onPost(
         ApiConstants.reservations,
@@ -58,7 +58,7 @@ void main() {
   );
 
   test(
-    'mis reservas → entidades con status tipado e include mapeado',
+    'mis reservas -> entidades con status tipado e include mapeado',
     () async {
       adapter.onGet(
         ApiConstants.reservationsMine,
@@ -79,7 +79,7 @@ void main() {
     },
   );
 
-  test('actualizar estado → entidad con status tipado', () async {
+  test('actualizar estado -> entidad con status tipado', () async {
     adapter.onPatch(
       ApiConstants.reservationStatus('res-1'),
       (server) => server.reply(200, {
@@ -97,7 +97,7 @@ void main() {
     expect(reservation.status, ReservationStatus.rejected);
   });
 
-  test('cancelar reserva → completa sin lanzar', () async {
+  test('cancelar reserva -> completa sin lanzar', () async {
     adapter.onPatch(
       ApiConstants.reservationCancel('res-1'),
       (server) => server.reply(200, {
@@ -109,7 +109,7 @@ void main() {
     await expectLater(repository.cancelReservation(id: 'res-1'), completes);
   });
 
-  test('404 en updateStatus → NotFoundException tipada', () async {
+  test('404 en updateStatus -> NotFoundException tipada', () async {
     adapter.onPatch(
       ApiConstants.reservationStatus('fantasma'),
       (server) =>
@@ -128,7 +128,7 @@ void main() {
     }
   });
 
-  test('403 en updateStatus → ServerException FORBIDDEN', () async {
+  test('403 en updateStatus -> ServerException FORBIDDEN', () async {
     adapter.onPatch(
       ApiConstants.reservationStatus('res-1'),
       (server) => server.reply(
@@ -150,35 +150,39 @@ void main() {
     }
   });
 
-  test('getReceivedReservations 200 → entidades de dominio con applicantName', () async {
-    adapter.onGet(
-      ApiConstants.reservationsReceived,
-      (server) => server.reply(200, {
-        'data': [
-          {
-            ...reservationJson(id: 'recv-1', withPublication: true),
-            'applicant': {'name': 'Carlos Pérez', 'email': 'c@mail.com'},
-          },
-        ],
-      }),
-    );
+  test(
+    'getReceivedReservations 200 -> entidades de dominio con applicantName',
+    () async {
+      adapter.onGet(
+        ApiConstants.reservationsReceived,
+        (server) => server.reply(200, {
+          'data': [
+            {
+              ...reservationJson(id: 'recv-1', withPublication: true),
+              'applicant': {'name': 'Carlos Pérez', 'email': 'c@mail.com'},
+            },
+          ],
+        }),
+      );
 
-    final result = await repository.getReceivedReservations();
-    expect(result, hasLength(1));
-    expect(result.first.id, 'recv-1');
-    expect(result.first.applicantName, 'Carlos Pérez');
-  });
+      final result = await repository.getReceivedReservations();
+      expect(result, hasLength(1));
+      expect(result.first.id, 'recv-1');
+      expect(result.first.applicantName, 'Carlos Pérez');
+    },
+  );
 
-  test('getReservationDetail 200 → entidad de dominio con id correcto', () async {
-    adapter.onGet(
-      ApiConstants.reservationById('res-1'),
-      (server) => server.reply(200, {
-        'data': reservationJson(id: 'res-1'),
-      }),
-    );
+  test(
+    'getReservationDetail 200 -> entidad de dominio con id correcto',
+    () async {
+      adapter.onGet(
+        ApiConstants.reservationById('res-1'),
+        (server) => server.reply(200, {'data': reservationJson(id: 'res-1')}),
+      );
 
-    final result = await repository.getReservationDetail(id: 'res-1');
-    expect(result.id, 'res-1');
-    expect(result.status, ReservationStatus.pending);
-  });
+      final result = await repository.getReservationDetail(id: 'res-1');
+      expect(result.id, 'res-1');
+      expect(result.status, ReservationStatus.pending);
+    },
+  );
 }

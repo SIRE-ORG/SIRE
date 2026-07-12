@@ -44,7 +44,7 @@ class ApiConstants {
   static const String notificationsReadAll = '/notifications/read-all';
   static String notificationRead(String id) => '/notifications/$id/read';
 
-  // Reservations — rutas parametrizadas
+  // Reservations - rutas parametrizadas
   static String reservationStatus(String id) => '/reservations/$id/status';
   static String reservationCancel(String id) => '/reservations/$id/cancel';
   static String reservationById(String id) => '/reservations/$id';

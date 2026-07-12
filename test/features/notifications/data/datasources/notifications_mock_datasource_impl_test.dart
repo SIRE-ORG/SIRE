@@ -1,4 +1,4 @@
-// PI-NOTIF-MOCK-DS — El mock simula realtime en memoria: emite snapshot,
+// PI-NOTIF-MOCK-DS - El mock simula realtime en memoria: emite snapshot,
 // re-emite al marcar leídas. Es la fuente con USE_MOCKS=true.
 
 import 'package:flutter_test/flutter_test.dart';

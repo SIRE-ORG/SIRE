@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
-import '../../../../core/network/app_exception.dart';
 import '../../../../core/providers/role_provider.dart';
 import '../../domain/entities/reservation.dart';
 import '../providers/reservations_provider.dart';
@@ -139,8 +138,7 @@ class _ReceivedReservationsScreenState
                     Expanded(
                       child: OutlinedButton.icon(
                         onPressed: () {
-                          final email =
-                              data['email'] ?? 'contacto@sire.cl';
+                          final email = data['email'] ?? 'contacto@sire.cl';
                           _launchUrl('mailto:$email');
                         },
                         icon: const Icon(
@@ -164,7 +162,8 @@ class _ReceivedReservationsScreenState
                     const SizedBox(width: 16),
                     Expanded(
                       child: OutlinedButton.icon(
-                        onPressed: () => _launchUrl('https://wa.me/56912345678'),
+                        onPressed: () =>
+                            _launchUrl('https://wa.me/56912345678'),
                         icon: const Icon(
                           Icons.phone,
                           color: Color(0xFF2E7D32),
@@ -203,7 +202,9 @@ class _ReceivedReservationsScreenState
                           if (mounted) {
                             ScaffoldMessenger.of(this.context).showSnackBar(
                               const SnackBar(
-                                content: Text('No se pudo actualizar el estado'),
+                                content: Text(
+                                  'No se pudo actualizar el estado',
+                                ),
                               ),
                             );
                           }
@@ -244,7 +245,9 @@ class _ReceivedReservationsScreenState
                           if (mounted) {
                             ScaffoldMessenger.of(this.context).showSnackBar(
                               const SnackBar(
-                                content: Text('No se pudo actualizar el estado'),
+                                content: Text(
+                                  'No se pudo actualizar el estado',
+                                ),
                               ),
                             );
                           }
@@ -285,7 +288,9 @@ class _ReceivedReservationsScreenState
                           if (mounted) {
                             ScaffoldMessenger.of(this.context).showSnackBar(
                               const SnackBar(
-                                content: Text('No se pudo actualizar el estado'),
+                                content: Text(
+                                  'No se pudo actualizar el estado',
+                                ),
                               ),
                             );
                           }
@@ -351,33 +356,10 @@ class _ReceivedReservationsScreenState
     ),
   );
 
-  Widget _buildEndpointBanner() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      color: const Color(0xFFFFF3E0),
-      child: const Row(
-        children: [
-          Icon(Icons.warning_amber_rounded, color: Color(0xFFF57C00), size: 18),
-          SizedBox(width: 8),
-          Flexible(
-            child: Text(
-              'Pendiente de backend — se muestran datos de prueba',
-              style: TextStyle(color: Color(0xFFF57C00), fontSize: 12),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final isPublisher = ref.watch(isPublisherProvider);
     final receivedAsync = ref.watch(receivedReservationsProvider);
-    final showBanner = receivedAsync.hasError &&
-        receivedAsync.error is ServerException &&
-        (receivedAsync.error as ServerException).code == 'ENDPOINT_NOT_AVAILABLE';
 
     // Use real data when available; fall back to mock when error or loading
     final realData = receivedAsync.valueOrNull;
@@ -396,7 +378,6 @@ class _ReceivedReservationsScreenState
                   child: Column(
                     children: [
                       _buildHeader(isWeb: true),
-                      if (showBanner) _buildEndpointBanner(),
                       Expanded(
                         child: SingleChildScrollView(
                           padding: const EdgeInsets.all(32),
@@ -428,7 +409,6 @@ class _ReceivedReservationsScreenState
           body: Column(
             children: [
               _buildHeader(isWeb: false),
-              if (showBanner) _buildEndpointBanner(),
               Expanded(
                 child: SingleChildScrollView(
                   padding: const EdgeInsets.all(16),
@@ -650,24 +630,21 @@ class _ReceivedReservationsScreenState
     },
   ];
 
-  List<Widget> _buildPendientesList(
-    bool isWeb,
-    List<Reservation>? realData,
-  ) {
+  List<Widget> _buildPendientesList(bool isWeb, List<Reservation>? realData) {
     final items = realData != null
         ? realData
-            .where((r) => r.status == ReservationStatus.pending)
-            .map(
-              (r) => {
-                'id': r.id,
-                'name': r.applicantName ?? 'Solicitante',
-                'pub': r.publicationTitle ?? '',
-                'date': r.date,
-                'time': '${r.startTime}-${r.endTime}',
-                'status': 'Pendiente',
-              },
-            )
-            .toList()
+              .where((r) => r.status == ReservationStatus.pending)
+              .map(
+                (r) => {
+                  'id': r.id,
+                  'name': r.applicantName ?? 'Solicitante',
+                  'pub': r.publicationTitle ?? '',
+                  'date': r.date,
+                  'time': '${r.startTime}-${r.endTime}',
+                  'status': 'Pendiente',
+                },
+              )
+              .toList()
         : _mockPendientes;
 
     return items
@@ -687,24 +664,21 @@ class _ReceivedReservationsScreenState
         .toList();
   }
 
-  List<Widget> _buildHistorialList(
-    bool isWeb,
-    List<Reservation>? realData,
-  ) {
+  List<Widget> _buildHistorialList(bool isWeb, List<Reservation>? realData) {
     final items = realData != null
         ? realData
-            .where((r) => r.status != ReservationStatus.pending)
-            .map(
-              (r) => {
-                'id': r.id,
-                'name': r.applicantName ?? 'Solicitante',
-                'pub': r.publicationTitle ?? '',
-                'date': r.date,
-                'time': '${r.startTime}-${r.endTime}',
-                'status': _statusLabel(r.status),
-              },
-            )
-            .toList()
+              .where((r) => r.status != ReservationStatus.pending)
+              .map(
+                (r) => {
+                  'id': r.id,
+                  'name': r.applicantName ?? 'Solicitante',
+                  'pub': r.publicationTitle ?? '',
+                  'date': r.date,
+                  'time': '${r.startTime}-${r.endTime}',
+                  'status': _statusLabel(r.status),
+                },
+              )
+              .toList()
         : _mockHistorial;
 
     return items

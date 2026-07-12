@@ -12,7 +12,7 @@ import 'reverse_geocoding_datasource.dart';
 ///
 /// No requiere API key. La política de uso de Nominatim pide:
 ///  - un `User-Agent` identificable (no el genérico de la librería), y
-///  - un máximo de ~1 req/s (el onboarding hace una sola llamada → OK).
+///  - un máximo de ~1 req/s (el onboarding hace una sola llamada -> OK).
 ///
 /// Doc: https://nominatim.org/release-docs/develop/api/Reverse/
 class NominatimReverseGeocodingDatasourceImpl

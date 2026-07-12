@@ -8,7 +8,7 @@ import 'reverse_geocoding_datasource.dart';
 class GeoDatasourceImpl implements GeoDatasource {
   const GeoDatasourceImpl({required this.reverseGeocoder});
 
-  /// Resuelve lat/lon → región vía API externa (Nominatim).
+  /// Resuelve lat/lon -> región vía API externa (Nominatim).
   final ReverseGeocodingDatasource reverseGeocoder;
 
   @override

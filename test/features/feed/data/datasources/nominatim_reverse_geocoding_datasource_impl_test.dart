@@ -1,4 +1,4 @@
-// PI-GEO-01 / PI-GEO-02 / PI-GEO-03 — Prueba de integración de la capa de datos
+// PI-GEO-01 / PI-GEO-02 / PI-GEO-03 - Prueba de integración de la capa de datos
 // del reverse-geocoding externo (Nominatim / OpenStreetMap).
 //
 // Conecta la fuente de datos REAL (NominatimReverseGeocodingDatasourceImpl) con

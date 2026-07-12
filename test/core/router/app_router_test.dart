@@ -1,5 +1,5 @@
-// PI-ROUTER-01/02 — guards de navegación por estado de cuenta (P1 del flujo
-// de 3 fases ANON → GUEST → ACTIVE). `decideRedirect` es la tabla de
+// PI-ROUTER-01/02 - guards de navegación por estado de cuenta (P1 del flujo
+// de 3 fases ANON -> GUEST -> ACTIVE). `decideRedirect` es la tabla de
 // decisiones pura (rápida de testear exhaustivamente); el segundo grupo
 // prueba el wiring real (appRouterProvider + refreshListenable) con un par
 // de escenarios representativos, no la matriz completa.
@@ -15,7 +15,7 @@ import 'package:sire/features/reservations/data/datasources/reservations_remote_
 import 'package:sire/features/reservations/presentation/providers/reservations_provider.dart';
 
 void main() {
-  group('decideRedirect — rutas públicas', () {
+  group('decideRedirect - rutas públicas', () {
     const publicPaths = [
       '/',
       '/location',
@@ -38,10 +38,10 @@ void main() {
     }
   });
 
-  group('decideRedirect — requiere sesión (anon basta)', () {
+  group('decideRedirect - requiere sesión (anon basta)', () {
     const path = '/publication/:id/confirm';
 
-    test('sin sesión (status null) → /login', () {
+    test('sin sesión (status null) -> /login', () {
       expect(decideRedirect(path, null), '/login');
     });
 
@@ -56,7 +56,7 @@ void main() {
     }
   });
 
-  group('decideRedirect — requiere AccountStatus.active', () {
+  group('decideRedirect - requiere AccountStatus.active', () {
     const activePaths = [
       '/dashboard',
       '/my-publications',
@@ -71,7 +71,7 @@ void main() {
         expect(decideRedirect(path, AccountStatus.active), isNull);
       });
 
-      test('$path: sin sesión, anon o guest → /profile', () {
+      test('$path: sin sesión, anon o guest -> /profile', () {
         expect(decideRedirect(path, null), '/profile');
         expect(decideRedirect(path, AccountStatus.anon), '/profile');
         expect(decideRedirect(path, AccountStatus.guest), '/profile');
@@ -79,7 +79,7 @@ void main() {
     }
   });
 
-  group('decideRedirect — requiere perfil (guest o active)', () {
+  group('decideRedirect - requiere perfil (guest o active)', () {
     const profilePaths = [
       '/my-reservations',
       '/reservation/:id',
@@ -97,11 +97,11 @@ void main() {
         expect(decideRedirect(path, AccountStatus.active), isNull);
       });
 
-      test('$path: sin sesión → /login', () {
+      test('$path: sin sesión -> /login', () {
         expect(decideRedirect(path, null), '/login');
       });
 
-      test('$path: anon (sesión sin perfil) → /login', () {
+      test('$path: anon (sesión sin perfil) -> /login', () {
         expect(decideRedirect(path, AccountStatus.anon), '/login');
       });
     }
@@ -116,7 +116,7 @@ void main() {
   // un par de escenarios representativos, no toda la matriz (ya cubierta
   // arriba de forma aislada).
   // -------------------------------------------------------------------
-  group('appRouterProvider — wiring end-to-end', () {
+  group('appRouterProvider - wiring end-to-end', () {
     void suppressOverflow(WidgetTester tester) {
       final original = FlutterError.onError;
       FlutterError.onError = (details) {
@@ -130,8 +130,8 @@ void main() {
       tester.view.physicalSize = const Size(1080, 2400);
     }
 
-    testWidgets('sin sesión, /dashboard encadena redirects (requiere active → '
-        'requiere perfil → público) hasta terminar en /login', (tester) async {
+    testWidgets('sin sesión, /dashboard encadena redirects (requiere active -> '
+        'requiere perfil -> público) hasta terminar en /login', (tester) async {
       suppressOverflow(tester);
       late GoRouter router;
 
@@ -154,8 +154,8 @@ void main() {
       router.go('/dashboard');
       await tester.pumpAndSettle();
 
-      // /dashboard (requiere active) → /profile (requiere perfil, sigue
-      // sin sesión) → /login (público). LoginScreen no necesita overrides
+      // /dashboard (requiere active) -> /profile (requiere perfil, sigue
+      // sin sesión) -> /login (público). LoginScreen no necesita overrides
       // adicionales (ver login_screen_test.dart).
       expect(find.text('Bienvenido a SIRE'), findsOneWidget);
     });

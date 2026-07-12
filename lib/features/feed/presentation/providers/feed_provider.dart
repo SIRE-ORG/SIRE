@@ -42,7 +42,7 @@ FeedRepository feedRepository(Ref ref) => FeedRepositoryImpl(
 );
 
 // ---------------------------------------------------------------------------
-// FeedNotifier — feed paginado con geo-detección y filtros
+// FeedNotifier - feed paginado con geo-detección y filtros
 // ---------------------------------------------------------------------------
 
 @riverpod

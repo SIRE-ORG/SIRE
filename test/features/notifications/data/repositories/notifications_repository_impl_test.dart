@@ -1,4 +1,4 @@
-// PI-NOTIF-REPO — El repositorio mapea los modelos a entidades de dominio
+// PI-NOTIF-REPO - El repositorio mapea los modelos a entidades de dominio
 // (en lista y en stream) y delega las acciones en el datasource.
 
 import 'package:flutter_test/flutter_test.dart';

@@ -12,11 +12,11 @@ import 'publications_remote_datasource.dart';
 /// Implementación real de [PublicationsRemoteDatasource] contra el backend local.
 ///
 /// Endpoints disponibles (backend en dev, post-merge crud-publicaciones-v2):
-///   GET    /publications/publications/mine  → [getMyPublications]
-///   POST   /publications/publications       → [createPublication]
-///   GET    /publications/:id                → [getPublicationDetail]
-///   PUT    /publications/:id                → [updatePublication]
-///   DELETE /publications/:id                → [deletePublication]
+///   GET    /publications/publications/mine  -> [getMyPublications]
+///   POST   /publications/publications       -> [createPublication]
+///   GET    /publications/:id                -> [getPublicationDetail]
+///   PUT    /publications/:id                -> [updatePublication]
+///   DELETE /publications/:id                -> [deletePublication]
 ///
 /// [togglePublicationStatus] se resuelve vía PUT /:id con {isActive} porque
 /// PATCH /:id/status no existe en el backend (desviación de contrato anotada

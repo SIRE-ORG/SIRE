@@ -1,4 +1,4 @@
-// PI-PUB-03 (parte b) — Inyección de la cabecera de identidad.
+// PI-PUB-03 (parte b) - Inyección de la cabecera de identidad.
 //
 // El header x-user-id no lo pone cada datasource: lo inyecta el
 // AuthInterceptor del core leyendo la sesión Supabase. Se prueba aquí, donde

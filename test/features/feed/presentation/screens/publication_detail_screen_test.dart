@@ -30,7 +30,7 @@ void main() {
       ],
     );
     return ProviderScope(
-      // El detalle sale de publicationDetailProvider → el datasource mock
+      // El detalle sale de publicationDetailProvider -> el datasource mock
       // trae el fixture "Cancha de fútbol El Estadio" con owner "Pedro
       // González" que esta pantalla verifica. Se fuerza explícitamente
       // porque ApiFlags.useMocks ahora es false por defecto (backend real).

@@ -22,7 +22,7 @@ void main() {
       expect(reservationStatusFromString('failed'), ReservationStatus.failed);
     });
 
-    test('valor desconocido → pending (default documentado)', () {
+    test('valor desconocido -> pending (default documentado)', () {
       expect(
         reservationStatusFromString('inventado'),
         ReservationStatus.pending,

@@ -1,5 +1,5 @@
-// PI-NOTIF (PI-PROV-10) — Providers de notificaciones con el datasource
-// sustituido: stream → entidades, derivación de no leídas, y acciones de
+// PI-NOTIF (PI-PROV-10) - Providers de notificaciones con el datasource
+// sustituido: stream -> entidades, derivación de no leídas, y acciones de
 // marcar leídas (con guard) sin excepciones sin capturar.
 
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -24,7 +24,7 @@ void main() {
     return container;
   }
 
-  group('PI-NOTIF-01: stream → lista de entidades', () {
+  group('PI-NOTIF-01: stream -> lista de entidades', () {
     test('emite las notificaciones mapeadas', () async {
       final container = containerCon(
         StubNotificationsDatasource(
@@ -38,7 +38,7 @@ void main() {
       expect(container.read(notificationsStreamProvider).hasValue, isTrue);
     });
 
-    test('error del datasource → AsyncError', () async {
+    test('error del datasource -> AsyncError', () async {
       final container = containerCon(
         StubNotificationsDatasource(
           error: ServerException(
@@ -73,7 +73,7 @@ void main() {
       expect(container.read(unreadCountProvider), 2);
     });
 
-    test('sin datos → 0', () {
+    test('sin datos -> 0', () {
       final container = containerCon(
         StubNotificationsDatasource(listResponse: const []),
       );
@@ -114,7 +114,7 @@ void main() {
       );
     });
 
-    test('error en markRead → AsyncError (guard, no relanza)', () async {
+    test('error en markRead -> AsyncError (guard, no relanza)', () async {
       final container = containerCon(
         StubNotificationsDatasource(
           error: ServerException(code: 'NOT_FOUND', message: 'no existe'),

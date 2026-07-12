@@ -1,4 +1,4 @@
-// PI-PUB-01 / PI-PUB-02 / PI-PUB-03 (parte a) — Integración de la fuente de
+// PI-PUB-01 / PI-PUB-02 / PI-PUB-03 (parte a) - Integración de la fuente de
 // datos real de publicaciones contra HTTP simulado con la forma exacta del
 // contrato del backend en dev (CRUD por id en un segmento; create/mine con
 // el doble segmento del bug C).
@@ -55,7 +55,7 @@ void main() {
       );
 
   group('createPublication (PI-PUB-01, PI-PUB-03a)', () {
-    test('201 del contrato → modelo completo, con ownerId de la sesión en el '
+    test('201 del contrato -> modelo completo, con ownerId de la sesión en el '
         'payload', () async {
       // El matcher de data exacto verifica dos cosas a la vez: la forma del
       // payload del contrato y la inyección de ownerId desde la sesión.
@@ -95,7 +95,7 @@ void main() {
   });
 
   group('getPublicationDetail (PI-PUB-02)', () {
-    test('200 → modelo con agenda y owner.name aplanado', () async {
+    test('200 -> modelo con agenda y owner.name aplanado', () async {
       adapter.onGet(
         ApiConstants.publicationByIdLive('pub-1'),
         (server) => server.reply(200, {'data': publicationJson()}),
@@ -110,7 +110,7 @@ void main() {
       expect(model.availability.defaultSchedules.single.startTime, '09:00');
     });
 
-    test('404 → NotFoundException tipada en DioException.error', () async {
+    test('404 -> NotFoundException tipada en DioException.error', () async {
       adapter.onGet(
         ApiConstants.publicationByIdLive('no-existe'),
         (server) => server.reply(

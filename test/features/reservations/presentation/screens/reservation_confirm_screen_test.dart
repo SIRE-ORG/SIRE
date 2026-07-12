@@ -171,7 +171,7 @@ void main() {
     });
 
     testWidgets(
-      'formulario válido confirma: registerGuest → createReservation → '
+      'formulario válido confirma: registerGuest -> createReservation -> '
       'modal de éxito',
       (tester) async {
         suppressOverflow(tester);
@@ -498,7 +498,7 @@ void main() {
   // + reservationsRepositoryProvider), sin override estático de
   // reservationEligibilityProvider ni de currentProfileProvider, para
   // verificar que `create()` invalida de verdad la elegibilidad cacheada.
-  group('F1 (regresión) — invalidación real tras crear', () {
+  group('F1 (regresión) - invalidación real tras crear', () {
     Widget buildRealSubject() {
       final router = GoRouter(
         initialLocation: '/confirm',
@@ -551,7 +551,7 @@ void main() {
       await tester.pumpWidget(buildRealSubject());
       await tester.pumpAndSettle();
 
-      // Elegibilidad inicial real: guest con 0 reservas → confirma
+      // Elegibilidad inicial real: guest con 0 reservas -> confirma
       // directo, sin formulario de invitado.
       expect(find.text('Nombre Completo'), findsNothing);
       final btn = tester.widget<ElevatedButton>(
@@ -576,7 +576,7 @@ void main() {
     });
   });
 
-  group('F1 (regresión) — back del sistema no cierra el modal de éxito', () {
+  group('F1 (regresión) - back del sistema no cierra el modal de éxito', () {
     testWidgets(
       'PopScope bloquea Navigator.maybePop sobre el diálogo de éxito',
       (tester) async {
