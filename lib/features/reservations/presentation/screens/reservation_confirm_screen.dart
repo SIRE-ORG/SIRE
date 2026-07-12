@@ -38,6 +38,10 @@ class ReservationConfirmScreen extends ConsumerStatefulWidget {
 class _ReservationConfirmScreenState
     extends ConsumerState<ReservationConfirmScreen> {
   bool _loading = false;
+  // Defensa en profundidad: aunque el modal de éxito ya bloquea el back del
+  // sistema (PopScope), si de todos modos quedara visible el fondo, el botón
+  // Confirmar no debe permitir un segundo envío tras crear la reserva.
+  bool _reservationCreated = false;
   final _nombreCtrl = TextEditingController();
   final _correoCtrl = TextEditingController();
   final _telefonoCtrl = TextEditingController();
@@ -144,10 +148,20 @@ class _ReservationConfirmScreenState
             ),
           );
 
+      // F1: la elegibilidad (regla de negocio 4) depende del conteo de
+      // reservas del guest; sin invalidarla acá quedaba cacheada con el
+      // valor previo a esta reserva y un guest podía seguir reservando sin
+      // activar su cuenta. `create()` solo invalida la lista de reservas,
+      // nunca la elegibilidad.
+      ref.invalidate(reservationEligibilityProvider);
+
       final email = elig == ReservationEligibility.needsGuestForm
           ? _correoCtrl.text.trim()
           : profileEmail;
-      if (mounted) _showSuccessDialog(context, email);
+      if (mounted) {
+        setState(() => _reservationCreated = true);
+        _showSuccessDialog(context, email);
+      }
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -197,88 +211,96 @@ class _ReservationConfirmScreenState
       barrierDismissible: false,
       transitionDuration: const Duration(milliseconds: 300),
       pageBuilder: (context, animation, secondaryAnimation) {
-        return Center(
-          child: Material(
-            color: Colors.transparent,
-            child: Container(
-              width: 450,
-              padding: const EdgeInsets.all(32),
-              margin: const EdgeInsets.symmetric(horizontal: 24),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(24),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.1),
-                    blurRadius: 20,
-                    offset: const Offset(0, 10),
-                  ),
-                ],
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    width: 60,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: Colors.grey.shade300,
-                      borderRadius: BorderRadius.circular(2),
+        // F1: `barrierDismissible: false` solo evita el dismiss por tap
+        // fuera; el back del sistema (Android) sigue haciendo
+        // Navigator.maybePop() sobre esta ruta modal y la cerraba igual,
+        // dejando la pantalla de fondo montada con elegibilidad cacheada.
+        // PopScope(canPop: false) bloquea también ese gesto.
+        return PopScope(
+          canPop: false,
+          child: Center(
+            child: Material(
+              color: Colors.transparent,
+              child: Container(
+                width: 450,
+                padding: const EdgeInsets.all(32),
+                margin: const EdgeInsets.symmetric(horizontal: 24),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(24),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.1),
+                      blurRadius: 20,
+                      offset: const Offset(0, 10),
                     ),
-                  ),
-                  const SizedBox(height: 24),
-                  const Text(
-                    '¡Reserva confirmada!',
-                    style: TextStyle(
-                      color: Color(0xFF1E70CD),
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  const Text(
-                    'Crea tu contraseña para gestionar tus reservas fácilmente. Puedes hacerlo ahora o más tarde.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: Colors.grey,
-                      fontSize: 14,
-                      height: 1.5,
-                    ),
-                  ),
-                  const SizedBox(height: 32),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 50,
-                    child: CustomButton(
-                      text: 'Crear contraseña',
-                      onPressed: () async {
-                        Navigator.of(context).pop();
-                        await _goToActivation(guestEmail);
-                      },
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 50,
-                    child: OutlinedButton(
-                      onPressed: () => context.go('/my-reservations'),
-                      style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: Color(0xFF1E70CD)),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                      child: const Text(
-                        'Ahora no',
-                        style: TextStyle(
-                          color: Color(0xFF1E70CD),
-                          fontWeight: FontWeight.bold,
-                        ),
+                  ],
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 60,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade300,
+                        borderRadius: BorderRadius.circular(2),
                       ),
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 24),
+                    const Text(
+                      '¡Reserva confirmada!',
+                      style: TextStyle(
+                        color: Color(0xFF1E70CD),
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    const Text(
+                      'Crea tu contraseña para gestionar tus reservas fácilmente. Puedes hacerlo ahora o más tarde.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Colors.grey,
+                        fontSize: 14,
+                        height: 1.5,
+                      ),
+                    ),
+                    const SizedBox(height: 32),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 50,
+                      child: CustomButton(
+                        text: 'Crear contraseña',
+                        onPressed: () async {
+                          Navigator.of(context).pop();
+                          await _goToActivation(guestEmail);
+                        },
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 50,
+                      child: OutlinedButton(
+                        onPressed: () => context.go('/my-reservations'),
+                        style: OutlinedButton.styleFrom(
+                          side: const BorderSide(color: Color(0xFF1E70CD)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        child: const Text(
+                          'Ahora no',
+                          style: TextStyle(
+                            color: Color(0xFF1E70CD),
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -404,7 +426,7 @@ class _ReservationConfirmScreenState
           height: 50,
           child: CustomButton(
             text: _loading ? 'Confirmando...' : 'Confirmar Reserva',
-            onPressed: (_loading || !_formValido(elig))
+            onPressed: (_loading || _reservationCreated || !_formValido(elig))
                 ? null
                 : () => _handleConfirm(elig, profileEmail),
           ),
@@ -472,7 +494,15 @@ class _ReservationConfirmScreenState
           ),
           const SizedBox(height: 16),
           TextButton(
-            onPressed: () => ref.invalidate(reservationEligibilityProvider),
+            onPressed: () {
+              // F2: el error observado acá viene cacheado "río arriba"
+              // (currentProfileProvider/authStatusProvider como AsyncError);
+              // invalidar solo reservationEligibilityProvider relanzaba el
+              // mismo error sin reintentar la llamada real. Se invalida la
+              // raíz y la cascada de `ref.watch` recomputa el resto.
+              ref.invalidate(currentProfileProvider);
+              ref.invalidate(reservationEligibilityProvider);
+            },
             child: const Text('Reintentar'),
           ),
         ],

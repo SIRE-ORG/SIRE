@@ -97,7 +97,7 @@ class AuthNotifier extends _$AuthNotifier {
         ref.read(authRepositoryProvider),
       ).call(email: email, password: password),
     );
-    _refresh();
+    await _refresh();
   }
 
   /// Fase 1 del flujo de 3 fases: "Comenzar" en welcome_screen deja al
@@ -107,7 +107,7 @@ class AuthNotifier extends _$AuthNotifier {
     state = await AsyncValue.guard(
       () => SignInAnonymouslyUseCase(ref.read(authRepositoryProvider)).call(),
     );
-    _refresh();
+    await _refresh();
   }
 
   /// Paso 1 de la activación de un guest anónimo (fase 3): adjunta [email]
@@ -143,7 +143,7 @@ class AuthNotifier extends _$AuthNotifier {
         ref.read(authRepositoryProvider),
       ).call(email: email, token: token, type: type),
     );
-    _refresh();
+    await _refresh();
   }
 
   Future<AuthResult> registerGuest({
@@ -156,7 +156,11 @@ class AuthNotifier extends _$AuthNotifier {
       ref.read(authRepositoryProvider),
     ).call(name: name, email: email, phone: phone);
     state = const AsyncData(null);
-    _refresh();
+    // F3: justo tras registerGuest, un refetch inmediato del perfil puede
+    // ganarle al backend (fila de perfil aún no propagada) y volver null
+    // (getProfile lo trata como 404 → anon). Sin mitigación, el usuario
+    // recién registrado vería de nuevo el form de invitado.
+    await _refresh(retryProfileOnNull: true);
     return result;
   }
 
@@ -167,7 +171,11 @@ class AuthNotifier extends _$AuthNotifier {
         ref.read(authRepositoryProvider),
       ).call(password: password),
     );
-    _refresh();
+    // F3: misma carrera que en registerGuest, tras el PATCH de
+    // account-status — pero solo si la activación ocurrió de verdad: si
+    // falló (p. ej. validación de password, nunca llegó a tocar el
+    // repositorio) no hay carrera que mitigar.
+    await _refresh(retryProfileOnNull: !state.hasError);
   }
 
   Future<void> signOut() async {
@@ -175,12 +183,30 @@ class AuthNotifier extends _$AuthNotifier {
     state = await AsyncValue.guard(
       () => SignOutUseCase(ref.read(authRepositoryProvider)).call(),
     );
-    _refresh();
+    await _refresh();
   }
 
-  void _refresh() {
+  Future<void> _refresh({bool retryProfileOnNull = false}) async {
     ref.invalidate(currentProfileProvider);
     ref.invalidate(authStatusProvider);
+
+    if (!retryProfileOnNull) return;
+
+    // Reintento único acotado (~400ms), no polling indefinido: si el perfil
+    // sigue null pasado ese margen, se acepta como estado real (p. ej. un
+    // guest que de verdad no tiene fila todavía por otra razón). Es una
+    // mitigación best-effort: si el refetch mismo falla (red, etc.) no debe
+    // tumbar un registerGuest/activateAccount que ya tuvo éxito.
+    try {
+      final profile = await ref.read(currentProfileProvider.future);
+      if (profile == null) {
+        await Future<void>.delayed(const Duration(milliseconds: 400));
+        ref.invalidate(currentProfileProvider);
+        ref.invalidate(authStatusProvider);
+      }
+    } catch (_) {
+      // Ignorado a propósito: ver comentario arriba.
+    }
   }
 }
 

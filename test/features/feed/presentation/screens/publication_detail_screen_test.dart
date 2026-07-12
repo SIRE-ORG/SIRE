@@ -49,6 +49,27 @@ void main() {
     await tester.pump(const Duration(milliseconds: 100));
   }
 
+  // El fixture `mock-pub-1` (PublicationsRemoteDatasourceMockImpl) cierra los
+  // domingos (`dayOverrides: SUNDAY closed`); la pantalla arranca con
+  // `_selectedDate = DateTime.now()`. Si el test corre un domingo, "hoy" no
+  // tiene slots y las aserciones de horario fallan sin que haya ningún bug
+  // real. Se selecciona explícitamente el primer día abierto (nunca dos
+  // domingos seguidos) antes de interactuar con los horarios.
+  DateTime firstOpenDate() {
+    var date = DateTime.now();
+    if (date.weekday == DateTime.sunday) {
+      date = date.add(const Duration(days: 1));
+    }
+    return date;
+  }
+
+  Future<void> selectFirstOpenDateIfNeeded(WidgetTester tester) async {
+    if (DateTime.now().weekday == DateTime.sunday) {
+      await tester.tap(find.byType(GestureDetector).at(1));
+      await tester.pump();
+    }
+  }
+
   testWidgets('PublicationDetailScreen muestra título de la publicación', (
     WidgetTester tester,
   ) async {
@@ -153,6 +174,7 @@ void main() {
     tester.view.physicalSize = const Size(1080, 2400);
 
     await pumpScreen(tester);
+    await selectFirstOpenDateIfNeeded(tester);
 
     expect(find.text('09:00'), findsOneWidget);
     expect(find.text('10:00'), findsOneWidget);
@@ -230,17 +252,18 @@ void main() {
       tester.view.physicalSize = const Size(1080, 2400);
 
       await pumpScreen(tester);
+      await selectFirstOpenDateIfNeeded(tester);
 
       await tester.tap(find.text('09:00'));
       await tester.pump();
       await tester.tap(find.text('Reservar'));
       await tester.pumpAndSettle();
 
-      final now = DateTime.now();
+      final selected = firstOpenDate();
       final expectedIso =
-          '${now.year.toString().padLeft(4, '0')}-'
-          '${now.month.toString().padLeft(2, '0')}-'
-          '${now.day.toString().padLeft(2, '0')}';
+          '${selected.year.toString().padLeft(4, '0')}-'
+          '${selected.month.toString().padLeft(2, '0')}-'
+          '${selected.day.toString().padLeft(2, '0')}';
       expect(find.text('Confirmación date=$expectedIso'), findsOneWidget);
 
       addTearDown(() {

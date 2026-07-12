@@ -18,11 +18,11 @@ Future<void> main() async {
   runApp(const ProviderScope(child: SireApp()));
 }
 
-class SireApp extends StatelessWidget {
+class SireApp extends ConsumerWidget {
   const SireApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return MaterialApp.router(routerConfig: AppRouter.router);
+  Widget build(BuildContext context, WidgetRef ref) {
+    return MaterialApp.router(routerConfig: ref.watch(appRouterProvider));
   }
 }
