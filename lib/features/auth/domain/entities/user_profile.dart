@@ -1,6 +1,10 @@
 import 'package:equatable/equatable.dart';
 
-enum AccountStatus { guest, active }
+/// [anon] no existe en el backend ni en `fromJson` (la DB solo conoce
+/// `guest`/`active`): es un estado derivado en Flutter para una sesión
+/// Supabase anónima que todavía no tiene fila de perfil. Ver
+/// `authStatusProvider`.
+enum AccountStatus { guest, active, anon }
 
 class UserProfile extends Equatable {
   const UserProfile({

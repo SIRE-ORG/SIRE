@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/widgets/custom_button.dart';
 import '../../../../core/widgets/custom_text_field.dart';
 import '../providers/auth_provider.dart';
@@ -34,17 +35,25 @@ class _VerifyOtpScreenState extends ConsumerState<VerifyOtpScreen> {
       return;
     }
 
-    // Obtener datos del paso anterior vía GoRouter extra.
+    // Obtener datos del paso anterior vía GoRouter extra. `otpType:
+    // 'emailChange'` marca el camino de activación de un guest anónimo
+    // (welcome → reserva → "Crear contraseña"/"Activar cuenta"); cualquier
+    // otro valor (o su ausencia) es el registro directo de siempre.
     final extra = GoRouterState.of(context).extra as Map<String, dynamic>;
     final email = extra['email'] as String;
     final name = extra['name'] as String? ?? '';
     final phone = extra['phone'] as String? ?? '';
+    final isEmailChange = extra['otpType'] == 'emailChange';
 
     setState(() => _cargando = true);
     try {
       final auth = ref.read(authNotifierProvider.notifier);
 
-      await auth.verifyOtp(email: email, token: code);
+      await auth.verifyOtp(
+        email: email,
+        token: code,
+        type: isEmailChange ? OtpType.emailChange : OtpType.email,
+      );
       if (!mounted) return;
 
       if (ref.read(authNotifierProvider).hasError) {
@@ -55,16 +64,20 @@ class _VerifyOtpScreenState extends ConsumerState<VerifyOtpScreen> {
         return;
       }
 
-      // Con sesión ya activa, registrar el perfil guest.
-      await auth.registerGuest(name: name, email: email, phone: phone);
-      if (!mounted) return;
+      // Registro directo: con sesión ya activa, registrar el perfil guest.
+      // El camino de activación de un guest anónimo ya tiene perfil (se creó
+      // en la reserva), así que salta este paso.
+      if (!isEmailChange) {
+        await auth.registerGuest(name: name, email: email, phone: phone);
+        if (!mounted) return;
 
-      if (ref.read(authNotifierProvider).hasError) {
-        _snack(
-          'Registro de perfil falló: ${ref.read(authNotifierProvider).error}',
-        );
-        setState(() => _cargando = false);
-        return;
+        if (ref.read(authNotifierProvider).hasError) {
+          _snack(
+            'Registro de perfil falló: ${ref.read(authNotifierProvider).error}',
+          );
+          setState(() => _cargando = false);
+          return;
+        }
       }
 
       // Ir a activación (sin contraseña predefinida).

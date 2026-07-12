@@ -21,11 +21,27 @@ class _PublicationDetailScreenState
   String? _selectedTime;
 
   final List<String> _weekDays = [
-    'Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab', 'Dom',
+    'Lun',
+    'Mar',
+    'Mie',
+    'Jue',
+    'Vie',
+    'Sab',
+    'Dom',
   ];
   final List<String> _months = [
-    'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-    'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
+    'Enero',
+    'Febrero',
+    'Marzo',
+    'Abril',
+    'Mayo',
+    'Junio',
+    'Julio',
+    'Agosto',
+    'Septiembre',
+    'Octubre',
+    'Noviembre',
+    'Diciembre',
   ];
 
   @override
@@ -55,16 +71,17 @@ class _PublicationDetailScreenState
 
   List<String> _generateSlots(AvailabilityConfig config, DateTime date) {
     final dayOfWeek = _dartWeekdayToDayOfWeek(date.weekday);
-    final hasOverride = config.dayOverrides.any((o) => o.dayOfWeek == dayOfWeek);
+    final hasOverride = config.dayOverrides.any(
+      (o) => o.dayOfWeek == dayOfWeek,
+    );
 
     List<DaySchedule> schedules;
     if (hasOverride) {
-      final o = config.dayOverrides.firstWhere(
-        (o) => o.dayOfWeek == dayOfWeek,
-      );
+      final o = config.dayOverrides.firstWhere((o) => o.dayOfWeek == dayOfWeek);
       if (o.isClosed) return [];
-      schedules =
-          o.schedules.isNotEmpty ? o.schedules : config.defaultSchedules;
+      schedules = o.schedules.isNotEmpty
+          ? o.schedules
+          : config.defaultSchedules;
     } else {
       schedules = config.defaultSchedules;
     }
@@ -75,8 +92,7 @@ class _PublicationDetailScreenState
       final endParts = schedule.endTime.split(':');
       var startMinutes =
           int.parse(startParts[0]) * 60 + int.parse(startParts[1]);
-      final endMinutes =
-          int.parse(endParts[0]) * 60 + int.parse(endParts[1]);
+      final endMinutes = int.parse(endParts[0]) * 60 + int.parse(endParts[1]);
 
       while (startMinutes + config.slotDurationMinutes <= endMinutes) {
         final h = startMinutes ~/ 60;
@@ -103,9 +119,19 @@ class _PublicationDetailScreenState
       return;
     }
 
+    // Fecha del slot en ISO (YYYY-MM-DD): es la que reservation_confirm_screen
+    // envía tal cual al backend (regla de negocio: "la fecha de la reserva es
+    // la del slot elegido", sin DatePicker propio en el formulario). Un
+    // string legible tipo "Lun 15 jun" no es reconstruible a un date válido
+    // (sin año, mes en español) y rompía la reserva (bug de hito 5).
     final dateStr =
-        '${_weekDays[_selectedDate.weekday - 1]} ${_selectedDate.day} ${_months[_selectedDate.month - 1]}';
-    final endTime = _addMinutes(_selectedTime!, availability.slotDurationMinutes);
+        '${_selectedDate.year.toString().padLeft(4, '0')}-'
+        '${_selectedDate.month.toString().padLeft(2, '0')}-'
+        '${_selectedDate.day.toString().padLeft(2, '0')}';
+    final endTime = _addMinutes(
+      _selectedTime!,
+      availability.slotDurationMinutes,
+    );
 
     final uri = Uri(
       path: '/publication/${widget.id}/confirm',
@@ -142,7 +168,11 @@ class _PublicationDetailScreenState
           backgroundColor: Colors.white,
           elevation: 0,
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back_ios_new, color: Color(0xFF1E70CD), size: 20),
+            icon: const Icon(
+              Icons.arrow_back_ios_new,
+              color: Color(0xFF1E70CD),
+              size: 20,
+            ),
             onPressed: () => context.pop(),
           ),
         ),
@@ -155,7 +185,11 @@ class _PublicationDetailScreenState
           backgroundColor: Colors.white,
           elevation: 0,
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back_ios_new, color: Color(0xFF1E70CD), size: 20),
+            icon: const Icon(
+              Icons.arrow_back_ios_new,
+              color: Color(0xFF1E70CD),
+              size: 20,
+            ),
             onPressed: () => context.pop(),
           ),
         ),
@@ -171,7 +205,8 @@ class _PublicationDetailScreenState
               ),
               const SizedBox(height: 16),
               TextButton(
-                onPressed: () => ref.invalidate(publicationDetailProvider(widget.id)),
+                onPressed: () =>
+                    ref.invalidate(publicationDetailProvider(widget.id)),
                 child: const Text('Reintentar'),
               ),
             ],
@@ -182,7 +217,11 @@ class _PublicationDetailScreenState
     );
   }
 
-  Widget _buildContent(BuildContext context, Publication pub, bool isPublisher) {
+  Widget _buildContent(
+    BuildContext context,
+    Publication pub,
+    bool isPublisher,
+  ) {
     final timeSlots = _generateSlots(pub.availability, _selectedDate);
 
     return LayoutBuilder(
@@ -441,9 +480,7 @@ class _PublicationDetailScreenState
 
   Widget _buildDescription(String description) {
     return Text(
-      description.isNotEmpty
-          ? description
-          : 'Sin descripción disponible.',
+      description.isNotEmpty ? description : 'Sin descripción disponible.',
       style: const TextStyle(
         color: Color(0xFF64748B),
         fontSize: 14,

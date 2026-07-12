@@ -5,6 +5,7 @@
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
+import 'package:sire/core/network/app_exception.dart';
 import 'package:sire/core/storage/local_storage_service.dart';
 import 'package:sire/features/auth/data/datasources/auth_remote_datasource.dart';
 import 'package:sire/features/auth/data/datasources/auth_supabase_datasource.dart';
@@ -39,6 +40,10 @@ void main() {
     createdAt: '2026-01-01T00:00:00Z',
   );
 
+  setUpAll(() {
+    registerFallbackValue(OtpType.email);
+  });
+
   setUp(() {
     supa = MockAuthSupabaseDatasource();
     remote = MockAuthRemoteDatasource();
@@ -66,6 +71,36 @@ void main() {
       ).called(1);
     });
 
+    test('signInAnonymously sin sesión → delega en el datasource', () async {
+      when(() => supa.getCurrentUserId()).thenReturn(null);
+      when(() => supa.signInAnonymously()).thenAnswer((_) async {});
+
+      await repo.signInAnonymously();
+
+      verify(() => supa.signInAnonymously()).called(1);
+    });
+
+    test(
+      'signInAnonymously con sesión existente → no-op (idempotente)',
+      () async {
+        when(() => supa.getCurrentUserId()).thenReturn('u1');
+
+        await repo.signInAnonymously();
+
+        verifyNever(() => supa.signInAnonymously());
+      },
+    );
+
+    test('updateEmail delega en updateEmail del datasource', () async {
+      when(
+        () => supa.updateEmail(email: any(named: 'email')),
+      ).thenAnswer((_) async {});
+
+      await repo.updateEmail(email: 'nuevo@correo.cl');
+
+      verify(() => supa.updateEmail(email: 'nuevo@correo.cl')).called(1);
+    });
+
     test('sendMagicLink delega en signInWithOtp', () async {
       when(
         () => supa.signInWithOtp(email: any(named: 'email')),
@@ -76,17 +111,49 @@ void main() {
       verify(() => supa.signInWithOtp(email: 'a@b.cl')).called(1);
     });
 
-    test('verifyOtp delega en verifyOtp del datasource', () async {
+    test('verifyOtp delega en verifyOtp del datasource con type por defecto '
+        '(OtpType.email)', () async {
       when(
         () => supa.verifyOtp(
           email: any(named: 'email'),
           token: any(named: 'token'),
+          type: any(named: 'type'),
         ),
       ).thenAnswer((_) async {});
 
       await repo.verifyOtp(email: 'a@b.cl', token: '123456');
 
-      verify(() => supa.verifyOtp(email: 'a@b.cl', token: '123456')).called(1);
+      verify(
+        () => supa.verifyOtp(
+          email: 'a@b.cl',
+          token: '123456',
+          type: OtpType.email,
+        ),
+      ).called(1);
+    });
+
+    test('verifyOtp propaga type: OtpType.emailChange', () async {
+      when(
+        () => supa.verifyOtp(
+          email: any(named: 'email'),
+          token: any(named: 'token'),
+          type: any(named: 'type'),
+        ),
+      ).thenAnswer((_) async {});
+
+      await repo.verifyOtp(
+        email: 'a@b.cl',
+        token: '123456',
+        type: OtpType.emailChange,
+      );
+
+      verify(
+        () => supa.verifyOtp(
+          email: 'a@b.cl',
+          token: '123456',
+          type: OtpType.emailChange,
+        ),
+      ).called(1);
     });
 
     test('signOut cierra sesión y borra el token de storage', () async {
@@ -192,6 +259,18 @@ void main() {
       expect(p, isA<UserProfile>());
       expect(p!.accountStatus, AccountStatus.active);
       expect(p.name, 'Dani');
+    });
+
+    test('getProfile con sesión anónima sin fila de perfil (404) → null, '
+        'no propaga NotFoundException', () async {
+      when(() => supa.getCurrentUserId()).thenReturn('anon-1');
+      when(
+        () => remote.getProfile(),
+      ).thenThrow(NotFoundException(code: 'PROFILE_NOT_FOUND'));
+
+      final p = await repo.getProfile();
+
+      expect(p, isNull);
     });
 
     test('updateProfile → entidad mapeada', () async {

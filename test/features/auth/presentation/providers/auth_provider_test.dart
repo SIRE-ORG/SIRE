@@ -4,11 +4,13 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:sire/core/network/api_flags.dart';
 import 'package:sire/features/auth/data/datasources/auth_remote_datasource_real_impl.dart';
+import 'package:sire/features/auth/data/datasources/auth_supabase_datasource.dart';
 import 'package:sire/features/auth/data/datasources/avatar_storage_datasource.dart';
 import 'package:sire/features/auth/domain/entities/auth_result.dart';
 import 'package:sire/features/auth/domain/entities/user_profile.dart';
 import 'package:sire/features/auth/domain/repositories/auth_repository.dart';
 import 'package:sire/features/auth/presentation/providers/auth_provider.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../helpers/test_doubles.dart';
 
@@ -17,7 +19,14 @@ class MockAuthRepository extends Mock implements AuthRepository {}
 class MockAvatarStorageDatasource extends Mock
     implements AvatarStorageDatasource {}
 
+class MockAuthSupabaseDatasource extends Mock
+    implements AuthSupabaseDatasource {}
+
 void main() {
+  setUpAll(() {
+    registerFallbackValue(OtpType.email);
+  });
+
   group('PI-PROV-03: flag por defecto selecciona el backend real', () {
     test('ApiFlags.useMocks es false por defecto', () {
       expect(ApiFlags.useMocks, isFalse);
@@ -112,6 +121,50 @@ void main() {
       expect(container.read(authNotifierProvider).hasError, isTrue);
     });
 
+    test('startAnonymousSession transita loading → data', () async {
+      when(() => mockRepository.signInAnonymously()).thenAnswer((_) async {});
+
+      final container = withRepo();
+      await container
+          .read(authNotifierProvider.notifier)
+          .startAnonymousSession();
+
+      expect(container.read(authNotifierProvider), isA<AsyncData<void>>());
+      verify(() => mockRepository.signInAnonymously()).called(1);
+    });
+
+    test(
+      'startAnonymousSession que falla deja el estado en AsyncError',
+      () async {
+        when(
+          () => mockRepository.signInAnonymously(),
+        ).thenThrow(Exception('sin red'));
+
+        final container = withRepo();
+        await container
+            .read(authNotifierProvider.notifier)
+            .startAnonymousSession();
+
+        expect(container.read(authNotifierProvider).hasError, isTrue);
+      },
+    );
+
+    test('startActivation transita loading → data', () async {
+      when(
+        () => mockRepository.updateEmail(email: any(named: 'email')),
+      ).thenAnswer((_) async {});
+
+      final container = withRepo();
+      await container
+          .read(authNotifierProvider.notifier)
+          .startActivation(email: 'guest@correo.cl');
+
+      expect(container.read(authNotifierProvider), isA<AsyncData<void>>());
+      verify(
+        () => mockRepository.updateEmail(email: 'guest@correo.cl'),
+      ).called(1);
+    });
+
     test('sendMagicLink transita loading → data', () async {
       when(
         () => mockRepository.sendMagicLink(email: any(named: 'email')),
@@ -131,6 +184,7 @@ void main() {
         () => mockRepository.verifyOtp(
           email: any(named: 'email'),
           token: any(named: 'token'),
+          type: any(named: 'type'),
         ),
       ).thenAnswer((_) async {});
 
@@ -140,6 +194,40 @@ void main() {
           .verifyOtp(email: 'a@b.cl', token: '123456');
 
       expect(container.read(authNotifierProvider), isA<AsyncData<void>>());
+      verify(
+        () => mockRepository.verifyOtp(
+          email: 'a@b.cl',
+          token: '123456',
+          type: OtpType.email,
+        ),
+      ).called(1);
+    });
+
+    test('verifyOtp con type: emailChange lo propaga al repositorio', () async {
+      when(
+        () => mockRepository.verifyOtp(
+          email: any(named: 'email'),
+          token: any(named: 'token'),
+          type: any(named: 'type'),
+        ),
+      ).thenAnswer((_) async {});
+
+      final container = withRepo();
+      await container
+          .read(authNotifierProvider.notifier)
+          .verifyOtp(
+            email: 'a@b.cl',
+            token: '123456',
+            type: OtpType.emailChange,
+          );
+
+      verify(
+        () => mockRepository.verifyOtp(
+          email: 'a@b.cl',
+          token: '123456',
+          type: OtpType.emailChange,
+        ),
+      ).called(1);
     });
 
     test('registerGuest devuelve el AuthResult del repositorio', () async {
@@ -237,6 +325,44 @@ void main() {
         await container.read(authStatusProvider.future),
         AccountStatus.active,
       );
+    });
+
+    test('perfil null + sesión Supabase activa → AccountStatus.anon', () async {
+      final mockRepository = MockAuthRepository();
+      final mockSupabaseDs = MockAuthSupabaseDatasource();
+      when(() => mockRepository.getProfile()).thenAnswer((_) async => null);
+      when(() => mockSupabaseDs.getCurrentUserId()).thenReturn('anon-1');
+
+      final container = ProviderContainer(
+        overrides: [
+          authRepositoryProvider.overrideWithValue(mockRepository),
+          authSupabaseDatasourceProvider.overrideWithValue(mockSupabaseDs),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      expect(await container.read(currentProfileProvider.future), isNull);
+      expect(
+        await container.read(authStatusProvider.future),
+        AccountStatus.anon,
+      );
+    });
+
+    test('perfil null + sin sesión Supabase → authStatus null', () async {
+      final mockRepository = MockAuthRepository();
+      final mockSupabaseDs = MockAuthSupabaseDatasource();
+      when(() => mockRepository.getProfile()).thenAnswer((_) async => null);
+      when(() => mockSupabaseDs.getCurrentUserId()).thenReturn(null);
+
+      final container = ProviderContainer(
+        overrides: [
+          authRepositoryProvider.overrideWithValue(mockRepository),
+          authSupabaseDatasourceProvider.overrideWithValue(mockSupabaseDs),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      expect(await container.read(authStatusProvider.future), isNull);
     });
   });
 

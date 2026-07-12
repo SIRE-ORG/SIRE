@@ -19,7 +19,11 @@ void main() {
           routes: [
             GoRoute(
               path: 'confirm',
-              builder: (_, _) => const Scaffold(body: Text('Confirmación')),
+              builder: (_, state) => Scaffold(
+                body: Text(
+                  'Confirmación date=${state.uri.queryParameters['date']}',
+                ),
+              ),
             ),
           ],
         ),
@@ -209,4 +213,40 @@ void main() {
       FlutterError.onError = originalOnError;
     });
   });
+
+  testWidgets(
+    'tap Reservar con slot seleccionado envía la fecha del slot en ISO '
+    '(YYYY-MM-DD) a /confirm, no un texto libre sin año',
+    (tester) async {
+      final originalOnError = FlutterError.onError;
+      FlutterError.onError = (FlutterErrorDetails details) {
+        if (details.exceptionAsString().contains('overflowed')) return;
+        if (details.exceptionAsString().contains('NetworkImageLoadException')) {
+          return;
+        }
+        if (details.exceptionAsString().contains('statusCode: 400')) return;
+        originalOnError?.call(details);
+      };
+      tester.view.physicalSize = const Size(1080, 2400);
+
+      await pumpScreen(tester);
+
+      await tester.tap(find.text('09:00'));
+      await tester.pump();
+      await tester.tap(find.text('Reservar'));
+      await tester.pumpAndSettle();
+
+      final now = DateTime.now();
+      final expectedIso =
+          '${now.year.toString().padLeft(4, '0')}-'
+          '${now.month.toString().padLeft(2, '0')}-'
+          '${now.day.toString().padLeft(2, '0')}';
+      expect(find.text('Confirmación date=$expectedIso'), findsOneWidget);
+
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        FlutterError.onError = originalOnError;
+      });
+    },
+  );
 }
