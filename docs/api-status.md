@@ -1,12 +1,12 @@
-# SIRE — Estado de integración API (capa Flutter)
+# SIRE - Estado de integración API (capa Flutter)
 
-> **Última actualización:** 2026-07-12 — refresco honesto tras el flujo de
-> auth de 3 fases (ANON → GUEST → ACTIVE) y los guards de router: reservas y
+> **Última actualización:** 2026-07-12 - refresco honesto tras el flujo de
+> auth de 3 fases (ANON -> GUEST -> ACTIVE) y los guards de router: reservas y
 > notificaciones quedan **activas 1:1** contra el backend real (H8 y H10
-> cerrados, verificado contra Render). Ver **Sprint 3 — Reservas**, **Sprint
-> 4 — Notificaciones** y el resumen ejecutivo al final.
+> cerrados, verificado contra Render). Ver **Sprint 3 - Reservas**, **Sprint
+> 4 - Notificaciones** y el resumen ejecutivo al final.
 
-Snapshot del estado actual de la integración entre Flutter y los servicios externos (backend REST + Supabase). Indico qué está implementado, qué se está mockeando ahorita, y qué necesito que el backend provea para reemplazar el mock por la integración real.
+Snapshot del estado actual de la integración entre Flutter y los servicios externos (backend REST + Supabase). Desde la inversión del flag (PR #11), la app consume la integración REAL por defecto en las 5 features; los mocks existen como implementación paralela para desarrollo offline y tests (`--dart-define=USE_MOCKS=true`) y NO sirven respuestas en la app normal.
 
 El objetivo de este doc es que puedas priorizar las entregas sabiendo exactamente dónde encaja cada endpoint en la app para hacer las integraciones reales.
 
@@ -14,14 +14,15 @@ El objetivo de este doc es que puedas priorizar las entregas sabiendo exactament
 
 ## Convenciones de redacción
 
-- ✅ **Activo** — Consumo implementación real.
-- 🟡 **Mock activo** — Uso mock por defecto. La impl real ya está escrita y probada con `flutter analyze` (significa que no hay errores en codebase). Activarla solo requeriría swap del provider cuando el endpoint esté listoco.
-- 🔧 **Bloqueado por Backend** — esperando integración externa (env var, bucket, endpoint) para poder funcionar.
-- ❌ **No implementado** — pendiente de un sprint futuro.
+- ✅ **Activo** - Consumo implementación real contra el backend de producción (Render + Supabase).
+- 🔧 **Bloqueado por Backend** - esperando integración externa (env var, bucket, endpoint) para poder funcionar; el front degrada con error controlado.
+- ❌ **No implementado** - pendiente de un sprint futuro.
+
+(El estado 🟡 "Mock activo" de versiones anteriores de este doc ya no aplica: no queda ningún endpoint sirviéndose desde mock.)
 
 ---
 
-## Bootstrap — qué necesita del backend para que la app arranque
+## Bootstrap - qué necesita del backend para que la app arranque
 
 | Recurso | Estado | Para qué lo uso |
 |---|---|---|
@@ -33,7 +34,7 @@ El objetivo de este doc es que puedas priorizar las entregas sabiendo exactament
 
 ---
 
-## Sprint 1 — Auth + Users
+## Sprint 1 - Auth + Users
 
 ### Supabase Auth (SDK directo, sin backend)
 
@@ -42,8 +43,10 @@ Lo que Flutter maneja contra Supabase Auth sin pasar por el backend:
 | Operación | Estado |
 |---|---|
 | `signInWithPassword(email, password)` | ✅ |
-| `signInWithOtp(email)` (magic link) | ✅ |
-| `updateUser({ password })` (GUEST → ACTIVE en Auth) | ✅ |
+| `signInWithOtp(email)` (magic link / OTP registro directo) | ✅ |
+| `signInAnonymously()` (fase ANON del flujo de 3 fases) | ✅ |
+| `updateUser({ email })` + `verifyOTP(type: emailChange)` (adjuntar correo al usuario anónimo en la activación) | ✅ |
+| `updateUser({ password })` (GUEST -> ACTIVE en Auth) | ✅ |
 | `signOut()` | ✅ |
 | `resend(type: signup)` (verificación de correo) | ✅ |
 | `authStateChanges()` stream | ✅ |
@@ -54,12 +57,12 @@ Estos no requieren nada del backend porque el dominio conecta directo con supa c
 
 | Endpoint | Estado | Implementación esperada |
 |---|---|---|
-| `POST /auth/register-guest` | 🟡 | EL mock de ahora retorna `{userId: 'mock-user-id-123', accountStatus: 'guest', userCreated: true, token: 'mock-token-123'}`. Backend: crear usuario en Supabase Auth + perfil en `profiles` en una transacción. |
-| `PATCH /auth/account-status` | 🟡 | Mock no-op (200 vacío). Backend: actualizar `accountStatus = 'ACTIVE'` en `profiles` directamente vía Prisma. **No usar trigger Supabase** (lo que dijimos antes). |
-| `GET /users/me` | 🟡 | Mock retorna usuario demo (`demo@sire.cl`, GUEST). Backend: leer `profiles` por JWT. |
-| `PUT /users/me` | 🟡 | Mock retorna entidad merged. Backend: actualizar campos opcionales (`name`, `phone`, `avatarUrl`); NO sobreescribir con null si el campo viene ausente del body. |
+| `POST /auth/register-guest` | ✅ | Activo contra Render. Espera `{id, email, name, phone}` y crea la fila en `profiles` con `accountStatus: guest`. Verificado también con usuarios anónimos (2026-07-12): el id anónimo de Supabase crea perfil guest sin cambios en backend. |
+| `PATCH /auth/account-status` | ✅ | Activo. Actualiza `accountStatus = 'active'` en `profiles` por `x-user-id`. Se usa en la fase final de activación. |
+| `GET /auth/me` | ✅ | Activo (el contrato original decía `GET /users/me`; el backend lo expone en `/auth/me` y el front apunta ahí vía `ApiConstants.authMe`). Para un anónimo sin perfil responde 404 y el front lo interpreta como estado ANON (por diseño). |
+| `PUT /users/me` | 🔧 | **Único endpoint faltante.** No existe en el backend; el datasource real lanza `ENDPOINT_NOT_AVAILABLE` (error controlado) y la pantalla de editar perfil no opera contra prod. Pedido a Cristian (hoja de sprint): UPDATE de `name`/`phone`/`avatarUrl` por `x-user-id`, sin sobreescribir con null campos ausentes. |
 
-## Sprint 2 — Feed + Publications
+## Sprint 2 - Feed + Publications
 
 ### Geolocalización (Flutter, sin backend)
 
@@ -80,24 +83,24 @@ Estos no requieren nada del backend porque el dominio conecta directo con supa c
 
 | Endpoint | Estado | Notas |
 |---|---|---|
-| `GET /feed` | 🟡 | Mock con 5 publicaciones seeded en Región de La Araucanía con categorías mixtas |
-| `GET /publications/:id` | 🟡 | Mock con 3 publicaciones (incluye `availability` completo con `dayOverrides`) |
-| `GET /publications/mine` | 🟡 | Mock retorna 2 entradas del usuario demo (`mock-user-id-123`) |
-| `POST /publications` | 🟡 | Mock retorna entidad creada. **Patrón especial:** el front asume que la respuesta puede ser sparse (`{id, title, isActive, createdAt}` según el contrato actual) y compensa con un `GET /publications/:id` adicional inmediato para obtener la entidad completa con `availability`. Si decides retornar la entidad completa en el 201, ese GET extra se vuelve redundante (no causa errores, solo es ineficiente), así que necesito la definición de cómo lo implementaste para optimizarlo. |
-| `PUT /publications/:id` | 🟡 | Mismo patrón sparse + GET adicional |
-| `PATCH /publications/:id/status` | 🟡 | Mock no-op |
-| `DELETE /publications/:id` | 🟡 | Mock no-op |
+| `GET /publications/publications` (feed) | ✅ | Activo contra Render con paginación y filtros. La ruta real lleva doble prefijo (deuda documentada abajo); el front usa `ApiConstants.publicationsFeedLive`. |
+| `GET /publications/:id` | ✅ | Activo, incluye `availability` completo con `dayOverrides`. |
+| `GET /publications/publications/mine` | ✅ | Activo (doble prefijo compensado con `publicationsFeedMineLive`). |
+| `POST /publications` | ✅ | Activo. El backend retorna la entidad completa en el 201, así que el patrón antiguo de "POST sparse + GET adicional" quedó eliminado del datasource real (hoy es un solo POST). |
+| `PUT /publications/:id` | ✅ | Activo. |
+| `PATCH /publications/:id/status` | ✅ | Activo (pausar/reactivar). |
+| `DELETE /publications/:id` | ✅ | Activo. |
 
 ### Categorías (enum congelado)
 
-`DEPORTE | EVENTOS | RECREACION | OTROS` (decidido antes — Zod en backend rechaza otros valores).
+`DEPORTE | EVENTOS | RECREACION | OTROS` (decidido antes - Zod en backend rechaza otros valores).
 
 Front mapea uppercase API ↔ lowercase enum Dart vía `publicationCategoryFromString` / `publicationCategoryToString` en `publication_detail_model.dart`. Si amplías el enum luego (ej: agregar `SALUD` cómo nueva categoría), me actualizas el contrato (`api-contract`) y agrego el case en el helper jojojo.
 
 ### Deuda / regresiones conocidas (verificado 2026-07-12)
 
-- **Doble prefijo `/publications/publications`:** `publication.routes.ts` registra rutas con prefijo local `/publications` sobre un plugin ya montado bajo `/api/v1/publications` en `app.ts`, resultando en paths efectivos `/api/v1/publications/publications[/mine]`. Compensado en Flutter con `ApiConstants.publicationsFeedLive` / `publicationsFeedMineLive` (ver `lib/core/network/api_constants.dart`). **Sigue como deuda técnica del backend** — corregirla requiere alinear `publication.routes.ts` (`'/publications'` → `'/'`) y quitar el workaround de Flutter en el mismo cambio. Documentado también en `claude/comentarios_backend.txt` sección C.
-- **H1 (abierto):** `GET /feed` no filtra publicaciones con `isActive: false` (pausadas) — el contrato exige que el feed solo muestre activas. Confirmado por `test/backend/backend_contract_test.dart` (`PI-FEED-04b`), que corre contra el backend real con `--dart-define=SIRE_BACKEND_URL=...` y queda **rojo a propósito** como regresión documentada hasta que el backend filtre por `isActive` en el query. No afecta `flutter test` por defecto (esa suite se salta sin la variable de entorno).
+- **Doble prefijo `/publications/publications`:** `publication.routes.ts` registra rutas con prefijo local `/publications` sobre un plugin ya montado bajo `/api/v1/publications` en `app.ts`, resultando en paths efectivos `/api/v1/publications/publications[/mine]`. Compensado en Flutter con `ApiConstants.publicationsFeedLive` / `publicationsFeedMineLive` (ver `lib/core/network/api_constants.dart`). **Sigue como deuda técnica del backend** - corregirla requiere alinear `publication.routes.ts` (`'/publications'` -> `'/'`) y quitar el workaround de Flutter en el mismo cambio. Documentado también en `claude/comentarios_backend.txt` sección C.
+- **H1 (abierto):** `GET /feed` no filtra publicaciones con `isActive: false` (pausadas) - el contrato exige que el feed solo muestre activas. Confirmado por `test/backend/backend_contract_test.dart` (`PI-FEED-04b`), que corre contra el backend real con `--dart-define=SIRE_BACKEND_URL=...` y queda **rojo a propósito** como regresión documentada hasta que el backend filtre por `isActive` en el query. No afecta `flutter test` por defecto (esa suite se salta sin la variable de entorno).
 
 ### Storage
 
@@ -107,26 +110,26 @@ Front mapea uppercase API ↔ lowercase enum Dart vía `publicationCategoryFromS
 
 ---
 
-## Sprint 3 — Reservas (RF-05)
+## Sprint 3 - Reservas (RF-05)
 
-Capa de datos **implementada y commiteada en `dev`**: datasources (real + mock), modelos, repositorio, usecases, entidad `Reservation` con `ReservationStatus`, y providers Riverpod. **Costura A** (HTTP simulado) verde. **Costura B** (backend real, `test/backend/backend_contract_test.dart`, se activa con `--dart-define=SIRE_BACKEND_URL=...`) **verde tras cerrar H8 y H10** (ver `test(contrato): PI-RES-01/02 en verde tras fixes H8/H10`). El flujo de pantallas (confirmar reserva → elegibilidad → activación) está cableado end-to-end desde el flujo de auth de 3 fases.
+Capa de datos **implementada y commiteada en `dev`**: datasources (real + mock), modelos, repositorio, usecases, entidad `Reservation` con `ReservationStatus`, y providers Riverpod. **Costura A** (HTTP simulado) verde. **Costura B** (backend real, `test/backend/backend_contract_test.dart`, se activa con `--dart-define=SIRE_BACKEND_URL=...`) **verde tras cerrar H8 y H10** (ver `test(contrato): PI-RES-01/02 en verde tras fixes H8/H10`). El flujo de pantallas (confirmar reserva -> elegibilidad -> activación) está cableado end-to-end desde el flujo de auth de 3 fases.
 
-### Backend REST (reservas) — los 6 endpoints están activos 1:1
+### Backend REST (reservas) - los 6 endpoints están activos 1:1
 
 | Endpoint | Estado | Notas de integración |
 |---|---|---|
-| `POST /reservations` | ✅ | Body `{publicationId, date, startTime, endTime}` — **sin `slotId`** (H9: la capa se diseñó contra el backend real, no contra `api-contract.md`; sigue como deuda de contrato, no bloquea nada). |
+| `POST /reservations` | ✅ | Body `{publicationId, date, startTime, endTime}` - **sin `slotId`** (H9: la capa se diseñó contra el backend real, no contra `api-contract.md`; sigue como deuda de contrato, no bloquea nada). |
 | `GET /reservations/mine` | ✅ | Incluye datos de la publicación aplanados en la entidad. |
 | `PATCH /reservations/:id/status` | ✅ | Solo el dueño de la publicación acepta/rechaza. Valida contra el enum en minúsculas. |
 | `PATCH /reservations/:id/cancel` | ✅ | **H8 cerrado:** el backend alineó la ruta a `PATCH /:id/cancel` (antes registrada como `DELETE`, causaba 404). Verificado contra Render. |
-| `GET /reservations/received` | ✅ | Ya no es stub — `ReservationsRemoteDatasourceRealImpl.getReceivedReservations()` pega contra el endpoint real. El check muerto de `ENDPOINT_NOT_AVAILABLE` en `received_reservations_screen.dart` se eliminó (P1, flujo auth 3 fases). |
-| `GET /reservations/:id` | ✅ | Ya no es stub — `getReservationDetail()` pega contra el endpoint real. |
+| `GET /reservations/received` | ✅ | Ya no es stub - `ReservationsRemoteDatasourceRealImpl.getReceivedReservations()` pega contra el endpoint real. El check muerto de `ENDPOINT_NOT_AVAILABLE` en `received_reservations_screen.dart` se eliminó (P1, flujo auth 3 fases). |
+| `GET /reservations/:id` | ✅ | Ya no es stub - `getReservationDetail()` pega contra el endpoint real. |
 
 **H10 cerrado:** el INSERT de `POST /reservations` en Render ya no responde 500 (era drift de migración, no `prisma generate`); verificado con la Costura B.
 
 ---
 
-## Sprint 4 — Notificaciones (RF-06)
+## Sprint 4 - Notificaciones (RF-06)
 
 Capa de datos **implementada y activa** (no queda mock por defecto): historial + marcar leídas vía REST, y stream en vivo vía **Supabase Realtime** directo a la tabla `notifications` (primer uso de realtime en la app, sin pasar por el backend).
 
@@ -143,8 +146,8 @@ Sin sesión activa, `watchNotifications()` devuelve un stream vacío en vez de f
 
 ## Pendientes priorizados (2026-07-12)
 
-1. **`PUT /users/me`** — `AuthRemoteDatasourceRealImpl.updateProfile()` sigue lanzando `ENDPOINT_NOT_AVAILABLE` (stub intencional, bloqueado por backend). Sin esto, editar perfil (nombre/teléfono/avatar) no persiste contra el backend real.
-2. **`POST /auth/claim-guest`** — endpoint aún no existe en el backend. Es el que permitiría a un guest cuya sesión anónima de Supabase expiró/se perdió "reclamar" su perfil existente por correo y reactivar la sesión, sin tener que crear un perfil duplicado. **No se implementó UI para este camino** (para no dejar una feature a medias visible en la demo); queda documentado acá como el siguiente paso una vez el backend lo exponga. Mientras tanto, un guest que pierde su sesión anónima simplemente vuelve a pasar por "Comenzar" → nueva sesión anónima → si intenta `registerGuest` con el mismo correo, el backend responde `ConflictException` (ya manejado en `reservation_confirm_screen.dart`: "Este correo ya tiene cuenta; inicia sesión").
+1. **`PUT /users/me`** - `AuthRemoteDatasourceRealImpl.updateProfile()` sigue lanzando `ENDPOINT_NOT_AVAILABLE` (stub intencional, bloqueado por backend). Sin esto, editar perfil (nombre/teléfono/avatar) no persiste contra el backend real.
+2. **`POST /auth/claim-guest`** - endpoint aún no existe en el backend. Es el que permitiría a un guest cuya sesión anónima de Supabase expiró/se perdió "reclamar" su perfil existente por correo y reactivar la sesión, sin tener que crear un perfil duplicado. **No se implementó UI para este camino** (para no dejar una feature a medias visible en la demo); queda documentado acá como el siguiente paso una vez el backend lo exponga. Mientras tanto, un guest que pierde su sesión anónima simplemente vuelve a pasar por "Comenzar" -> nueva sesión anónima -> si intenta `registerGuest` con el mismo correo, el backend responde `ConflictException` (ya manejado en `reservation_confirm_screen.dart`: "Este correo ya tiene cuenta; inicia sesión").
 
 ---
 
@@ -152,10 +155,10 @@ Sin sesión activa, `watchNotifications()` devuelve un stream vacío en vez de f
 
 **Si entregas lo del backend antes del miercoles o durante esta semana, en orden de impacto:**
 
-1. **`.env` con `API_BASE_URL`** — destraba los endpoints de sprint 1 y 2. Ahora mismo la app arranca y supabase está conectado, pero los `*RemoteDatasourceImpl` no apuntan a un host real para las peticiones.
-2. **Buckets Supabase `avatars` + `publications` con política pública** — destraba toda la subida de imágenes (avatar de Sprint 1, imagen de publicación de Sprint 2).
-3. **Endpoints Sprint 1 (4)** — al estar listos puedo dar de baja `AuthRemoteDatasourceMockImpl` e implementar la autenticación real.
-4. **Endpoints Sprint 2 (7)** — al estar listos puedo dar de baja `FeedRemoteDatasourceMockImpl` y `PublicationsRemoteDatasourceMockImpl` e implementar el repo de publicaciones real para feed y vista de publicaciones.
+1. **`.env` con `API_BASE_URL`** - destraba los endpoints de sprint 1 y 2. Ahora mismo la app arranca y supabase está conectado, pero los `*RemoteDatasourceImpl` no apuntan a un host real para las peticiones.
+2. **Buckets Supabase `avatars` + `publications` con política pública** - destraba toda la subida de imágenes (avatar de Sprint 1, imagen de publicación de Sprint 2).
+3. **Endpoints Sprint 1 (4)** - al estar listos puedo dar de baja `AuthRemoteDatasourceMockImpl` e implementar la autenticación real.
+4. **Endpoints Sprint 2 (7)** - al estar listos puedo dar de baja `FeedRemoteDatasourceMockImpl` y `PublicationsRemoteDatasourceMockImpl` e implementar el repo de publicaciones real para feed y vista de publicaciones.
 
 **Total endpoints con capa de datos implementada:** 24 (4 Sprint 1 + 7 Sprint 2 + 6 Sprint 3 reservas + 4 Sprint 4 notificaciones REST, más el stream de Realtime). El backend está **vivo en Render**; H3, H8 y H10 quedaron cerrados. Bloqueos vigentes: `PUT /users/me` y `POST /auth/claim-guest` (ver "Pendientes priorizados" arriba), `publications/:id/slots` (no implementado) y H1 (feed no filtra pausadas, regresión documentada). Doble prefijo `/publications/publications` sigue como deuda técnica compensada en Flutter. Cobertura de RF/RNF estimada **~70%+** con lo ya integrado (reservas y notificaciones end-to-end, guards de navegación por estado de cuenta).
 
@@ -208,13 +211,13 @@ Se levantó la arquitectura base con Fastify + Prisma ORM + Supabase PostgreSQL.
 | POST | /api/v1/reservations | ✅ Listo | Crea la solicitud en estado `pending`. Requiere header `x-user-id` (solicitante) |
 | GET | /api/v1/reservations/mine | ✅ Listo | Reservas del solicitante. Incluye datos de la publicación |
 | PATCH | /api/v1/reservations/:id/status | ✅ Listo | Solo el dueño de la publicación acepta/rechaza. Valida el estado contra el enum (minúsculas) |
-| PATCH | /api/v1/reservations/:id/cancel | ✅ Listo | **H8 cerrado** — método alineado a PATCH en el backend |
+| PATCH | /api/v1/reservations/:id/cancel | ✅ Listo | **H8 cerrado** - método alineado a PATCH en el backend |
 | GET | /api/v1/reservations/received | ✅ Listo | Reservas recibidas por el publicador. Antes stub `ENDPOINT_NOT_AVAILABLE` en Flutter |
 | GET | /api/v1/reservations/:id | ✅ Listo | Detalle de una reserva. Antes stub `ENDPOINT_NOT_AVAILABLE` en Flutter |
 
 > **Notas de integración (verificadas desde Flutter, actualizado 2026-07-12):**
 >
-> - **H8 — `cancel` (cerrado):** el backend alineó la ruta a `PATCH /:id/cancel` (antes `DELETE`, causaba 404 por method mismatch).
+> - **H8 - `cancel` (cerrado):** el backend alineó la ruta a `PATCH /:id/cancel` (antes `DELETE`, causaba 404 por method mismatch).
 > - **H9 (abierto, no bloqueante):** el cliente envía `{publicationId, date, startTime, endTime}` (sin `slotId`), acorde al backend real; el contrato `api-contract.md` aún dice `slotId`. Deuda de documentación, no de código.
-> - **H10 — `POST /reservations` 500 en Render (cerrado):** era drift de migración en la BD desplegada (no `prisma generate`); el INSERT ya no falla. Verificado con la Costura B (`test/backend/backend_contract_test.dart`).
+> - **H10 - `POST /reservations` 500 en Render (cerrado):** era drift de migración en la BD desplegada (no `prisma generate`); el INSERT ya no falla. Verificado con la Costura B (`test/backend/backend_contract_test.dart`).
 > - **`GET /reservations/received` y `GET /reservations/:id`:** ya no son stub, están implementados 1:1 en `ReservationsRemoteDatasourceRealImpl`.
