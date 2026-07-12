@@ -4,11 +4,13 @@
 // Sin binding de widgets: MyReservationsNotifier no depende de storage ni
 // canales de plataforma. Solo se sustituye el datasource remoto.
 
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:sire/core/network/api_flags.dart';
 import 'package:sire/core/network/app_exception.dart';
 import 'package:sire/features/reservations/data/datasources/reservations_remote_datasource.dart';
-import 'package:sire/features/reservations/data/datasources/reservations_remote_datasource_mock_impl.dart';
+import 'package:sire/features/reservations/data/datasources/reservations_remote_datasource_real_impl.dart';
 import 'package:sire/features/reservations/data/models/reservation_model.dart';
 import 'package:sire/features/reservations/domain/entities/reservation.dart';
 import 'package:sire/features/reservations/domain/usecases/create_reservation_usecase.dart';
@@ -85,14 +87,21 @@ void main() {
     });
   });
 
-  group('PI-PROV-06: flag por defecto selecciona la implementación mock', () {
-    test('sin overrides, el datasource es el mock', () {
+  group('PI-PROV-06: flag por defecto selecciona el backend real', () {
+    test('ApiFlags.useMocks es false por defecto', () {
+      expect(ApiFlags.useMocks, isFalse);
+    });
+
+    test('sin overrides, el datasource es la implementación real', () {
+      dotenv.testLoad(fileInput: 'API_BASE_URL=http://localhost:3000/api/v1');
+      addTearDown(dotenv.clean);
+
       final container = ProviderContainer();
       addTearDown(container.dispose);
 
       expect(
         container.read(reservationsRemoteDatasourceProvider),
-        isA<ReservationsRemoteDatasourceMockImpl>(),
+        isA<ReservationsRemoteDatasourceRealImpl>(),
       );
     });
   });

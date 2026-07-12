@@ -2,11 +2,13 @@
 // sustituido: stream → entidades, derivación de no leídas, y acciones de
 // marcar leídas (con guard) sin excepciones sin capturar.
 
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:sire/core/network/api_flags.dart';
 import 'package:sire/core/network/app_exception.dart';
 import 'package:sire/features/notifications/data/datasources/notifications_datasource.dart';
-import 'package:sire/features/notifications/data/datasources/notifications_mock_datasource_impl.dart';
+import 'package:sire/features/notifications/data/datasources/notifications_remote_datasource_real_impl.dart';
 import 'package:sire/features/notifications/data/models/notification_model.dart';
 import 'package:sire/features/notifications/presentation/providers/notifications_provider.dart';
 
@@ -131,14 +133,21 @@ void main() {
     });
   });
 
-  group('PI-NOTIF-04: flag por defecto selecciona el mock', () {
-    test('sin overrides, el datasource es el mock', () {
+  group('PI-NOTIF-04: flag por defecto selecciona el backend real', () {
+    test('ApiFlags.useMocks es false por defecto', () {
+      expect(ApiFlags.useMocks, isFalse);
+    });
+
+    test('sin overrides, el datasource es la implementación real', () {
+      dotenv.testLoad(fileInput: 'API_BASE_URL=http://localhost:3000/api/v1');
+      addTearDown(dotenv.clean);
+
       final container = ProviderContainer();
       addTearDown(container.dispose);
 
       expect(
         container.read(notificationsDatasourceProvider),
-        isA<NotificationsMockDatasourceImpl>(),
+        isA<NotificationsRemoteDatasourceRealImpl>(),
       );
     });
   });

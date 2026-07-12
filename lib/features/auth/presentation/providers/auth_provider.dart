@@ -38,12 +38,12 @@ AuthSupabaseDatasource authSupabaseDatasource(Ref ref) =>
     AuthSupabaseDatasourceImpl();
 
 @riverpod
-AuthRemoteDatasource authRemoteDatasource(Ref ref) => ApiFlags.useRealBackend
-    ? AuthRemoteDatasourceRealImpl(
+AuthRemoteDatasource authRemoteDatasource(Ref ref) => ApiFlags.useMocks
+    ? AuthRemoteDatasourceMockImpl()
+    : AuthRemoteDatasourceRealImpl(
         dio: DioClient.createSync().dio,
         supabase: Supabase.instance.client,
-      )
-    : AuthRemoteDatasourceMockImpl();
+      );
 
 @riverpod
 AvatarStorageDatasource avatarStorageDatasource(Ref ref) =>

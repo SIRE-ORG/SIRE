@@ -6,7 +6,7 @@ import 'notifications_datasource.dart';
 /// Mock con estado en memoria que simula el realtime: `watchNotifications`
 /// emite el snapshot actual y luego cada cambio (mark-read) re-emite. Permite
 /// demostrar y testear toda la pipeline (lista + badge + marcar leídas) sin
-/// backend, con `USE_REAL_BACKEND=false`.
+/// backend, con `USE_MOCKS=true`.
 class NotificationsMockDatasourceImpl implements NotificationsDatasource {
   NotificationsMockDatasourceImpl() : _items = _seed();
 

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:sire/features/publications/data/datasources/publications_remote_datasource_mock_impl.dart';
+import 'package:sire/features/publications/presentation/providers/my_publications_provider.dart';
 import 'package:sire/features/publications/presentation/screens/edit_publication_screen.dart';
 
 void main() {
@@ -33,7 +35,18 @@ void main() {
         ),
       ],
     );
-    return ProviderScope(child: MaterialApp.router(routerConfig: mockRouter));
+    return ProviderScope(
+      // El formulario se pre-pobla vía publicationDetailProvider → el
+      // datasource mock trae el fixture "Cancha de fútbol El Estadio" que
+      // esta pantalla verifica. Se fuerza explícitamente porque
+      // ApiFlags.useMocks ahora es false por defecto (backend real).
+      overrides: [
+        publicationsRemoteDatasourceProvider.overrideWithValue(
+          PublicationsRemoteDatasourceMockImpl(),
+        ),
+      ],
+      child: MaterialApp.router(routerConfig: mockRouter),
+    );
   }
 
   testWidgets('EditPublicationScreen muestra título del AppBar', (
@@ -235,8 +248,11 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(SingleChildScrollView), findsWidgets);
-    expect(find.byType(TextFormField).evaluate().isNotEmpty ||
-        find.byType(TextField).evaluate().isNotEmpty, isTrue);
+    expect(
+      find.byType(TextFormField).evaluate().isNotEmpty ||
+          find.byType(TextField).evaluate().isNotEmpty,
+      isTrue,
+    );
 
     addTearDown(() {
       tester.view.resetPhysicalSize();

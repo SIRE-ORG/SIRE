@@ -6,6 +6,10 @@ import 'package:sire/features/auth/domain/entities/user_profile.dart';
 import 'package:sire/features/auth/presentation/providers/auth_provider.dart';
 import 'package:sire/features/profile/presentation/screens/profile_screen.dart';
 import 'package:sire/core/providers/role_provider.dart';
+import 'package:sire/features/publications/data/datasources/publications_remote_datasource_mock_impl.dart';
+import 'package:sire/features/publications/presentation/providers/my_publications_provider.dart';
+import 'package:sire/features/reservations/data/datasources/reservations_remote_datasource_mock_impl.dart';
+import 'package:sire/features/reservations/presentation/providers/reservations_provider.dart';
 
 const _kProfile = UserProfile(
   id: 'u1',
@@ -48,6 +52,15 @@ void main() {
         isPublisherProvider.overrideWith((ref) => isPublisher),
         if (withProfile)
           currentProfileProvider.overrideWith((ref) async => _kProfile),
+        // ProfileScreen también observa mis publicaciones/reservas para los
+        // contadores del panel: se fuerzan los datasources mock porque
+        // ApiFlags.useMocks ahora es false por defecto (backend real).
+        publicationsRemoteDatasourceProvider.overrideWithValue(
+          PublicationsRemoteDatasourceMockImpl(),
+        ),
+        reservationsRemoteDatasourceProvider.overrideWithValue(
+          ReservationsRemoteDatasourceMockImpl(),
+        ),
       ],
       child: MaterialApp.router(routerConfig: mockRouter),
     );
