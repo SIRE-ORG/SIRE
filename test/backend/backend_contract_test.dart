@@ -195,6 +195,7 @@ void main() {
         'description': 'creada por la suite de integración',
         'category': 'DEPORTE',
         'region': regionPrueba,
+        'city': 'Temuco',
         'availability': availabilityJson(),
         'ownerId': ownerId,
       },
@@ -482,100 +483,79 @@ void main() {
   // PI-RES-01 — crear reserva y listar las mías
   // -------------------------------------------------------------------------
 
-  // tag regresion-contrato: hoy rojo por H10 (POST /reservations da 500 en el
-  // backend). Pasará a verde cuando Cristian destrabe el INSERT; quitar el tag.
-  test(
-    'PI-RES-01 — crear reserva (POST /reservations) y recuperarla en '
-    '/mine con include de publication',
-    tags: ['regresion-contrato'],
-    () async {
-      // Sembrar una publicación del owner para reservar contra ella.
-      final pubId = await crearPublicacion(sufijo: 'res');
-      if (pubId.isEmpty || solicitanteId == null) return;
+  // H10 arreglado (verificado 2026-07-11 contra Render: POST /reservations
+  // devuelve 201). Test en verde, sin tag de regresión.
+  test('PI-RES-01 — crear reserva (POST /reservations) y recuperarla en '
+      '/mine con include de publication', () async {
+    // Sembrar una publicación del owner para reservar contra ella.
+    final pubId = await crearPublicacion(sufijo: 'res');
+    if (pubId.isEmpty || solicitanteId == null) return;
 
-      // POST /reservations con header del solicitante.
-      final r = await dio.post(
-        ApiConstants.reservations,
-        data: {
-          'publicationId': pubId,
-          'date': '2026-12-25',
-          'startTime': '10:00',
-          'endTime': '11:00',
-        },
-        options: Options(headers: {'x-user-id': solicitanteId}),
-      );
-      expect(r.statusCode, 201);
-      final data = r.data['data'] as Map<String, dynamic>;
-      expect(data['status'], 'pending');
-      expect(data['publicationId'], pubId);
-      final resId = data['id'] as String;
-      reservasCreadas.add(resId);
+    // POST /reservations con header del solicitante.
+    final r = await dio.post(
+      ApiConstants.reservations,
+      data: {
+        'publicationId': pubId,
+        'date': '2026-12-25',
+        'startTime': '10:00',
+        'endTime': '11:00',
+      },
+      options: Options(headers: {'x-user-id': solicitanteId}),
+    );
+    expect(r.statusCode, 201);
+    final data = r.data['data'] as Map<String, dynamic>;
+    expect(data['status'], 'pending');
+    expect(data['publicationId'], pubId);
+    final resId = data['id'] as String;
+    reservasCreadas.add(resId);
 
-      // GET /mine del solicitante debe incluir la reserva recién creada.
-      final mine = await dio.get(
-        ApiConstants.reservationsMine,
-        options: Options(headers: {'x-user-id': solicitanteId}),
-      );
-      expect(mine.statusCode, 200);
-      final mineData = (mine.data['data'] as List).cast<Map<String, dynamic>>();
-      final creada = mineData.firstWhere((r) => r['id'] == resId);
-      expect(creada['status'], 'pending');
-      // Include de publication aplanado.
-      expect(creada['publication'], isNotNull);
-      expect(creada['publication']['title'], isNotNull);
-      expect(creada['publication']['city'], isNotNull);
-    },
-  );
+    // GET /mine del solicitante debe incluir la reserva recién creada.
+    final mine = await dio.get(
+      ApiConstants.reservationsMine,
+      options: Options(headers: {'x-user-id': solicitanteId}),
+    );
+    expect(mine.statusCode, 200);
+    final mineData = (mine.data['data'] as List).cast<Map<String, dynamic>>();
+    final creada = mineData.firstWhere((r) => r['id'] == resId);
+    expect(creada['status'], 'pending');
+    // Include de publication aplanado.
+    expect(creada['publication'], isNotNull);
+    expect(creada['publication']['title'], isNotNull);
+    expect(creada['publication']['city'], isNotNull);
+  });
 
   // -------------------------------------------------------------------------
-  // PI-RES-02 (H8, rojo esperado) — cancelar reserva
+  // PI-RES-02 (H8 arreglado) — cancelar reserva
   // -------------------------------------------------------------------------
 
-  test(
-    'PI-RES-02 (H8, rojo esperado): PATCH /:id/cancel con solicitante',
-    tags: ['regresion-contrato'],
-    () async {
-      final pubId = await crearPublicacion(sufijo: 'h8');
-      if (pubId.isEmpty || solicitanteId == null) return;
+  test('PI-RES-02 (H8 arreglado): PATCH /:id/cancel con solicitante', () async {
+    final pubId = await crearPublicacion(sufijo: 'h8');
+    if (pubId.isEmpty || solicitanteId == null) return;
 
-      // Crear reserva.
-      final r = await dio.post(
-        ApiConstants.reservations,
-        data: {
-          'publicationId': pubId,
-          'date': '2026-12-26',
-          'startTime': '10:00',
-          'endTime': '11:00',
-        },
-        options: Options(headers: {'x-user-id': solicitanteId}),
-      );
-      final resId = (r.data['data'] as Map)['id'] as String;
-      reservasCreadas.add(resId);
+    // Crear reserva.
+    final r = await dio.post(
+      ApiConstants.reservations,
+      data: {
+        'publicationId': pubId,
+        'date': '2026-12-26',
+        'startTime': '10:00',
+        'endTime': '11:00',
+      },
+      options: Options(headers: {'x-user-id': solicitanteId}),
+    );
+    final resId = (r.data['data'] as Map)['id'] as String;
+    reservasCreadas.add(resId);
 
-      // H8: la ruta cancel no está registrada; el backend responde 404.
-      // Este test queda rojo como evidencia documentada de la regresión.
-      try {
-        final cancel = await dio.patch(
-          ApiConstants.reservationCancel(resId),
-          options: Options(headers: {'x-user-id': solicitanteId}),
-        );
-        // Si la ruta llega a registrarse (fix H8), el test pasa a verde.
-        expect(cancel.statusCode, 200);
-        final cancelData = cancel.data['data'] as Map<String, dynamic>;
-        expect(cancelData['status'], 'cancelled');
-      } on DioException catch (e) {
-        // H8 vigente: 404 esperado.
-        expect(
-          e.response?.statusCode,
-          404,
-          reason:
-              'H8: la ruta PATCH /reservations/:id/cancel no está '
-              'registrada en el backend. Este test quedará rojo hasta que '
-              'se registre la ruta.',
-        );
-      }
-    },
-  );
+    // H8 arreglado (verificado 2026-07-11 contra Render): la ruta cancel
+    // está registrada y responde 200.
+    final cancel = await dio.patch(
+      ApiConstants.reservationCancel(resId),
+      options: Options(headers: {'x-user-id': solicitanteId}),
+    );
+    expect(cancel.statusCode, 200);
+    final cancelData = cancel.data['data'] as Map<String, dynamic>;
+    expect(cancelData['status'], 'cancelled');
+  });
 
   // -------------------------------------------------------------------------
   // PI-RES-03 — dueño actualiza estado; seguridad cruzada
