@@ -1,4 +1,4 @@
-# SIRE — Sistema Integral de Reservas Estratégicas
+# SIRE: Sistema Integral de Reservas Estratégicas
 
 Aplicación móvil multiplataforma que centraliza la agenda y el agendamiento
 de horas para emprendimientos locales, conectando negocios con sus clientes
@@ -11,19 +11,19 @@ a través de un feed dinámico y una agenda inteligente configurable.
 La mayoría de los emprendimientos locales gestionan su atención al cliente
 a través de canales dispersos y/o informales: Instagram, WhatsApp, Facebook, etc.
 No hay estándar. Cada negocio resuelve cómo comunicarse por **su** cuenta,
-cómo promocionarse y cómo organizar su agenda — y los clientes tienen que
+cómo promocionarse y cómo organizar su agenda, y los clientes tienen que
 adaptarse **a cada uno de ellos**.
 
 ## La solución
 
 SIRE **centraliza tres cosas** en un solo lugar:
 
-- **Feed de publicaciones** — los negocios publican sus servicios y los
+- **Feed de publicaciones**: los negocios publican sus servicios y los
   clientes los descubren filtrados por *zona geográfica*.
-- **Agenda inteligente** — cada publicación tiene una *disponibilidad*
+- **Agenda inteligente**: cada publicación tiene una *disponibilidad*
   *configurable por día y horario*; el cliente reserva directamente desde
   la app sin pasar por WhatsApp o canales externos.
-- **Canal de comunicación unificado** — el negocio elige si contacta al
+- **Canal de comunicación unificado**: el negocio elige si contacta al
   cliente por correo o WhatsApp; *la app lo gestiona*.
 
 ---
@@ -68,10 +68,10 @@ Antes de clonar e instalar el proyecto, asegúrate de tener instalado:
 
 ### Requisitos externos
 
-- **Proyecto en Supabase** — la app se conecta a un proyecto Supabase para
+- **Proyecto en Supabase**: la app se conecta a un proyecto Supabase para
   autenticación, base de datos PostgreSQL, almacenamiento de archivos y
   tiempo real.
-- **Dispositivo/emulador** — para ejecutar la app Flutter necesitas un
+- **Dispositivo/emulador**: para ejecutar la app Flutter necesitas un
   dispositivo Android/iOS conectado o un emulador configurado.
   Verifica con `flutter doctor`.
 
@@ -90,13 +90,33 @@ de Git (`.gitignore`), por lo que debes crearlos a partir de las plantillas
 | `SUPABASE_URL` | ✅ Sí | URL del proyecto en Supabase |
 | `SUPABASE_ANON_KEY` | ✅ Sí | Clave anónima de Supabase (anon/public key) |
 | `API_BASE_URL` | ✅ Sí | URL base del backend REST (Fastify). Desarrollo local: `http://<IP>:3000/api/v1` |
-| `GOOGLE_GEOCODING_KEY` | 🔧 Opcional | API key de Google Geocoding — solo como fallback si el servicio nativo del dispositivo no está disponible |
+| `GOOGLE_GEOCODING_KEY` | 🔧 Opcional | API key de Google Geocoding, solo como fallback si el servicio nativo del dispositivo no está disponible |
 
 **Dónde obtener los valores:**
 
 - `SUPABASE_URL` y `SUPABASE_ANON_KEY`: Supabase Dashboard → Settings → API
-- `API_BASE_URL`: la IP y puerto donde corre el backend (por defecto `http://localhost:3000/api/v1`)
+- `API_BASE_URL`: la IP y puerto donde corre el backend (por defecto `http://localhost:3000/api/v1`; en el emulador Android usa `http://10.0.2.2:3000/api/v1`)
 - `GOOGLE_GEOCODING_KEY`: Google Cloud Console → APIs & Services → Credentials
+
+### Backend real por defecto, mocks como opción
+
+La app consume el **backend real** sin necesidad de flags adicionales: basta con
+que `API_BASE_URL` apunte a una instancia levantada (local o desplegada). Los
+mocks (datos en memoria, sin red) son un flag opt-in pensado para desarrollo
+offline:
+
+```bash
+# Backend real (comportamiento por defecto)
+flutter run
+
+# Mocks (sin backend levantado)
+flutter run --dart-define=USE_MOCKS=true
+```
+
+El flag se define en `lib/core/network/api_flags.dart` (`ApiFlags.useMocks`,
+`defaultValue: false`). Cada feature mantiene un datasource real y uno mock
+intercambiables por provider, así que activar `USE_MOCKS` no requiere tocar
+código.
 
 ### Backend (`backend/.env`)
 
@@ -128,9 +148,9 @@ SIRE/
 │   └── run_dev.bat           # Ejecución en desarrollo (Windows CMD)
 │
 ├── lib/                      # Código fuente Flutter (Clean Architecture)
-│   ├── main.dart             # Punto de entrada — inicializa dotenv + Supabase
+│   ├── main.dart             # Punto de entrada: inicializa dotenv + Supabase
 │   ├── core/                 # Capa transversal
-│   │   ├── network/          # Cliente HTTP (Dio) + constantes de API
+│   │   ├── network/          # Cliente HTTP (Dio) + constantes de API + flag USE_MOCKS
 │   │   ├── router/           # Navegación (GoRouter)
 │   │   ├── storage/          # Almacenamiento local
 │   │   ├── theme/            # Tema de la app
@@ -153,22 +173,21 @@ SIRE/
 │   ├── package.json          # Dependencias y scripts npm
 │   ├── tsconfig.json         # Configuración TypeScript (strict, ESNext)
 │   ├── prisma/
-│   │   ├── schema.prisma     # Modelo de datos (Profile, Publication, Reservation)
+│   │   ├── schema.prisma     # Modelo de datos (Profile, Publication, Reservation, Notification)
 │   │   └── migrations/       # Migraciones SQL generadas por Prisma
 │   └── src/
-│       ├── app.ts            # Punto de entrada Fastify — registra rutas en /api/v1
-│       ├── controllers/      # Controladores (auth, user, publication)
+│       ├── app.ts            # Punto de entrada Fastify: registra rutas en /api/v1
+│       ├── controllers/      # Controladores (auth, user, publication, reservation, notification)
 │       ├── routes/           # Definición de rutas REST
 │       ├── services/         # Lógica de negocio
 │       └── repositories/     # Acceso a datos vía Prisma
 │
 ├── docs/                     # Documentación del proyecto
 │   ├── api-contract.md       # Contrato completo de la API REST
-│   ├── api-status.md         # Estado actual de integración Flutter ↔ Backend
+│   ├── api-status.md         # Estado actual de integración Flutter y Backend
+│   ├── flujo_autenticacion.md # Flujo de autenticación de 3 fases (ANON → GUEST → ACTIVE)
 │   ├── requerimientos.md     # Requerimientos funcionales y no funcionales
 │   ├── definicion_del_proyecto.md
-│   ├── flujo-cristian.md     # Flujo de trabajo Backend
-│   ├── flujo-emilia.md       # Flujo de trabajo Frontend
 │   └── diagramas/            # Diagramas UML (casos de uso, clases, componentes, CPM)
 │
 ├── android/                  # Proyecto Android (Kotlin/Gradle)
@@ -220,11 +239,11 @@ cd SIRE
 ```bash
 # Flutter (raíz)
 cp .env.example .env
-# Editar .env con editor de texto — completar SUPABASE_URL, SUPABASE_ANON_KEY, API_BASE_URL
+# Editar .env con editor de texto: completar SUPABASE_URL, SUPABASE_ANON_KEY, API_BASE_URL
 
 # Backend
 cp backend/.env.example backend/.env
-# Editar backend/.env — completar DATABASE_URL y DIRECT_URL con las cadenas de Supabase
+# Editar backend/.env: completar DATABASE_URL y DIRECT_URL con las cadenas de Supabase
 ```
 
 #### 3. Instalar dependencias Flutter/Dart
@@ -324,6 +343,10 @@ npx tsc --noEmit
 
 ### Frontend (Flutter)
 
+La suite actual tiene 510 tests en verde y 1 test omitido intencionalmente
+(la Costura B de reservas, que solo se activa contra un backend real; ver
+más abajo).
+
 ```bash
 # Correr toda la suite
 flutter test
@@ -346,6 +369,27 @@ genhtml coverage/lcov.info -o coverage/html
 # Abrir coverage/html/index.html en el navegador
 ```
 
+### Test de contrato contra backend real
+
+`test/backend/backend_contract_test.dart` corre pruebas de contrato contra un
+backend real (no simulado). Se omite automáticamente si no se define la
+variable de compilación `SIRE_BACKEND_URL`, así que no bloquea `flutter test`
+por defecto. Para activarla, apunta a un backend levantado (local o
+desplegado):
+
+```bash
+flutter test test/backend/backend_contract_test.dart --dart-define=SIRE_BACKEND_URL=<url-del-backend>
+```
+
+Por ejemplo, contra el backend de producción en Render:
+
+```bash
+flutter test test/backend/backend_contract_test.dart --dart-define=SIRE_BACKEND_URL=https://sire-backend-k19n.onrender.com/api/v1
+```
+
+Las publicaciones y reservas que crea llevan el prefijo `[PI-TEST]` y se
+limpian al final de la corrida (best-effort, incluso si alguna prueba falla).
+
 ### Backend (Node.js + Vitest)
 
 ```bash
@@ -365,9 +409,11 @@ Los tests cubren los 3 módulos principales:
 
 | Archivo | Módulo | Tests |
 |---|---|---|
-| `tests/auth.controller.test.ts` | Autenticación y perfiles | 6 |
-| `tests/publication.controller.test.ts` | Publicaciones | 10 |
-| `tests/reservation.controller.test.ts` | Reservas | 22 |
+| `tests/auth.controller.test.ts` | Autenticación y perfiles | 8 |
+| `tests/publication.controller.test.ts` | Publicaciones | 12 |
+| `tests/reservation.controller.test.ts` | Reservas | 25 |
+
+Total: 45 tests, todos en verde.
 
 ---
 
@@ -376,12 +422,12 @@ Los tests cubren los 3 módulos principales:
 ### Resumen rápido
 
 ```bash
-# Terminal 1 — Backend (debe iniciarse primero)
+# Terminal 1: Backend (debe iniciarse primero)
 cd backend
 npm run dev
 # Fastify escucha en http://localhost:3000
 
-# Terminal 2 — Flutter
+# Terminal 2: Flutter
 flutter run
 ```
 
@@ -403,13 +449,14 @@ scripts\run_dev.bat
 ```
 
 El backend se abre en una ventana separada. Al cerrar Flutter, **recuerda
-cerrar manualmente la ventana del backend** (titulada "SIRE Backend — Fastify :3000").
+cerrar manualmente la ventana del backend** (titulada "SIRE Backend, Fastify :3000").
 
 ### Orden de inicio
 
-1. **Backend primero** — Fastify debe estar escuchando antes de que Flutter
-   intente consumir la API REST.
-2. **Flutter después** — la app se conecta a Supabase directamente (auth,
+1. **Backend primero**: Fastify debe estar escuchando antes de que Flutter
+   intente consumir la API REST (la app usa el backend real por defecto, sin
+   flags adicionales).
+2. **Flutter después**: la app se conecta a Supabase directamente (auth,
    storage, realtime) y al backend para la lógica de negocio.
 
 ### Solución de problemas frecuentes
@@ -427,13 +474,74 @@ cerrar manualmente la ventana del backend** (titulada "SIRE Backend — Fastify 
 
 ## Funcionalidades MVP
 
-- Registro y autenticación (flujo con contraseña diferida para reservas sin cuenta)
+- Autenticación en 3 fases (anónimo, invitado, cuenta activa) con contraseña
+  diferida; ver detalle en [Flujo de autenticación](#flujo-de-autenticación)
 - Feed geolocalizado de publicaciones con filtros por zona y ciudad
 - Agenda configurable: horarios por día, múltiples bloques, días cerrados
 - Reserva de slots con validación de disponibilidad en tiempo real
 - Gestión de reservas para publicadores (aceptar, rechazar, completar, contactar)
 - Notificaciones in-app via Supabase Realtime
 - Comunicación con el cliente vía correo (Resend) o WhatsApp (deep link wa.me)
+
+---
+
+## Flujo de autenticación
+
+SIRE registra usuarios en 3 fases para minimizar la fricción antes de
+reservar: sesión **anónima** al tocar "Comenzar" (sin pedir datos), cuenta
+**invitada** creada automáticamente en la primera reserva (nombre, correo y
+teléfono) y cuenta **activa** con contraseña, que se completa después
+mediante un código OTP enviado por correo. La contraseña queda como paso
+opcional y diferible: un invitado sin reservas previas puede seguir
+navegando y reservando, pero debe activar su cuenta antes de una segunda
+reserva. Algunas rutas (dashboard, mis publicaciones, crear/editar
+publicación, reservas recibidas) exigen cuenta activa; otras (mis reservas,
+notificaciones, perfil) alcanzan con cuenta invitada o activa.
+
+El detalle completo de reglas de negocio, el diagrama de secuencia y la
+tabla de guards de navegación están en
+[`docs/flujo_autenticacion.md`](docs/flujo_autenticacion.md).
+
+---
+
+## Instalación del APK (release)
+
+### Descargar e instalar en Android
+
+Cada release publicado incluye un APK de Android firmado, disponible en la
+sección [Releases del repositorio](https://github.com/SIRE-ORG/SIRE/releases).
+Para instalarlo en un dispositivo:
+
+1. Descarga el archivo `.apk` adjunto a la release más reciente (`v1.0.0` o
+   posterior) desde el enlace anterior.
+2. Abre el archivo descargado desde el dispositivo. Si el sistema lo pide,
+   habilita "Instalar apps desconocidas" para la app que usaste para
+   abrirlo (navegador o gestor de archivos); en Android esto se confirma
+   una sola vez por app instaladora.
+3. Confirma la instalación cuando el sistema lo solicite.
+4. Al abrir SIRE por primera vez, la app se conecta directamente al backend
+   real desplegado: no necesitas levantar nada en local para probarla.
+
+### Compilar un APK de release firmado localmente
+
+```bash
+flutter build apk --release
+```
+
+Sin una configuración de firma propia, este comando genera el APK firmado
+con la clave de debug de Android (válida para pruebas locales, no para
+publicar). Para firmar con tu propia clave sigue el proceso estándar de
+Flutter:
+
+1. Genera un keystore (`keytool -genkey -v -keystore upload-keystore.jks -keyalg RSA -keysize 2048 -validity 10000 -alias upload`).
+2. Crea `android/key.properties` (no versionado, excluido por
+   `android/.gitignore`) con `storePassword`, `keyPassword`, `keyAlias` y
+   `storeFile`.
+3. Registra ese archivo en la configuración de firma
+   (`signingConfigs`) de `android/app/build.gradle.kts` para que el build
+   de release lo use en vez de la clave de debug.
+
+Más detalle en la [guía oficial de Flutter para firmar la app](https://docs.flutter.dev/deployment/android#sign-the-app).
 
 ---
 
@@ -474,7 +582,9 @@ sonar-scanner
 
 ## Estado del proyecto
 
-🚧 En desarrollo — Proyecto académico · Universidad de la Frontera - Temuco · 2026
+MVP funcional: los requerimientos funcionales prioritarios (RF-01 a RF-06)
+operan contra el backend real. Release `v1.0.0`, entrega de hito 6.
+Proyecto académico, Universidad de la Frontera, Temuco, 2026.
 
 ---
 
