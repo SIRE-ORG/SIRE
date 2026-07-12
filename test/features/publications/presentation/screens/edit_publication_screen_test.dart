@@ -36,7 +36,7 @@ void main() {
       ],
     );
     return ProviderScope(
-      // El formulario se pre-pobla vía publicationDetailProvider → el
+      // El formulario se pre-pobla vía publicationDetailProvider -> el
       // datasource mock trae el fixture "Cancha de fútbol El Estadio" que
       // esta pantalla verifica. Se fuerza explícitamente porque
       // ApiFlags.useMocks ahora es false por defecto (backend real).

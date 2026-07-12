@@ -1,4 +1,4 @@
-// PI-AUTH-REPO — AuthRepositoryImpl orquesta sus 3 colaboradores (Supabase
+// PI-AUTH-REPO - AuthRepositoryImpl orquesta sus 3 colaboradores (Supabase
 // Auth, backend REST y storage local) y mapea los modelos a entidades de
 // dominio. Se mockean los colaboradores con mocktail; no toca red ni storage
 // real.
@@ -71,7 +71,7 @@ void main() {
       ).called(1);
     });
 
-    test('signInAnonymously sin sesión → delega en el datasource', () async {
+    test('signInAnonymously sin sesión -> delega en el datasource', () async {
       when(() => supa.getCurrentUserId()).thenReturn(null);
       when(() => supa.signInAnonymously()).thenAnswer((_) async {});
 
@@ -81,7 +81,7 @@ void main() {
     });
 
     test(
-      'signInAnonymously con sesión existente → no-op (idempotente)',
+      'signInAnonymously con sesión existente -> no-op (idempotente)',
       () async {
         when(() => supa.getCurrentUserId()).thenReturn('u1');
 
@@ -189,7 +189,7 @@ void main() {
   });
 
   group('PI-AUTH-REPO: registerGuest', () {
-    test('con token → lo persiste y devuelve AuthResult', () async {
+    test('con token -> lo persiste y devuelve AuthResult', () async {
       when(
         () => remote.registerGuest(
           name: any(named: 'name'),
@@ -218,7 +218,7 @@ void main() {
       verify(() => storage.write(StorageKeys.token, 'tok-1')).called(1);
     });
 
-    test('sin token → no escribe en storage', () async {
+    test('sin token -> no escribe en storage', () async {
       when(
         () => remote.registerGuest(
           name: any(named: 'name'),
@@ -241,7 +241,7 @@ void main() {
   });
 
   group('PI-AUTH-REPO: perfil', () {
-    test('getProfile sin sesión → null y no consulta el backend', () async {
+    test('getProfile sin sesión -> null y no consulta el backend', () async {
       when(() => supa.getCurrentUserId()).thenReturn(null);
 
       final p = await repo.getProfile();
@@ -250,7 +250,7 @@ void main() {
       verifyNever(() => remote.getProfile());
     });
 
-    test('getProfile con sesión → entidad mapeada', () async {
+    test('getProfile con sesión -> entidad mapeada', () async {
       when(() => supa.getCurrentUserId()).thenReturn('u1');
       when(() => remote.getProfile()).thenAnswer((_) async => profileModel);
 
@@ -261,7 +261,7 @@ void main() {
       expect(p.name, 'Dani');
     });
 
-    test('getProfile con sesión anónima sin fila de perfil (404) → null, '
+    test('getProfile con sesión anónima sin fila de perfil (404) -> null, '
         'no propaga NotFoundException', () async {
       when(() => supa.getCurrentUserId()).thenReturn('anon-1');
       when(
@@ -273,7 +273,7 @@ void main() {
       expect(p, isNull);
     });
 
-    test('updateProfile → entidad mapeada', () async {
+    test('updateProfile -> entidad mapeada', () async {
       when(
         () => remote.updateProfile(
           name: any(named: 'name'),

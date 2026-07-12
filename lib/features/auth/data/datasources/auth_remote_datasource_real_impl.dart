@@ -10,9 +10,9 @@ import 'auth_remote_datasource.dart';
 /// Implementación real del datasource de auth contra el backend local.
 ///
 /// Endpoints disponibles (backend en dev, authRoutes registrado en app.ts):
-///   GET   /auth/me              → [getProfile]
-///   POST  /auth/register-guest  → [registerGuest]
-///   PATCH /auth/account-status  → [updateAccountStatus]
+///   GET   /auth/me              -> [getProfile]
+///   POST  /auth/register-guest  -> [registerGuest]
+///   PATCH /auth/account-status  -> [updateAccountStatus]
 ///
 /// [registerGuest] fue destrabado (H3): el backend espera el id de un usuario
 /// Supabase ya creado (no lo crea él) e inserta la fila profile con ese id.

@@ -94,9 +94,9 @@ de Git (`.gitignore`), por lo que debes crearlos a partir de las plantillas
 
 **Dónde obtener los valores:**
 
-- `SUPABASE_URL` y `SUPABASE_ANON_KEY`: Supabase Dashboard → Settings → API
+- `SUPABASE_URL` y `SUPABASE_ANON_KEY`: Supabase Dashboard -> Settings -> API
 - `API_BASE_URL`: la IP y puerto donde corre el backend (por defecto `http://localhost:3000/api/v1`; en el emulador Android usa `http://10.0.2.2:3000/api/v1`)
-- `GOOGLE_GEOCODING_KEY`: Google Cloud Console → APIs & Services → Credentials
+- `GOOGLE_GEOCODING_KEY`: Google Cloud Console -> APIs & Services -> Credentials
 
 ### Backend real por defecto, mocks como opción
 
@@ -128,7 +128,7 @@ código.
 
 **Dónde obtener los valores:**
 
-- Supabase Dashboard → Settings → Database → Connection string
+- Supabase Dashboard -> Settings -> Database -> Connection string
 - Selecciona la pestaña "Prisma" para ver tanto `DATABASE_URL` como `DIRECT_URL`
 
 ---
@@ -185,7 +185,7 @@ SIRE/
 ├── docs/                     # Documentación del proyecto
 │   ├── api-contract.md       # Contrato completo de la API REST
 │   ├── api-status.md         # Estado actual de integración Flutter y Backend
-│   ├── flujo_autenticacion.md # Flujo de autenticación de 3 fases (ANON → GUEST → ACTIVE)
+│   ├── flujo_autenticacion.md # Flujo de autenticación de 3 fases (ANON -> GUEST -> ACTIVE)
 │   ├── requerimientos.md     # Requerimientos funcionales y no funcionales
 │   ├── definicion_del_proyecto.md
 │   └── diagramas/            # Diagramas UML (casos de uso, clases, componentes, CPM)
@@ -202,7 +202,7 @@ SIRE/
 
 ## Instalación y configuración
 
-### Opción 1: Script automatizado (recomendado)
+### Opción 1: Script automatizado
 
 El script verifica prerequisitos, crea los archivos `.env`, instala dependencias,
 genera código y aplica migraciones. Cada paso valida que el anterior se completó
@@ -224,8 +224,6 @@ El script te guiará paso a paso y te pedirá confirmación antes de aplicar
 migraciones a la base de datos.
 
 ### Opción 2: Instalación manual paso a paso
-
-Si prefieres control granular sobre cada etapa, sigue estos pasos en orden:
 
 #### 1. Clonar el repositorio
 
@@ -283,7 +281,7 @@ npx prisma migrate dev
 
 > **Importante:** Este paso requiere que `DATABASE_URL` y `DIRECT_URL` en
 > `backend/.env` estén configurados correctamente y que la IP de tu máquina
-> esté en la whitelist de Supabase (Dashboard → Settings → Database).
+> esté en la whitelist de Supabase (Dashboard -> Settings -> Database).
 
 #### 8. Verificar instalación
 
@@ -381,12 +379,6 @@ desplegado):
 flutter test test/backend/backend_contract_test.dart --dart-define=SIRE_BACKEND_URL=<url-del-backend>
 ```
 
-Por ejemplo, contra el backend de producción en Render:
-
-```bash
-flutter test test/backend/backend_contract_test.dart --dart-define=SIRE_BACKEND_URL=https://sire-backend-k19n.onrender.com/api/v1
-```
-
 Las publicaciones y reservas que crea llevan el prefijo `[PI-TEST]` y se
 limpian al final de la corrida (best-effort, incluso si alguna prueba falla).
 
@@ -465,8 +457,8 @@ cerrar manualmente la ventana del backend** (titulada "SIRE Backend, Fastify :30
 |---|---|---|
 | `flutter pub get` falla | Sin conexión o caché corrupta | `flutter pub cache repair` y reintentar |
 | `build_runner` falla | Conflicto de archivos `.g.dart` | `dart run build_runner clean && dart run build_runner build --delete-conflicting-outputs` |
-| Backend no arranca | `backend/.env` no configurado | Copiar `backend/.env.example` → `backend/.env` y completar `DATABASE_URL` |
-| `prisma migrate dev` falla | IP no whitelisteada en Supabase | Supabase Dashboard → Settings → Database → agregar IPv4 |
+| Backend no arranca | `backend/.env` no configurado | Copiar `backend/.env.example` -> `backend/.env` y completar `DATABASE_URL` |
+| `prisma migrate dev` falla | IP no whitelisteada en Supabase | Supabase Dashboard -> Settings -> Database -> agregar IPv4 |
 | App no se conecta al backend | `API_BASE_URL` incorrecta en `.env` | Verificar IP y puerto; si usas emulador Android, usar `10.0.2.2` en vez de `localhost` |
 | `dart analyze` reporta errores | Código con errores de compilación | Revisar los mensajes de `dart analyze`; pueden ser advertencias que no bloquean la ejecución |
 
@@ -566,7 +558,7 @@ flutter test --coverage
 sonar-scanner
 ```
 
-> **Instalar sonar-scanner:** https://docs.sonarsource.com/sonarqube/latest/analyzing-source-code/scanners/sonarscanner/
+> **Instalar sonar-scanner:** <https://docs.sonarsource.com/sonarqube/latest/analyzing-source-code/scanners/sonarscanner/>
 
 ### Qué analiza
 
@@ -583,8 +575,8 @@ sonar-scanner
 ## Estado del proyecto
 
 MVP funcional: los requerimientos funcionales prioritarios (RF-01 a RF-06)
-operan contra el backend real. Release `v1.0.0`, entrega de hito 6.
-Proyecto académico, Universidad de la Frontera, Temuco, 2026.
+operan contra el backend real.
+Release `v1.0.0`.
 
 ---
 
@@ -594,7 +586,7 @@ Proyecto académico, Universidad de la Frontera, Temuco, 2026.
 |---|---|
 | [`docs/api-contract.md`](docs/api-contract.md) | Contrato completo de la API REST (endpoints, request/response, códigos de error) |
 | [`docs/api-status.md`](docs/api-status.md) | Estado actual de integración entre Flutter y los servicios externos |
-| [`docs/flujo_autenticacion.md`](docs/flujo_autenticacion.md) | Flujo de autenticación de 3 fases (ANON → GUEST → ACTIVE), reglas de negocio, diagrama de secuencia y guards de navegación |
+| [`docs/flujo_autenticacion.md`](docs/flujo_autenticacion.md) | Flujo de autenticación de 3 fases (ANON -> GUEST -> ACTIVE), reglas de negocio, diagrama de secuencia y guards de navegación |
 | [`docs/requerimientos.md`](docs/requerimientos.md) | Requerimientos funcionales y no funcionales del sistema |
 | [`docs/definicion_del_proyecto.md`](docs/definicion_del_proyecto.md) | Definición y alcance del proyecto |
 | [`docs/diagramas/`](docs/diagramas/) | Diagramas UML: casos de uso, CPM, clases de dominio, componentes |

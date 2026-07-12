@@ -1,4 +1,4 @@
-// E2E — Cadena OTP: sendMagicLink → verifyOtp → registerGuest → activate → createPublication.
+// E2E - Cadena OTP: sendMagicLink -> verifyOtp -> registerGuest -> activate -> createPublication.
 //
 // Usa service_role para obtener el código OTP sin bandeja real ni deep link.
 // Se ejecuta SOLO en Windows con la key de service_role definida:
@@ -26,14 +26,14 @@ void main() {
 
   if (_serviceRoleKey.isEmpty) {
     testWidgets(
-      'E2E inactivo — Define SIRE_SERVICE_ROLE_KEY para activar',
+      'E2E inactivo - Define SIRE_SERVICE_ROLE_KEY para activar',
       (_) async {},
       skip: true,
     );
     return;
   }
 
-  testWidgets('cadena OTP → guest → active → crear publicación', (_) async {
+  testWidgets('cadena OTP -> guest -> active -> crear publicación', (_) async {
     await dotenv.load(fileName: '.env');
     final supabaseUrl = dotenv.env['SUPABASE_URL']!;
     final anonKey = dotenv.env['SUPABASE_ANON_KEY']!;
@@ -97,7 +97,7 @@ void main() {
     final detalle = await ds.createPublication(
       body: CreatePublicationRequestModel(
         title: '[PI-E2E] creada por usuario recién activado (OTP)',
-        description: 'cadena OTP → guest → active → crear',
+        description: 'cadena OTP -> guest -> active -> crear',
         category: PublicationCategory.deporte,
         region: region,
         availability: const AvailabilityConfig(

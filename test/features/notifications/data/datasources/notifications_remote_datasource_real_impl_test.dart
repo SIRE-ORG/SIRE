@@ -1,4 +1,4 @@
-// PI-NOTIF-DS — Datasource real: historial + marcar leídas por REST (dio +
+// PI-NOTIF-DS - Datasource real: historial + marcar leídas por REST (dio +
 // http_mock_adapter), y la rama sin sesión del stream realtime (no toca
 // Supabase). El path realtime con sesión se valida en integración, no aquí.
 
@@ -28,7 +28,7 @@ void main() {
         client: supabaseWithUser(conUsuario ? fakeUser() : null),
       );
 
-  test('getNotifications → lista mapeada desde data[]', () async {
+  test('getNotifications -> lista mapeada desde data[]', () async {
     adapter.onGet(
       ApiConstants.notifications,
       (s) => s.reply(200, {
@@ -48,7 +48,7 @@ void main() {
     expect(list.last.read, isTrue);
   });
 
-  test('markAsRead → PATCH /:id/read se completa', () async {
+  test('markAsRead -> PATCH /:id/read se completa', () async {
     adapter.onPatch(
       ApiConstants.notificationRead('notif-1'),
       (s) => s.reply(200, {'id': 'notif-1', 'read': true}),
@@ -57,7 +57,7 @@ void main() {
     await expectLater(dsCon().markAsRead('notif-1'), completes);
   });
 
-  test('markAllAsRead → PATCH /read-all se completa', () async {
+  test('markAllAsRead -> PATCH /read-all se completa', () async {
     adapter.onPatch(
       ApiConstants.notificationsReadAll,
       (s) => s.reply(200, {'updated': 5}),
@@ -67,7 +67,7 @@ void main() {
   });
 
   test(
-    'watchNotifications sin sesión → stream vacío (no toca realtime)',
+    'watchNotifications sin sesión -> stream vacío (no toca realtime)',
     () async {
       final first = await dsCon().watchNotifications().first;
       expect(first, isEmpty);

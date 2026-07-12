@@ -1,4 +1,4 @@
-// PI-RES-01 / PI-RES-03 (parte a) — Integración de la fuente de datos real
+// PI-RES-01 / PI-RES-03 (parte a) - Integración de la fuente de datos real
 // de reservas contra HTTP simulado con la forma exacta del contrato del
 // backend (H9: POST usa date/startTime/endTime, no slotId).
 
@@ -34,7 +34,7 @@ void main() {
       ReservationsRemoteDatasourceRealImpl(dio: dio);
 
   group('createReservation (PI-RES-01)', () {
-    test('201 del contrato → modelo con status pending, body exacto sin '
+    test('201 del contrato -> modelo con status pending, body exacto sin '
         'slotId', () async {
       final payloadEsperado = {
         'publicationId': 'pub-1',
@@ -84,29 +84,32 @@ void main() {
   });
 
   group('getMyReservations', () {
-    test('200 → lista con publication.title/city/imageUrl aplanados', () async {
-      adapter.onGet(
-        ApiConstants.reservationsMine,
-        (server) => server.reply(200, {
-          'data': [
-            reservationJson(),
-            reservationJson(
-              id: 'res-2',
-              status: 'completed',
-              withPublication: true,
-            ),
-          ],
-        }),
-      );
+    test(
+      '200 -> lista con publication.title/city/imageUrl aplanados',
+      () async {
+        adapter.onGet(
+          ApiConstants.reservationsMine,
+          (server) => server.reply(200, {
+            'data': [
+              reservationJson(),
+              reservationJson(
+                id: 'res-2',
+                status: 'completed',
+                withPublication: true,
+              ),
+            ],
+          }),
+        );
 
-      final models = await datasourceCon().getMyReservations();
+        final models = await datasourceCon().getMyReservations();
 
-      expect(models.length, 2);
-      expect(models.first.publicationTitle, 'Cancha Los Alerces');
-      expect(models.first.publicationCity, 'Temuco');
-      expect(models.first.status, 'pending');
-      expect(models.last.status, 'completed');
-    });
+        expect(models.length, 2);
+        expect(models.first.publicationTitle, 'Cancha Los Alerces');
+        expect(models.first.publicationCity, 'Temuco');
+        expect(models.first.status, 'pending');
+        expect(models.last.status, 'completed');
+      },
+    );
 
     test('401 sin header de identidad', () async {
       adapter.onGet(
@@ -125,7 +128,7 @@ void main() {
   });
 
   group('updateReservationStatus', () {
-    test('PATCH con {status} → modelo actualizado', () async {
+    test('PATCH con {status} -> modelo actualizado', () async {
       adapter.onPatch(
         ApiConstants.reservationStatus('res-1'),
         (server) => server.reply(200, {
@@ -143,7 +146,7 @@ void main() {
       expect(model.status, 'completed');
     });
 
-    test('404 NOT_FOUND → NotFoundException', () async {
+    test('404 NOT_FOUND -> NotFoundException', () async {
       adapter.onPatch(
         ApiConstants.reservationStatus('no-existe'),
         (server) =>
@@ -163,7 +166,7 @@ void main() {
       }
     });
 
-    test('403 FORBIDDEN (no es dueño) → ServerException', () async {
+    test('403 FORBIDDEN (no es dueño) -> ServerException', () async {
       adapter.onPatch(
         ApiConstants.reservationStatus('res-1'),
         (server) => server.reply(
@@ -185,7 +188,7 @@ void main() {
       }
     });
 
-    test('400 status fuera del enum → ValidationException', () async {
+    test('400 status fuera del enum -> ValidationException', () async {
       adapter.onPatch(
         ApiConstants.reservationStatus('res-1'),
         (server) => server.reply(
@@ -208,7 +211,7 @@ void main() {
   });
 
   group('cancelReservation', () {
-    test('PATCH reservationCancel(id) simulado 200 → completa', () async {
+    test('PATCH reservationCancel(id) simulado 200 -> completa', () async {
       adapter.onPatch(
         ApiConstants.reservationCancel('res-1'),
         (server) => server.reply(200, {
@@ -223,7 +226,7 @@ void main() {
     });
 
     test(
-      '404 actual por H8 — el mock reproduce el comportamiento actual',
+      '404 actual por H8 - el mock reproduce el comportamiento actual',
       () async {
         adapter.onPatch(
           ApiConstants.reservationCancel('no-existe'),
@@ -243,7 +246,7 @@ void main() {
 
   group('getReceivedReservations y getReservationDetail', () {
     test(
-      'getReceivedReservations 200 → lista de modelos con applicant',
+      'getReceivedReservations 200 -> lista de modelos con applicant',
       () async {
         adapter.onGet(
           ApiConstants.reservationsReceived,
@@ -264,20 +267,17 @@ void main() {
       },
     );
 
-    test(
-      'getReservationDetail 200 → modelo con id correcto',
-      () async {
-        adapter.onGet(
-          ApiConstants.reservationById('res-1'),
-          (server) => server.reply(200, {
-            'data': reservationJson(id: 'res-1', status: 'pending'),
-          }),
-        );
+    test('getReservationDetail 200 -> modelo con id correcto', () async {
+      adapter.onGet(
+        ApiConstants.reservationById('res-1'),
+        (server) => server.reply(200, {
+          'data': reservationJson(id: 'res-1', status: 'pending'),
+        }),
+      );
 
-        final result = await datasourceCon().getReservationDetail(id: 'res-1');
-        expect(result.id, 'res-1');
-        expect(result.status, 'pending');
-      },
-    );
+      final result = await datasourceCon().getReservationDetail(id: 'res-1');
+      expect(result.id, 'res-1');
+      expect(result.status, 'pending');
+    });
   });
 }

@@ -1,4 +1,4 @@
-// PI-PUB-01 / PI-PUB-02 (cadena completa) — Repositorio + datasource real +
+// PI-PUB-01 / PI-PUB-02 (cadena completa) - Repositorio + datasource real +
 // Dio con interceptor de errores: la respuesta del contrato termina en una
 // entidad Publication de dominio con su agenda tipada.
 
@@ -33,7 +33,7 @@ void main() {
     );
   });
 
-  test('crear publicación → entidad de dominio completa con agenda tipada '
+  test('crear publicación -> entidad de dominio completa con agenda tipada '
       '(PI-PUB-01)', () async {
     adapter.onPost(
       ApiConstants.publicationsFeedLive,
@@ -70,7 +70,7 @@ void main() {
   });
 
   test(
-    'detalle por id → entidad con ownerName del include (PI-PUB-02)',
+    'detalle por id -> entidad con ownerName del include (PI-PUB-02)',
     () async {
       adapter.onGet(
         ApiConstants.publicationByIdLive('pub-1'),
@@ -85,7 +85,7 @@ void main() {
   );
 
   test(
-    'detalle por id inexistente → NotFoundException tipada (PI-PUB-02)',
+    'detalle por id inexistente -> NotFoundException tipada (PI-PUB-02)',
     () async {
       adapter.onGet(
         ApiConstants.publicationByIdLive('fantasma'),

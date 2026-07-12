@@ -1,4 +1,4 @@
-// PI-FEED-01 (cadena completa) / PI-FEED-03 — Integración de la capa de
+// PI-FEED-01 (cadena completa) / PI-FEED-03 - Integración de la capa de
 // datos del feed: Dio real + interceptor de errores + datasource real +
 // repositorio, simulando solo la frontera HTTP. Verifica que la respuesta
 // del contrato termina en entidades de dominio completas.
@@ -35,7 +35,7 @@ void main() {
   });
 
   group('FeedRepositoryImpl.getFeed (PI-FEED-01)', () {
-    test('respuesta del contrato → entidades de dominio completas', () async {
+    test('respuesta del contrato -> entidades de dominio completas', () async {
       adapter.onGet(
         ApiConstants.publicationsFeedLive,
         (server) => server.reply(200, {
@@ -58,9 +58,9 @@ void main() {
       final primera = page.items.first;
       expect(primera.id, 'pub-1');
       expect(primera.title, 'Cancha Los Alerces');
-      // owner.name anidado → aplanado → entidad.
+      // owner.name anidado -> aplanado -> entidad.
       expect(primera.ownerName, 'Club Andes');
-      // Categoría del contrato en mayúsculas → enum de dominio.
+      // Categoría del contrato en mayúsculas -> enum de dominio.
       expect(primera.category, PublicationCategory.deporte);
       expect(page.items.last.category, PublicationCategory.recreacion);
       // Metadatos de página que la UI usa para paginar y filtrar.

@@ -1,11 +1,5 @@
 # SIRE - Estado de integración API (capa Flutter)
 
-> **Última actualización:** 2026-07-12 - refresco honesto tras el flujo de
-> auth de 3 fases (ANON -> GUEST -> ACTIVE) y los guards de router: reservas y
-> notificaciones quedan **activas 1:1** contra el backend real (H8 y H10
-> cerrados, verificado contra Render). Ver **Sprint 3 - Reservas**, **Sprint
-> 4 - Notificaciones** y el resumen ejecutivo al final.
-
 Snapshot del estado actual de la integración entre Flutter y los servicios externos (backend REST + Supabase). Desde la inversión del flag (PR #11), la app consume la integración REAL por defecto en las 5 features; los mocks existen como implementación paralela para desarrollo offline y tests (`--dart-define=USE_MOCKS=true`) y NO sirven respuestas en la app normal.
 
 El objetivo de este doc es que puedas priorizar las entregas sabiendo exactamente dónde encaja cada endpoint en la app para hacer las integraciones reales.
@@ -99,7 +93,7 @@ Front mapea uppercase API ↔ lowercase enum Dart vía `publicationCategoryFromS
 
 ### Deuda / regresiones conocidas (verificado 2026-07-12)
 
-- **Doble prefijo `/publications/publications`:** `publication.routes.ts` registra rutas con prefijo local `/publications` sobre un plugin ya montado bajo `/api/v1/publications` en `app.ts`, resultando en paths efectivos `/api/v1/publications/publications[/mine]`. Compensado en Flutter con `ApiConstants.publicationsFeedLive` / `publicationsFeedMineLive` (ver `lib/core/network/api_constants.dart`). **Sigue como deuda técnica del backend** - corregirla requiere alinear `publication.routes.ts` (`'/publications'` -> `'/'`) y quitar el workaround de Flutter en el mismo cambio. Documentado también en `claude/comentarios_backend.txt` sección C.
+- **Doble prefijo `/publications/publications`:** `publication.routes.ts` registra rutas con prefijo local `/publications` sobre un plugin ya montado bajo `/api/v1/publications` en `app.ts`, resultando en paths efectivos `/api/v1/publications/publications[/mine]`. Compensado en Flutter con `ApiConstants.publicationsFeedLive` / `publicationsFeedMineLive` (ver `lib/core/network/api_constants.dart`). **Sigue como deuda técnica del backend** - corregirla requiere alinear `publication.routes.ts` (`'/publications'` -> `'/'`) y quitar el workaround de Flutter en el mismo cambio.
 - **H1 (abierto):** `GET /feed` no filtra publicaciones con `isActive: false` (pausadas) - el contrato exige que el feed solo muestre activas. Confirmado por `test/backend/backend_contract_test.dart` (`PI-FEED-04b`), que corre contra el backend real con `--dart-define=SIRE_BACKEND_URL=...` y queda **rojo a propósito** como regresión documentada hasta que el backend filtre por `isActive` en el query. No afecta `flutter test` por defecto (esa suite se salta sin la variable de entorno).
 
 ### Storage

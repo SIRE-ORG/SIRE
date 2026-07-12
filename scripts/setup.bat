@@ -1,6 +1,6 @@
 @echo off
 REM =============================================================================
-REM SIRE — Instalacion automatizada (Windows CMD)
+REM SIRE - Instalacion automatizada (Windows CMD)
 REM =============================================================================
 REM Uso: scripts\setup.bat
 REM
@@ -20,7 +20,7 @@ REM ─── Banner ───────────────────�
 echo.
 echo   ╔══════════════════════════════════════════════╗
 echo   ║                                              ║
-echo   ║   SIRE — Sistema Integral de Reservas        ║
+echo   ║   SIRE - Sistema Integral de Reservas        ║
 echo   ║          Estrategicas                        ║
 echo   ║                                              ║
 echo   ║   Instalacion automatizada                   ║
@@ -29,7 +29,7 @@ echo   ╚═══════════════════════�
 echo.
 
 REM ──────────────────────────────────────────────────────────────────────────────
-REM PASO 1 — Verificar prerequisitos
+REM PASO 1 - Verificar prerequisitos
 REM ──────────────────────────────────────────────────────────────────────────────
 echo [PASO 1] Verificando herramientas necesarias
 echo.
@@ -48,12 +48,12 @@ if %MISSING_TOOLS% gtr 0 (
 
 REM Doctor de versiones
 echo.
-echo   → Validando versiones contra los requerimientos del proyecto...
+echo   -> Validando versiones contra los requerimientos del proyecto...
 
 for /f "tokens=2 delims= " %%v in ('flutter --version 2^>^&1 ^| findstr /r "^Flutter "') do set "FLUTTER_VER=%%v"
 for /f "tokens=1 delims=." %%v in ("%FLUTTER_VER%") do set "FLUTTER_MAJOR=%%v"
 if %FLUTTER_MAJOR% geq 3 (
-    echo     ✓ Flutter %FLUTTER_VER% — cumple con ≥3.11 requerido
+    echo     ✓ Flutter %FLUTTER_VER% - cumple con ≥3.11 requerido
 ) else (
     echo     ⚠ Flutter %FLUTTER_VER% detectado. El proyecto requiere Flutter SDK ≥3.11.3.
 )
@@ -62,13 +62,13 @@ node --version >nul 2>&1
 for /f "usebackq tokens=1 delims=v" %%v in (`node --version`) do set "NODE_VER=%%v"
 for /f "tokens=1 delims=." %%v in ("%NODE_VER%") do set "NODE_MAJOR=%%v"
 if %NODE_MAJOR% geq 20 (
-    echo     ✓ Node.js v%NODE_VER% — cumple con ≥20 requerido
+    echo     ✓ Node.js v%NODE_VER% - cumple con ≥20 requerido
 ) else (
     echo     ⚠ Node.js v%NODE_VER% detectado. El proyecto requiere Node.js ≥20 LTS.
 )
 
 REM ──────────────────────────────────────────────────────────────────────────────
-REM PASO 2 — Variables de entorno
+REM PASO 2 - Variables de entorno
 REM ──────────────────────────────────────────────────────────────────────────────
 echo.
 echo [PASO 2] Configurando archivos de variables de entorno
@@ -76,13 +76,13 @@ echo.
 
 REM ── Flutter .env ──
 if exist ".env" (
-    echo   ✓ .env ^(Flutter^) ya existe — se conserva intacto
+    echo   ✓ .env ^(Flutter^) ya existe - se conserva intacto
 ) else (
     if exist ".env.example" (
         copy /Y ".env.example" ".env" >nul
         echo   ✓ .env ^(Flutter^) creado desde .env.example
         echo   ⚠ Edita .env con los valores reales de tu proyecto Supabase antes de ejecutar la app.
-        echo     → Variables requeridas: SUPABASE_URL, SUPABASE_ANON_KEY, API_BASE_URL
+        echo     -> Variables requeridas: SUPABASE_URL, SUPABASE_ANON_KEY, API_BASE_URL
     ) else (
         echo   ✗ ERROR: No se encontro .env.example en la raiz del proyecto.
         echo     ¿Clonaste el repositorio completo?
@@ -93,13 +93,13 @@ if exist ".env" (
 
 REM ── Backend .env ──
 if exist "backend\.env" (
-    echo   ✓ backend\.env ya existe — se conserva intacto
+    echo   ✓ backend\.env ya existe - se conserva intacto
 ) else (
     if exist "backend\.env.example" (
         copy /Y "backend\.env.example" "backend\.env" >nul
         echo   ✓ backend\.env creado desde backend\.env.example
         echo   ⚠ Edita backend\.env con la cadena de conexion real de Supabase PostgreSQL.
-        echo     → Obten DATABASE_URL y DIRECT_URL en: Supabase Dashboard → Settings → Database
+        echo     -> Obten DATABASE_URL y DIRECT_URL en: Supabase Dashboard -> Settings -> Database
     ) else (
         echo   ✗ ERROR: No se encontro backend\.env.example. ¿Esta completo el repositorio?
         pause
@@ -108,20 +108,20 @@ if exist "backend\.env" (
 )
 
 REM ──────────────────────────────────────────────────────────────────────────────
-REM PASO 3 — Dependencias Flutter/Dart
+REM PASO 3 - Dependencias Flutter/Dart
 REM ──────────────────────────────────────────────────────────────────────────────
 echo.
 echo [PASO 3] Instalando dependencias de Flutter/Dart
 echo.
 
-echo   → Ejecutando flutter pub get...
+echo   -> Ejecutando flutter pub get...
 call flutter pub get
 if %ERRORLEVEL% equ 0 (
-    echo   ✓ flutter pub get — paquetes Dart instalados
+    echo   ✓ flutter pub get - paquetes Dart instalados
 ) else (
     echo   ⚠ flutter pub get fallo. Iniciando autosanacion: reparando cache de pub...
     call flutter pub cache repair
-    echo   → Reintentando flutter pub get...
+    echo   -> Reintentando flutter pub get...
     call flutter pub get
     if !ERRORLEVEL! equ 0 (
         echo   ✓ flutter pub get completado tras reparar cache de pub
@@ -138,33 +138,33 @@ if %ERRORLEVEL% equ 0 (
 
 REM Doctor: integridad del codigo Dart
 echo.
-echo   → Ejecutando dart analyze para validar integridad del codigo...
+echo   -> Ejecutando dart analyze para validar integridad del codigo...
 call dart analyze lib\ --no-fatal-infos --no-fatal-warnings
 if %ERRORLEVEL% equ 0 (
-    echo   ✓ dart analyze — sin errores de compilacion en lib\
+    echo   ✓ dart analyze - sin errores de compilacion en lib\
 ) else (
     echo   ⚠ dart analyze reporto advertencias. No impiden ejecutar la app.
 )
 
 REM ──────────────────────────────────────────────────────────────────────────────
-REM PASO 4 — Generacion de codigo (build_runner)
+REM PASO 4 - Generacion de codigo (build_runner)
 REM ──────────────────────────────────────────────────────────────────────────────
 echo.
 echo [PASO 4] Ejecutando generador de codigo con build_runner
 echo.
 
-echo   → Generando archivos .g.dart con dart run build_runner build...
+echo   -> Generando archivos .g.dart con dart run build_runner build...
 call dart run build_runner build --delete-conflicting-outputs
 if %ERRORLEVEL% equ 0 (
-    echo   ✓ build_runner — generacion completada
+    echo   ✓ build_runner - generacion completada
 ) else (
     echo   ⚠ build_runner fallo. Iniciando autosanacion: limpieza de cache de build_runner...
     call dart run build_runner clean 2>nul
     if exist "lib\*.g.dart" del /S /Q "lib\*.g.dart" 2>nul
-    echo   → Reintentando build_runner con cache limpia...
+    echo   -> Reintentando build_runner con cache limpia...
     call dart run build_runner build --delete-conflicting-outputs
     if !ERRORLEVEL! equ 0 (
-        echo   ✓ build_runner — generacion completada tras limpieza
+        echo   ✓ build_runner - generacion completada tras limpieza
     ) else (
         echo   ✗ ERROR: build_runner fallo definitivamente.
         echo     Causas posibles:
@@ -179,18 +179,18 @@ if %ERRORLEVEL% equ 0 (
 
 REM Doctor: verificar archivos .g.dart generados
 echo.
-echo   → Verificando archivos generados...
+echo   -> Verificando archivos generados...
 dir /s /b "lib\*.g.dart" 2>nul | find /c /v "" > "%TEMP%\sire_g_count.txt"
 set /p G_FILES=<"%TEMP%\sire_g_count.txt"
 del "%TEMP%\sire_g_count.txt" 2>nul
 if %G_FILES% gtr 0 (
-    echo   ✓ build_runner — %G_FILES% archivo^(s^) .g.dart generados en lib\
+    echo   ✓ build_runner - %G_FILES% archivo^(s^) .g.dart generados en lib\
 ) else (
-    echo   → No se detectaron archivos .g.dart. Si el proyecto aun no usa proveedores anotados con @riverpod, esto es normal.
+    echo   -> No se detectaron archivos .g.dart. Si el proyecto aun no usa proveedores anotados con @riverpod, esto es normal.
 )
 
 REM ──────────────────────────────────────────────────────────────────────────────
-REM PASO 5 — Dependencias Backend (Node.js)
+REM PASO 5 - Dependencias Backend (Node.js)
 REM ──────────────────────────────────────────────────────────────────────────────
 echo.
 echo [PASO 5] Instalando dependencias del backend ^(Node.js^)
@@ -229,19 +229,19 @@ if exist "node_modules\" (
 )
 
 if "!NEED_CLEAN!"=="1" (
-    echo   → Eliminando node_modules\ corrupto...
+    echo   -> Eliminando node_modules\ corrupto...
     rmdir /s /q node_modules
 )
 
-echo   → Ejecutando npm install...
+echo   -> Ejecutando npm install...
 call npm install
 if !ERRORLEVEL! equ 0 (
-    echo   ✓ npm install — dependencias Node.js instaladas
+    echo   ✓ npm install - dependencias Node.js instaladas
 ) else (
     echo   ⚠ npm install fallo. Iniciando autosanacion: reinstalacion limpia...
     rmdir /s /q node_modules 2>nul
     del /q package-lock.json 2>nul
-    echo   → Reintentando npm install desde cero...
+    echo   -> Reintentando npm install desde cero...
     call npm install
     if !ERRORLEVEL! equ 0 (
         echo   ✓ npm install completado tras reinstalacion limpia
@@ -250,7 +250,7 @@ if !ERRORLEVEL! equ 0 (
         echo   ✗ ERROR: npm install fallo.
         echo     Causas posibles:
         echo     • Sin conexion a internet o registry.npmjs.org inalcanzable
-        echo     • Proxy corporativo — configura npm proxy: npm config set proxy http://...
+        echo     • Proxy corporativo - configura npm proxy: npm config set proxy http://...
         echo     • Permisos insuficientes en el directorio backend\
         pause
         exit /b 1
@@ -259,13 +259,13 @@ if !ERRORLEVEL! equ 0 (
 
 REM Doctor: verificar integridad de modulos
 echo.
-echo   → Verificando integridad de node_modules...
+echo   -> Verificando integridad de node_modules...
 set "MISSING_MODS="
 for %%m in ("fastify" "@prisma/client" "tsx" "@fastify/autoload") do (
     if exist "node_modules\%%~m\" (
-        echo     ✓ %%~m — presente
+        echo     ✓ %%~m - presente
     ) else (
-        echo     ⚠ %%~m — AUSENTE
+        echo     ⚠ %%~m - AUSENTE
         set "MISSING_MODS=!MISSING_MODS! %%~m"
     )
 )
@@ -276,10 +276,10 @@ if not "!MISSING_MODS!"=="" (
 
 REM Doctor: compilacion TypeScript
 echo.
-echo   → Verificando compilacion TypeScript...
+echo   -> Verificando compilacion TypeScript...
 call npx tsc --noEmit
 if !ERRORLEVEL! equ 0 (
-    echo   ✓ TypeScript — compila sin errores
+    echo   ✓ TypeScript - compila sin errores
 ) else (
     echo   ⚠ TypeScript reporto errores. El backend podria no arrancar correctamente. Revisa los mensajes anteriores.
 )
@@ -287,7 +287,7 @@ if !ERRORLEVEL! equ 0 (
 popd
 
 REM ──────────────────────────────────────────────────────────────────────────────
-REM PASO 6 — Prisma: generar cliente
+REM PASO 6 - Prisma: generar cliente
 REM ──────────────────────────────────────────────────────────────────────────────
 echo.
 echo [PASO 6] Generando cliente de Prisma
@@ -295,14 +295,14 @@ echo.
 
 pushd backend
 
-echo   → Ejecutando npx prisma generate...
+echo   -> Ejecutando npx prisma generate...
 call npx prisma generate
 if !ERRORLEVEL! equ 0 (
-    echo   ✓ prisma generate — @prisma/client generado
+    echo   ✓ prisma generate - @prisma/client generado
 ) else (
     echo   ⚠ prisma generate fallo. Iniciando autosanacion: rebuild de modulos nativos...
     call npm rebuild
-    echo   → Reintentando prisma generate...
+    echo   -> Reintentando prisma generate...
     call npx prisma generate
     if !ERRORLEVEL! equ 0 (
         echo   ✓ prisma generate completado tras rebuild de modulos
@@ -320,13 +320,13 @@ if !ERRORLEVEL! equ 0 (
 
 REM Doctor: validar schema de Prisma
 echo.
-echo   → Validando schema de Prisma...
+echo   -> Validando schema de Prisma...
 call npx prisma validate
 if !ERRORLEVEL! equ 0 (
-    echo   ✓ prisma validate — schema.prisma es valido
+    echo   ✓ prisma validate - schema.prisma es valido
 ) else (
     popd
-    echo   ✗ ERROR: prisma validate fallo. Revisa backend\prisma\schema.prisma — tiene errores.
+    echo   ✗ ERROR: prisma validate fallo. Revisa backend\prisma\schema.prisma - tiene errores.
     pause
     exit /b 1
 )
@@ -334,7 +334,7 @@ if !ERRORLEVEL! equ 0 (
 popd
 
 REM ──────────────────────────────────────────────────────────────────────────────
-REM PASO 7 — Migraciones de base de datos
+REM PASO 7 - Migraciones de base de datos
 REM ──────────────────────────────────────────────────────────────────────────────
 echo.
 echo [PASO 7] Migraciones de base de datos ^(Prisma^)
@@ -347,30 +347,30 @@ set /p MIGRATE_CONFIRM="  ¿Ejecutar migraciones ahora? [s/N]: "
 
 if /i not "!MIGRATE_CONFIRM!"=="s" if /i not "!MIGRATE_CONFIRM!"=="si" if /i not "!MIGRATE_CONFIRM!"=="y" if /i not "!MIGRATE_CONFIRM!"=="yes" (
     echo   ⚠ Migraciones omitidas por el usuario.
-    echo   → Para ejecutarlas manualmente despues: cd backend ^&^& npx prisma migrate dev
+    echo   -> Para ejecutarlas manualmente despues: cd backend ^&^& npx prisma migrate dev
 ) else (
     pushd backend
 
-    echo   → Ejecutando npx prisma migrate dev...
+    echo   -> Ejecutando npx prisma migrate dev...
     call npx prisma migrate dev
     if !ERRORLEVEL! equ 0 (
-        echo   ✓ prisma migrate dev — migraciones aplicadas correctamente
+        echo   ✓ prisma migrate dev - migraciones aplicadas correctamente
     ) else (
         echo   ⚠ prisma migrate dev fallo.
         echo     Causas posibles y como resolverlas:
-        echo     1. DATABASE_URL incorrecta — revisa backend\.env
-        echo     2. IP no whitelisteada — Supabase Dashboard → Settings → Database → IPv4
+        echo     1. DATABASE_URL incorrecta - revisa backend\.env
+        echo     2. IP no whitelisteada - Supabase Dashboard -> Settings -> Database -> IPv4
         echo     3. La base de datos no existe o no tienes permisos de escritura
-        echo     4. Las migraciones ya fueron aplicadas — verifica con: npx prisma migrate status
+        echo     4. Las migraciones ya fueron aplicadas - verifica con: npx prisma migrate status
         echo     Reintenta manualmente: cd backend ^&^& npx prisma migrate dev
     )
 
     REM Doctor de base de datos: verificar conectividad (no destructivo)
     echo.
-    echo   → Verificando conectividad con la base de datos...
+    echo   -> Verificando conectividad con la base de datos...
     call npx prisma migrate status >nul 2>&1
     if !ERRORLEVEL! equ 0 (
-        echo   ✓ Base de datos accesible — migraciones aplicadas
+        echo   ✓ Base de datos accesible - migraciones aplicadas
     ) else (
         echo   ⚠ No se pudo verificar la base de datos. Posiblemente DATABASE_URL no es alcanzable.
     )
@@ -421,14 +421,14 @@ where %tool% >nul 2>&1
 if %ERRORLEVEL% equ 0 (
     if not "%version_cmd%"=="" (
         for /f "usebackq delims=" %%o in (`%version_cmd% 2^>^&1`) do (
-            echo   ✓ %tool% detectado — %%o
+            echo   ✓ %tool% detectado - %%o
             goto :check_tool_done
         )
     )
     echo   ✓ %tool% detectado
 ) else (
     echo   ⚠ %tool% NO encontrado en PATH
-    echo     → Instalalo desde: %url%
+    echo     -> Instalalo desde: %url%
     set /a MISSING_TOOLS+=1
 )
 :check_tool_done

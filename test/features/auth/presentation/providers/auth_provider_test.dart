@@ -121,7 +121,7 @@ void main() {
       expect(container.read(authNotifierProvider).hasError, isTrue);
     });
 
-    test('startAnonymousSession transita loading → data', () async {
+    test('startAnonymousSession transita loading -> data', () async {
       when(() => mockRepository.signInAnonymously()).thenAnswer((_) async {});
 
       final container = withRepo();
@@ -149,7 +149,7 @@ void main() {
       },
     );
 
-    test('startActivation transita loading → data', () async {
+    test('startActivation transita loading -> data', () async {
       when(
         () => mockRepository.updateEmail(email: any(named: 'email')),
       ).thenAnswer((_) async {});
@@ -165,7 +165,7 @@ void main() {
       ).called(1);
     });
 
-    test('sendMagicLink transita loading → data', () async {
+    test('sendMagicLink transita loading -> data', () async {
       when(
         () => mockRepository.sendMagicLink(email: any(named: 'email')),
       ).thenAnswer((_) async {});
@@ -179,7 +179,7 @@ void main() {
       verify(() => mockRepository.sendMagicLink(email: 'a@b.cl')).called(1);
     });
 
-    test('verifyOtp transita loading → data', () async {
+    test('verifyOtp transita loading -> data', () async {
       when(
         () => mockRepository.verifyOtp(
           email: any(named: 'email'),
@@ -254,7 +254,7 @@ void main() {
     });
 
     test(
-      'activateAccount con password válida transita loading → data',
+      'activateAccount con password válida transita loading -> data',
       () async {
         when(
           () =>
@@ -274,7 +274,7 @@ void main() {
     );
 
     test(
-      'activateAccount con password corta → AsyncError (validación)',
+      'activateAccount con password corta -> AsyncError (validación)',
       () async {
         final container = withRepo();
 
@@ -291,7 +291,7 @@ void main() {
       },
     );
 
-    test('signOut transita loading → data', () async {
+    test('signOut transita loading -> data', () async {
       when(() => mockRepository.signOut()).thenAnswer((_) async {});
 
       final container = withRepo();
@@ -327,28 +327,31 @@ void main() {
       );
     });
 
-    test('perfil null + sesión Supabase activa → AccountStatus.anon', () async {
-      final mockRepository = MockAuthRepository();
-      final mockSupabaseDs = MockAuthSupabaseDatasource();
-      when(() => mockRepository.getProfile()).thenAnswer((_) async => null);
-      when(() => mockSupabaseDs.getCurrentUserId()).thenReturn('anon-1');
+    test(
+      'perfil null + sesión Supabase activa -> AccountStatus.anon',
+      () async {
+        final mockRepository = MockAuthRepository();
+        final mockSupabaseDs = MockAuthSupabaseDatasource();
+        when(() => mockRepository.getProfile()).thenAnswer((_) async => null);
+        when(() => mockSupabaseDs.getCurrentUserId()).thenReturn('anon-1');
 
-      final container = ProviderContainer(
-        overrides: [
-          authRepositoryProvider.overrideWithValue(mockRepository),
-          authSupabaseDatasourceProvider.overrideWithValue(mockSupabaseDs),
-        ],
-      );
-      addTearDown(container.dispose);
+        final container = ProviderContainer(
+          overrides: [
+            authRepositoryProvider.overrideWithValue(mockRepository),
+            authSupabaseDatasourceProvider.overrideWithValue(mockSupabaseDs),
+          ],
+        );
+        addTearDown(container.dispose);
 
-      expect(await container.read(currentProfileProvider.future), isNull);
-      expect(
-        await container.read(authStatusProvider.future),
-        AccountStatus.anon,
-      );
-    });
+        expect(await container.read(currentProfileProvider.future), isNull);
+        expect(
+          await container.read(authStatusProvider.future),
+          AccountStatus.anon,
+        );
+      },
+    );
 
-    test('perfil null + sin sesión Supabase → authStatus null', () async {
+    test('perfil null + sin sesión Supabase -> authStatus null', () async {
       final mockRepository = MockAuthRepository();
       final mockSupabaseDs = MockAuthSupabaseDatasource();
       when(() => mockRepository.getProfile()).thenAnswer((_) async => null);
@@ -367,7 +370,7 @@ void main() {
   });
 
   group('ProfileNotifier', () {
-    test('updateProfile (sin avatar) transita loading → data', () async {
+    test('updateProfile (sin avatar) transita loading -> data', () async {
       final mockRepository = MockAuthRepository();
       const profile = UserProfile(
         id: 'u1',

@@ -37,7 +37,7 @@ class _VerifyOtpScreenState extends ConsumerState<VerifyOtpScreen> {
 
     // Obtener datos del paso anterior vía GoRouter extra. `otpType:
     // 'emailChange'` marca el camino de activación de un guest anónimo
-    // (welcome → reserva → "Crear contraseña"/"Activar cuenta"); cualquier
+    // (welcome -> reserva -> "Crear contraseña"/"Activar cuenta"); cualquier
     // otro valor (o su ausencia) es el registro directo de siempre.
     final extra = GoRouterState.of(context).extra as Map<String, dynamic>;
     final email = extra['email'] as String;

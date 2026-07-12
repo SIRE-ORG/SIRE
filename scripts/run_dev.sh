@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # =============================================================================
-# SIRE — Ejecución en desarrollo (Linux / macOS / Git Bash)
+# SIRE - Ejecución en desarrollo (Linux / macOS / Git Bash)
 # =============================================================================
 # Uso: bash scripts/run_dev.sh
 #
@@ -23,7 +23,7 @@ NC='\033[0m'
 echo -e "${BOLD}${CYAN}"
 echo "  ╔══════════════════════════════════════════════╗"
 echo "  ║                                              ║"
-echo "  ║   SIRE — Ejecución en desarrollo             ║"
+echo "  ║   SIRE - Ejecución en desarrollo             ║"
 echo "  ║                                              ║"
 echo "  ╚══════════════════════════════════════════════╝"
 echo -e "${NC}"
@@ -34,13 +34,13 @@ cd "$REPO_ROOT"
 
 if [ ! -f "backend/.env" ]; then
     echo -e "  ${RED}✗ backend/.env no encontrado.${NC}"
-    echo -e "  ${YELLOW}→${NC} Ejecuta primero: ${CYAN}bash scripts/setup.sh${NC}"
+    echo -e "  ${YELLOW}->${NC} Ejecuta primero: ${CYAN}bash scripts/setup.sh${NC}"
     exit 1
 fi
 
 if [ ! -f ".env" ]; then
     echo -e "  ${RED}✗ .env (Flutter) no encontrado.${NC}"
-    echo -e "  ${YELLOW}→${NC} Ejecuta primero: ${CYAN}bash scripts/setup.sh${NC}"
+    echo -e "  ${YELLOW}->${NC} Ejecuta primero: ${CYAN}bash scripts/setup.sh${NC}"
     exit 1
 fi
 
@@ -49,7 +49,7 @@ VARS_MISSING=false
 for var in SUPABASE_URL SUPABASE_ANON_KEY API_BASE_URL; do
     value=$(grep "^${var}=" .env 2>/dev/null | cut -d= -f2- | tr -d '"' | tr -d "'" | tr -d ' ')
     if [ -z "$value" ] || echo "$value" | grep -qiE "tu-proyecto|tu-anon-key|placeholder|ejemplo"; then
-        echo -e "  ${YELLOW}⚠${NC} Variable ${BOLD}$var${NC} en .env — aún tiene valor placeholder"
+        echo -e "  ${YELLOW}⚠${NC} Variable ${BOLD}$var${NC} en .env - aún tiene valor placeholder"
         VARS_MISSING=true
     fi
 done
@@ -66,9 +66,9 @@ BACKEND_PID=""
 
 cleanup() {
     echo ""
-    echo -e "  ${CYAN}→${NC} Deteniendo servicios..."
+    echo -e "  ${CYAN}->${NC} Deteniendo servicios..."
     if [ -n "$BACKEND_PID" ] && kill -0 "$BACKEND_PID" 2>/dev/null; then
-        echo -e "  ${CYAN}→${NC} Cerrando backend (PID $BACKEND_PID)..."
+        echo -e "  ${CYAN}->${NC} Cerrando backend (PID $BACKEND_PID)..."
         kill "$BACKEND_PID" 2>/dev/null || true
         wait "$BACKEND_PID" 2>/dev/null || true
         echo -e "  ${GREEN}✓${NC} Backend detenido"
@@ -85,14 +85,14 @@ npm run dev &
 BACKEND_PID=$!
 cd "$REPO_ROOT"
 
-echo -e "  ${MAGENTA}[Backend]${NC} PID $BACKEND_PID — esperando a que el servidor esté listo..."
+echo -e "  ${MAGENTA}[Backend]${NC} PID $BACKEND_PID - esperando a que el servidor esté listo..."
 
 # Esperar activamente a que el backend responda (hasta 15s)
 MAX_WAIT=15
 WAITED=0
 while [ $WAITED -lt $MAX_WAIT ]; do
     if curl -s -o /dev/null -w "%{http_code}" "http://localhost:3000/api/v1/users/profiles" 2>/dev/null | grep -qE "^(200|401|404)"; then
-        echo -e "  ${GREEN}✓${NC} Backend respondiendo — listo"
+        echo -e "  ${GREEN}✓${NC} Backend respondiendo - listo"
         break
     fi
     sleep 1
@@ -110,16 +110,16 @@ echo ""
 echo -e "  ${BOLD}${MAGENTA}[Flutter]${NC} Iniciando app..."
 
 # Listar dispositivos disponibles y ofrecer selección
-echo -e "  ${CYAN}→${NC} Dispositivos disponibles:"
+echo -e "  ${CYAN}->${NC} Dispositivos disponibles:"
 DEVICES=$(flutter devices 2>/dev/null | tail -n +3 || echo "")
 if [ -z "$DEVICES" ]; then
     echo -e "    ${YELLOW}⚠${NC} No se detectaron dispositivos. Conecta un dispositivo o inicia un emulador."
-    echo -e "  ${YELLOW}→${NC} Ejecutando flutter run con selección automática..."
+    echo -e "  ${YELLOW}->${NC} Ejecutando flutter run con selección automática..."
     flutter run
 else
     echo "$DEVICES"
     echo ""
-    echo -e "  ${CYAN}→${NC} Selecciona un dispositivo (escribe el ID) o presiona Enter para usar el predeterminado:"
+    echo -e "  ${CYAN}->${NC} Selecciona un dispositivo (escribe el ID) o presiona Enter para usar el predeterminado:"
     read -r DEVICE_ID
     if [ -n "$DEVICE_ID" ]; then
         flutter run -d "$DEVICE_ID"

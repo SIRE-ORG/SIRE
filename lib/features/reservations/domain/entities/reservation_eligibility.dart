@@ -1,6 +1,6 @@
 /// Resultado de evaluar si el usuario actual puede confirmar una reserva
 /// directamente o necesita un paso previo (regla de negocio 4 del flujo de
-/// 3 fases: ANON → GUEST → ACTIVE).
+/// 3 fases: ANON -> GUEST -> ACTIVE).
 ///
 /// - [needsGuestForm]: sin sesión, o sesión anónima sin perfil todavía.
 ///   Debe completar nombre/correo/teléfono (`registerGuest`) antes de crear

@@ -6,9 +6,13 @@ import '../providers/notifications_provider.dart';
 
 /// Campana con badge de no leídas. Helper de integración listo para colocar en
 /// los AppBars (feed, dashboard, ...). Observa [unreadCountProvider], que se
-/// deriva del stream realtime → el badge se actualiza solo.
+/// deriva del stream realtime -> el badge se actualiza solo.
 class NotificationBell extends ConsumerWidget {
-  const NotificationBell({super.key, this.color = Colors.white, this.onPressed});
+  const NotificationBell({
+    super.key,
+    this.color = Colors.white,
+    this.onPressed,
+  });
 
   final Color color;
   final VoidCallback? onPressed;

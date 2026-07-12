@@ -35,7 +35,7 @@ ReservationsRepository reservationsRepository(Ref ref) =>
     );
 
 // ---------------------------------------------------------------------------
-// ReceivedReservationsNotifier — reservas recibidas por el publicador
+// ReceivedReservationsNotifier - reservas recibidas por el publicador
 // ---------------------------------------------------------------------------
 
 @riverpod
@@ -45,7 +45,7 @@ Future<List<Reservation>> receivedReservations(Ref ref) =>
     ).call();
 
 // ---------------------------------------------------------------------------
-// ReservationDetail — detalle de una reserva por id
+// ReservationDetail - detalle de una reserva por id
 // ---------------------------------------------------------------------------
 
 @riverpod
@@ -55,7 +55,7 @@ Future<Reservation> reservationDetail(Ref ref, String id) =>
     ).call(id: id);
 
 // ---------------------------------------------------------------------------
-// MyReservationsNotifier — listado de reservas del solicitante
+// MyReservationsNotifier - listado de reservas del solicitante
 // ---------------------------------------------------------------------------
 
 @riverpod
@@ -74,7 +74,7 @@ class MyReservationsNotifier extends _$MyReservationsNotifier {
 }
 
 // ---------------------------------------------------------------------------
-// ReceivedReservationsNotifier — reservas recibidas sobre las publicaciones
+// ReceivedReservationsNotifier - reservas recibidas sobre las publicaciones
 // del dueño (lado publisher). Espejo de MyReservationsNotifier.
 // ---------------------------------------------------------------------------
 
@@ -94,7 +94,7 @@ class ReceivedReservationsNotifier extends _$ReceivedReservationsNotifier {
 }
 
 // ---------------------------------------------------------------------------
-// ReservationActionNotifier — create / updateStatus / cancel
+// ReservationActionNotifier - create / updateStatus / cancel
 // ---------------------------------------------------------------------------
 
 @riverpod
@@ -128,7 +128,7 @@ class ReservationActionNotifier extends _$ReservationActionNotifier {
       ).call(id: id, status: status);
       state = const AsyncData(null);
       // updateStatus (aceptar/rechazar) lo ejecuta el dueño de la publicación
-      // sobre una reserva recibida → refresca la lista de recibidas.
+      // sobre una reserva recibida -> refresca la lista de recibidas.
       ref.invalidate(receivedReservationsNotifierProvider);
       return result;
     } catch (e, st) {

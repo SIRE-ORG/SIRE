@@ -1,5 +1,5 @@
-// PI-PROV-ELEGIBILIDAD — reservationEligibilityProvider deriva los 4 estados
-// de la regla de negocio 4 (flujo de 3 fases ANON → GUEST → ACTIVE) a partir
+// PI-PROV-ELEGIBILIDAD - reservationEligibilityProvider deriva los 4 estados
+// de la regla de negocio 4 (flujo de 3 fases ANON -> GUEST -> ACTIVE) a partir
 // de authStatusProvider y (solo para guest) de las reservas propias.
 //
 // Se overridea authStatusProvider directamente (sin montar toda la cadena de
@@ -48,7 +48,7 @@ void main() {
     return container;
   }
 
-  test('sin sesión (status null) → needsGuestForm', () async {
+  test('sin sesión (status null) -> needsGuestForm', () async {
     final container = buildContainer(status: null);
 
     final result = await container.read(reservationEligibilityProvider.future);
@@ -57,7 +57,7 @@ void main() {
     verifyNever(() => repo.getMyReservations());
   });
 
-  test('status anon → needsGuestForm', () async {
+  test('status anon -> needsGuestForm', () async {
     final container = buildContainer(status: AccountStatus.anon);
 
     final result = await container.read(reservationEligibilityProvider.future);
@@ -66,7 +66,7 @@ void main() {
     verifyNever(() => repo.getMyReservations());
   });
 
-  test('status active → allowed (sin consultar reservas)', () async {
+  test('status active -> allowed (sin consultar reservas)', () async {
     final container = buildContainer(status: AccountStatus.active);
 
     final result = await container.read(reservationEligibilityProvider.future);
@@ -75,7 +75,7 @@ void main() {
     verifyNever(() => repo.getMyReservations());
   });
 
-  test('status guest con 0 reservas → allowedExistingProfile', () async {
+  test('status guest con 0 reservas -> allowedExistingProfile', () async {
     when(() => repo.getMyReservations()).thenAnswer((_) async => []);
 
     final container = buildContainer(status: AccountStatus.guest);
@@ -85,7 +85,7 @@ void main() {
     expect(result, ReservationEligibility.allowedExistingProfile);
   });
 
-  test('status guest con ≥1 reserva → needsActivation', () async {
+  test('status guest con ≥1 reserva -> needsActivation', () async {
     when(() => repo.getMyReservations()).thenAnswer((_) async => [_unaReserva]);
 
     final container = buildContainer(status: AccountStatus.guest);

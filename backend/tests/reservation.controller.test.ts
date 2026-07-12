@@ -120,7 +120,7 @@ describe('Módulo 3: Reservas', () => {
     });
 
     //GET /reservations/:id
-    it('Detalle: Debería retornar la reserva por id con su publication (200) — solicitante dueño', async () => {
+    it('Detalle: Debería retornar la reserva por id con su publication (200) - solicitante dueño', async () => {
         mockRequest.params = { id: 'res-123' };
         mockRequest.headers['x-user-id'] = 'jugador-1';
 
@@ -134,7 +134,7 @@ describe('Módulo 3: Reservas', () => {
         expect(mockReply.status).toHaveBeenCalledWith(200);
     });
 
-    it('Detalle: Debería retornar la reserva por id (200) — publisher dueño de la publicación', async () => {
+    it('Detalle: Debería retornar la reserva por id (200) - publisher dueño de la publicación', async () => {
         mockRequest.params = { id: 'res-123' };
         mockRequest.headers['x-user-id'] = 'dueño-1';
 

@@ -31,7 +31,7 @@ part 'app_router.g.dart';
 
 // ---------------------------------------------------------------------------
 // Guards de navegación por estado de cuenta (regla de negocio del flujo de 3
-// fases ANON → GUEST → ACTIVE). Las rutas se clasifican por plantilla
+// fases ANON -> GUEST -> ACTIVE). Las rutas se clasifican por plantilla
 // (`GoRouterState.fullPath`, ej. `/publication/:id/edit`), no por URL
 // resuelta, para que los path params no rompan la comparación.
 // ---------------------------------------------------------------------------
@@ -49,7 +49,7 @@ const _publicPaths = {
   '/forgot-password',
 };
 
-/// Requieren sesión (una sesión anónima de Supabase basta) — confirmar una
+/// Requieren sesión (una sesión anónima de Supabase basta) - confirmar una
 /// reserva puede hacerlo un anónimo, que completa el form de invitado ahí
 /// mismo.
 const _requiresSessionPaths = {'/publication/:id/confirm'};

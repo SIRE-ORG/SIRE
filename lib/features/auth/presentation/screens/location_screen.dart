@@ -36,7 +36,7 @@ class _LocationScreenState extends ConsumerState<LocationScreen> {
 
   /// Pide la ubicación real (dispara el permiso nativo vía Geolocator), cachea
   /// la región y entra al feed. Si falla (denegado / sin soporte), avisa y entra
-  /// igual — el feed hace fallback.
+  /// igual - el feed hace fallback.
   Future<void> _onPermitir() async {
     setState(() => _detecting = true);
     try {

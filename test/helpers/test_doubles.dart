@@ -138,7 +138,7 @@ class StubPublicationsRemoteDatasource implements PublicationsRemoteDatasource {
 }
 
 // ---------------------------------------------------------------------------
-// Reservations — fakes de datasources
+// Reservations - fakes de datasources
 // ---------------------------------------------------------------------------
 
 /// ReservationsRemoteDatasource controlable para pruebas de providers.
@@ -167,7 +167,7 @@ class StubReservationsRemoteDatasource implements ReservationsRemoteDatasource {
   int receivedReservationsCalls = 0;
 
   /// Último `status` (string) recibido en [updateReservationStatus]: permite
-  /// comprobar el mapeo enum → string que hace el repositorio.
+  /// comprobar el mapeo enum -> string que hace el repositorio.
   String? lastStatusArg;
 
   @override
@@ -216,7 +216,7 @@ class StubReservationsRemoteDatasource implements ReservationsRemoteDatasource {
 }
 
 // ---------------------------------------------------------------------------
-// Notifications — fake de datasource
+// Notifications - fake de datasource
 // ---------------------------------------------------------------------------
 
 /// NotificationsDatasource controlable para pruebas de providers.

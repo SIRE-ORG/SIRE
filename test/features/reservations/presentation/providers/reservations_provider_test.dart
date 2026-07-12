@@ -1,4 +1,4 @@
-// PI-PROV-04 / PI-PROV-05 / PI-PROV-06 — Providers de reservas con la
+// PI-PROV-04 / PI-PROV-05 / PI-PROV-06 - Providers de reservas con la
 // fuente de datos sustituida: tránsito de estados sin excepciones sin capturar.
 //
 // Sin binding de widgets: MyReservationsNotifier no depende de storage ni
@@ -66,7 +66,7 @@ void main() {
     });
   });
 
-  group('PI-PROV-05: error del repositorio → AsyncError, sin excepción sin '
+  group('PI-PROV-05: error del repositorio -> AsyncError, sin excepción sin '
       'capturar', () {
     test('el error se propaga como estado y no rompe el test', () async {
       final container = containerCon(
@@ -106,7 +106,7 @@ void main() {
     });
   });
 
-  group('PI-PROV-07: recibidas (lado publisher) — espejo de PI-PROV-04/05', () {
+  group('PI-PROV-07: recibidas (lado publisher) - espejo de PI-PROV-04/05', () {
     test('el notifier de recibidas carga y mapea las entidades', () async {
       final container = containerCon(
         StubReservationsRemoteDatasource(
@@ -184,7 +184,7 @@ void main() {
     );
 
     test(
-      'create: éxito → devuelve la entidad e invalida "mis reservas"',
+      'create: éxito -> devuelve la entidad e invalida "mis reservas"',
       () async {
         final stub = StubReservationsRemoteDatasource(
           actionResponse: actionModel,
@@ -214,7 +214,7 @@ void main() {
       },
     );
 
-    test('create: error del repositorio → AsyncError y relanza', () async {
+    test('create: error del repositorio -> AsyncError y relanza', () async {
       final container = containerCon(
         StubReservationsRemoteDatasource(
           error: ServerException(code: 'CONFLICT', message: 'slot ocupado'),
@@ -235,7 +235,7 @@ void main() {
     });
 
     test(
-      'updateStatus: éxito → mapea el enum a string e invalida "recibidas"',
+      'updateStatus: éxito -> mapea el enum a string e invalida "recibidas"',
       () async {
         final stub = StubReservationsRemoteDatasource(
           actionResponse: actionModel,
@@ -262,13 +262,13 @@ void main() {
           isTrue,
         );
 
-        // updateStatus es acción del publisher → refresca "recibidas", no "mías".
+        // updateStatus es acción del publisher -> refresca "recibidas", no "mías".
         await container.read(receivedReservationsNotifierProvider.future);
         expect(stub.receivedReservationsCalls, greaterThan(callsAntes));
       },
     );
 
-    test('updateStatus: error → AsyncError y relanza', () async {
+    test('updateStatus: error -> AsyncError y relanza', () async {
       final container = containerCon(
         StubReservationsRemoteDatasource(
           error: ServerException(code: 'NOT_FOUND', message: 'no existe'),
@@ -288,7 +288,7 @@ void main() {
       );
     });
 
-    test('cancel: éxito → AsyncData e invalida "mis reservas"', () async {
+    test('cancel: éxito -> AsyncData e invalida "mis reservas"', () async {
       final stub = StubReservationsRemoteDatasource(
         actionResponse: actionModel,
         myResponse: const [],
@@ -312,7 +312,7 @@ void main() {
     });
 
     test(
-      'cancel: error → AsyncError sin relanzar (usa AsyncValue.guard)',
+      'cancel: error -> AsyncError sin relanzar (usa AsyncValue.guard)',
       () async {
         final container = containerCon(
           StubReservationsRemoteDatasource(
@@ -350,7 +350,7 @@ void main() {
       publicationImageUrl: null,
     );
 
-    test('éxito → entidad mapeada con status tipado', () async {
+    test('éxito -> entidad mapeada con status tipado', () async {
       final container = containerCon(
         StubReservationsRemoteDatasource(detailResponse: detalle),
       );
@@ -364,7 +364,7 @@ void main() {
       expect(reserva.publicationTitle, 'Cancha');
     });
 
-    test('error del repositorio → AsyncError', () async {
+    test('error del repositorio -> AsyncError', () async {
       final container = containerCon(
         StubReservationsRemoteDatasource(
           error: ServerException(code: 'NOT_FOUND', message: 'no existe'),

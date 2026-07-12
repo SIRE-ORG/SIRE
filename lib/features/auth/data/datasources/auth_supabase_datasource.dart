@@ -7,7 +7,7 @@ abstract interface class AuthSupabaseDatasource {
   });
 
   /// Crea (o reutiliza) una sesión anónima de Supabase. La app la usa como
-  /// primer paso del flujo de 3 fases (ANON → GUEST → ACTIVE): "Comenzar" en
+  /// primer paso del flujo de 3 fases (ANON -> GUEST -> ACTIVE): "Comenzar" en
   /// welcome_screen ya deja al usuario con sesión, sin pedirle datos.
   Future<void> signInAnonymously();
   Future<void> signInWithOtp({required String email});

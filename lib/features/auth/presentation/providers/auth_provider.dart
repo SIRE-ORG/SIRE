@@ -158,7 +158,7 @@ class AuthNotifier extends _$AuthNotifier {
     state = const AsyncData(null);
     // F3: justo tras registerGuest, un refetch inmediato del perfil puede
     // ganarle al backend (fila de perfil aún no propagada) y volver null
-    // (getProfile lo trata como 404 → anon). Sin mitigación, el usuario
+    // (getProfile lo trata como 404 -> anon). Sin mitigación, el usuario
     // recién registrado vería de nuevo el form de invitado.
     await _refresh(retryProfileOnNull: true);
     return result;
@@ -172,7 +172,7 @@ class AuthNotifier extends _$AuthNotifier {
       ).call(password: password),
     );
     // F3: misma carrera que en registerGuest, tras el PATCH de
-    // account-status — pero solo si la activación ocurrió de verdad: si
+    // account-status - pero solo si la activación ocurrió de verdad: si
     // falló (p. ej. validación de password, nunca llegó a tocar el
     // repositorio) no hay carrera que mitigar.
     await _refresh(retryProfileOnNull: !state.hasError);

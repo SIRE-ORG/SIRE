@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # =============================================================================
-# SIRE — Instalación automatizada (Linux / macOS / Git Bash)
+# SIRE - Instalación automatizada (Linux / macOS / Git Bash)
 # =============================================================================
 # Uso: bash scripts/setup.sh
 #
@@ -25,13 +25,13 @@ step()       { echo -e "\n${BOLD}${CYAN}[PASO $1]${NC} ${2}"; }
 success()    { echo -e "  ${GREEN}✓${NC} $1"; }
 warn()       { echo -e "  ${YELLOW}⚠${NC} $1"; }
 fail()       { echo -e "\n${RED}${BOLD}✗ ERROR:${NC} $1"; exit 1; }
-info()       { echo -e "  ${CYAN}→${NC} $1"; }
+info()       { echo -e "  ${CYAN}->${NC} $1"; }
 
 # ─── Banner ──────────────────────────────────────────────────────────────────
 echo -e "${BOLD}${CYAN}"
 echo "  ╔══════════════════════════════════════════════╗"
 echo "  ║                                              ║"
-echo "  ║   SIRE — Sistema Integral de Reservas        ║"
+echo "  ║   SIRE - Sistema Integral de Reservas        ║"
 echo "  ║          Estratégicas                        ║"
 echo "  ║                                              ║"
 echo "  ║   Instalación automatizada                   ║"
@@ -40,7 +40,7 @@ echo "  ╚═══════════════════════
 echo -e "${NC}"
 
 # ──────────────────────────────────────────────────────────────────────────────
-# PASO 1 — Verificar prerequisitos
+# PASO 1 - Verificar prerequisitos
 # ──────────────────────────────────────────────────────────────────────────────
 step 1 "Verificando herramientas necesarias"
 
@@ -55,7 +55,7 @@ check_tool() {
         if [ -n "$version_cmd" ]; then
             local ver
             ver=$(eval "$version_cmd" 2>&1 | head -1)
-            success "$tool detectado — $ver"
+            success "$tool detectado - $ver"
         else
             success "$tool detectado"
         fi
@@ -95,25 +95,25 @@ FLUTTER_VER=$(flutter --version 2>&1 | grep -oP 'Flutter \K[0-9]+\.[0-9]+' | hea
 NODE_MAJOR=$(node -v | sed 's/v//' | cut -d. -f1)
 
 if [ "$(echo "$FLUTTER_VER" | cut -d. -f1)" -ge 3 ] 2>/dev/null; then
-    success "Flutter $FLUTTER_VER — cumple con ≥3.11 requerido"
+    success "Flutter $FLUTTER_VER - cumple con ≥3.11 requerido"
 else
     warn "Flutter $FLUTTER_VER detectado. El proyecto requiere Flutter SDK ≥3.11.3. Puede fallar al compilar."
 fi
 
 if [ "$NODE_MAJOR" -ge 20 ] 2>/dev/null; then
-    success "Node.js v$NODE_MAJOR — cumple con ≥20 requerido"
+    success "Node.js v$NODE_MAJOR - cumple con ≥20 requerido"
 else
     warn "Node.js v$NODE_MAJOR detectado. El proyecto requiere Node.js ≥20 LTS."
 fi
 
 # ──────────────────────────────────────────────────────────────────────────────
-# PASO 2 — Variables de entorno
+# PASO 2 - Variables de entorno
 # ──────────────────────────────────────────────────────────────────────────────
 step 2 "Configurando archivos de variables de entorno"
 
 # ── Flutter .env ──
 if [ -f ".env" ]; then
-    success ".env (Flutter) ya existe — se conserva intacto"
+    success ".env (Flutter) ya existe - se conserva intacto"
 else
     if [ -f ".env.example" ]; then
         cp .env.example .env
@@ -127,13 +127,13 @@ fi
 
 # ── Backend .env ──
 if [ -f "backend/.env" ]; then
-    success "backend/.env ya existe — se conserva intacto"
+    success "backend/.env ya existe - se conserva intacto"
 else
     if [ -f "backend/.env.example" ]; then
         cp backend/.env.example backend/.env
         success "backend/.env creado desde backend/.env.example"
         warn "Edita backend/.env con la cadena de conexión real de Supabase PostgreSQL."
-        info "  Obtén DATABASE_URL y DIRECT_URL en: Supabase Dashboard → Settings → Database"
+        info "  Obtén DATABASE_URL y DIRECT_URL en: Supabase Dashboard -> Settings -> Database"
     else
         fail "No se encontró backend/.env.example. ¿Está completo el repositorio?"
     fi
@@ -147,10 +147,10 @@ check_placeholder() {
     local value
     value=$(grep "^${var}=" "$file" 2>/dev/null | cut -d= -f2- | tr -d '"' | tr -d "'" | tr -d ' ')
     if [ -z "$value" ] || echo "$value" | grep -qiE "tu-proyecto|tu-anon-key|usuario_aqui|password_aqui|ejemplo"; then
-        warn "$var en $file — aún tiene valor placeholder, debe ser reemplazado"
+        warn "$var en $file - aún tiene valor placeholder, debe ser reemplazado"
         return 1
     else
-        success "$var en $file — configurado"
+        success "$var en $file - configurado"
         return 0
     fi
 }
@@ -167,13 +167,13 @@ if [ -f "backend/.env" ]; then
 fi
 
 # ──────────────────────────────────────────────────────────────────────────────
-# PASO 3 — Dependencias Flutter/Dart
+# PASO 3 - Dependencias Flutter/Dart
 # ──────────────────────────────────────────────────────────────────────────────
 step 3 "Instalando dependencias de Flutter/Dart"
 
 info "Ejecutando flutter pub get..."
 if flutter pub get; then
-    success "flutter pub get — paquetes Dart instalados"
+    success "flutter pub get - paquetes Dart instalados"
 else
     warn "flutter pub get falló. Iniciando autosanación: reparando caché de pub..."
     flutter pub cache repair
@@ -191,19 +191,19 @@ DART_ANALYZE_OUT=$(dart analyze lib/ --no-fatal-infos --no-fatal-warnings 2>&1)
 DART_ANALYZE_EXIT=$?
 echo "$DART_ANALYZE_OUT" | tail -5
 if [ $DART_ANALYZE_EXIT -eq 0 ]; then
-    success "dart analyze — sin errores de compilación en lib/"
+    success "dart analyze - sin errores de compilación en lib/"
 else
     warn "dart analyze reportó advertencias. No impiden ejecutar la app, pero revisa los mensajes anteriores."
 fi
 
 # ──────────────────────────────────────────────────────────────────────────────
-# PASO 4 — Generación de código (build_runner)
+# PASO 4 - Generación de código (build_runner)
 # ──────────────────────────────────────────────────────────────────────────────
 step 4 "Ejecutando generador de código con build_runner"
 
 info "Generando archivos .g.dart con dart run build_runner build..."
 if dart run build_runner build --delete-conflicting-outputs; then
-    success "build_runner — generación completada"
+    success "build_runner - generación completada"
 else
     warn "build_runner falló. Iniciando autosanación: limpieza de caché de build_runner..."
     dart run build_runner clean 2>/dev/null || true
@@ -211,7 +211,7 @@ else
     find lib/ -name "*.g.dart" -delete 2>/dev/null || true
     info "Reintentando build_runner con caché limpia..."
     if dart run build_runner build --delete-conflicting-outputs; then
-        success "build_runner — generación completada tras limpieza"
+        success "build_runner - generación completada tras limpieza"
     else
         fail "build_runner falló definitivamente.\n  Causas posibles:\n  • Conflicto de anotaciones (@riverpod) con versiones de dependencias\n  • Archivo .g.dart corrupto que no se pudo eliminar automáticamente\n  • Error de sintaxis en un archivo Dart que impide la generación\n  Acción manual: ejecuta dart run build_runner clean && dart run build_runner build --delete-conflicting-outputs y revisa la salida."
     fi
@@ -221,13 +221,13 @@ fi
 info "Verificando archivos generados..."
 G_FILES=$(find lib/ -name "*.g.dart" 2>/dev/null | wc -l | tr -d ' ')
 if [ "${G_FILES:-0}" -gt 0 ]; then
-    success "build_runner — $G_FILES archivo(s) .g.dart generados en lib/"
+    success "build_runner - $G_FILES archivo(s) .g.dart generados en lib/"
 else
     info "No se detectaron archivos .g.dart. Si el proyecto aún no usa proveedores anotados con @riverpod, esto es normal."
 fi
 
 # ──────────────────────────────────────────────────────────────────────────────
-# PASO 5 — Dependencias Backend (Node.js)
+# PASO 5 - Dependencias Backend (Node.js)
 # ──────────────────────────────────────────────────────────────────────────────
 step 5 "Instalando dependencias del backend (Node.js)"
 
@@ -261,7 +261,7 @@ fi
 
 info "Ejecutando npm install..."
 if npm install; then
-    success "npm install — dependencias Node.js instaladas"
+    success "npm install - dependencias Node.js instaladas"
 else
     warn "npm install falló. Iniciando autosanación: reinstalación limpia..."
     rm -rf node_modules package-lock.json
@@ -270,7 +270,7 @@ else
         success "npm install completado tras reinstalación limpia"
     else
         cd ..
-        fail "npm install falló. Causas posibles:\n  • Sin conexión a internet o registry.npmjs.org inalcanzable\n  • Proxy corporativo — configura npm proxy: npm config set proxy http://...\n  • Permisos insuficientes en el directorio backend/"
+        fail "npm install falló. Causas posibles:\n  • Sin conexión a internet o registry.npmjs.org inalcanzable\n  • Proxy corporativo - configura npm proxy: npm config set proxy http://...\n  • Permisos insuficientes en el directorio backend/"
     fi
 fi
 
@@ -279,9 +279,9 @@ info "Verificando integridad de node_modules..."
 MISSING_MODS=""
 for mod in "fastify" "@prisma/client" "tsx" "@fastify/autoload"; do
     if [ -d "node_modules/$mod" ]; then
-        success "$mod — presente"
+        success "$mod - presente"
     else
-        warn "$mod — AUSENTE"
+        warn "$mod - AUSENTE"
         MISSING_MODS="$MISSING_MODS $mod"
     fi
 done
@@ -297,7 +297,7 @@ TSC_OUTPUT=$(npx tsc --noEmit 2>&1)
 TSC_EXIT=$?
 echo "$TSC_OUTPUT" | tail -3
 if [ $TSC_EXIT -eq 0 ]; then
-    success "TypeScript — compila sin errores"
+    success "TypeScript - compila sin errores"
 else
     warn "TypeScript reportó errores. El backend podría no arrancar correctamente. Revisa los mensajes anteriores."
 fi
@@ -305,7 +305,7 @@ fi
 cd ..
 
 # ──────────────────────────────────────────────────────────────────────────────
-# PASO 6 — Prisma: generar cliente
+# PASO 6 - Prisma: generar cliente
 # ──────────────────────────────────────────────────────────────────────────────
 step 6 "Generando cliente de Prisma"
 
@@ -313,7 +313,7 @@ cd backend
 
 info "Ejecutando npx prisma generate..."
 if npx prisma generate; then
-    success "prisma generate — @prisma/client generado"
+    success "prisma generate - @prisma/client generado"
 else
     warn "prisma generate falló. Iniciando autosanación: rebuild de módulos nativos..."
     npm rebuild
@@ -329,16 +329,16 @@ fi
 # Doctor: validar schema de Prisma
 info "Validando schema de Prisma..."
 if npx prisma validate; then
-    success "prisma validate — schema.prisma es válido"
+    success "prisma validate - schema.prisma es válido"
 else
     cd ..
-    fail "prisma validate falló. Revisa backend/prisma/schema.prisma — el schema tiene errores."
+    fail "prisma validate falló. Revisa backend/prisma/schema.prisma - el schema tiene errores."
 fi
 
 cd ..
 
 # ──────────────────────────────────────────────────────────────────────────────
-# PASO 7 — Migraciones de base de datos
+# PASO 7 - Migraciones de base de datos
 # ──────────────────────────────────────────────────────────────────────────────
 step 7 "Migraciones de base de datos (Prisma)"
 
@@ -357,21 +357,21 @@ else
 
     info "Ejecutando npx prisma migrate dev..."
     if npx prisma migrate dev; then
-        success "prisma migrate dev — migraciones aplicadas correctamente"
+        success "prisma migrate dev - migraciones aplicadas correctamente"
     else
         warn "prisma migrate dev falló."
         info "Causas posibles y cómo resolverlas:"
-        info "  1. DATABASE_URL incorrecta → revisa backend/.env"
-        info "  2. IP no whitelisteada → Supabase Dashboard → Settings → Database → IPv4"
+        info "  1. DATABASE_URL incorrecta -> revisa backend/.env"
+        info "  2. IP no whitelisteada -> Supabase Dashboard -> Settings -> Database -> IPv4"
         info "  3. La base de datos no existe o no tienes permisos de escritura"
-        info "  4. Las migraciones ya fueron aplicadas → verifica con: npx prisma migrate status"
+        info "  4. Las migraciones ya fueron aplicadas -> verifica con: npx prisma migrate status"
         info "Reintenta manualmente: cd backend && npx prisma migrate dev"
     fi
 
     # Doctor de base de datos: verificar conectividad (no destructivo)
     info "Verificando conectividad con la base de datos..."
     if npx prisma migrate status 2>/dev/null; then
-        success "Base de datos accesible — conexión a PostgreSQL verificada"
+        success "Base de datos accesible - conexión a PostgreSQL verificada"
     else
         warn "No se pudo verificar la base de datos. Posiblemente DATABASE_URL no es alcanzable."
     fi
