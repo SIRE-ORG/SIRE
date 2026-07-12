@@ -484,6 +484,7 @@ sonar-scanner
 |---|---|
 | [`docs/api-contract.md`](docs/api-contract.md) | Contrato completo de la API REST (endpoints, request/response, códigos de error) |
 | [`docs/api-status.md`](docs/api-status.md) | Estado actual de integración entre Flutter y los servicios externos |
+| [`docs/flujo_autenticacion.md`](docs/flujo_autenticacion.md) | Flujo de autenticación de 3 fases (ANON → GUEST → ACTIVE), reglas de negocio, diagrama de secuencia y guards de navegación |
 | [`docs/requerimientos.md`](docs/requerimientos.md) | Requerimientos funcionales y no funcionales del sistema |
 | [`docs/definicion_del_proyecto.md`](docs/definicion_del_proyecto.md) | Definición y alcance del proyecto |
 | [`docs/diagramas/`](docs/diagramas/) | Diagramas UML: casos de uso, CPM, clases de dominio, componentes |

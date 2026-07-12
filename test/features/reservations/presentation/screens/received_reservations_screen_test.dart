@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:sire/core/network/app_exception.dart';
-import 'package:sire/features/reservations/presentation/providers/reservations_provider.dart';
 import 'package:sire/features/reservations/presentation/screens/received_reservations_screen.dart';
 
 void main() {
@@ -181,66 +179,28 @@ void main() {
     });
   });
 
-  testWidgets('ReceivedReservationsScreen layout web muestra historial en pestaña', (
-    WidgetTester tester,
-  ) async {
-    final originalOnError = FlutterError.onError;
-    FlutterError.onError = (FlutterErrorDetails details) {
-      if (details.exceptionAsString().contains('overflowed')) return;
-      originalOnError?.call(details);
-    };
-    tester.view.physicalSize = const Size(1280, 800);
-    tester.view.devicePixelRatio = 1.0;
-
-    await tester.pumpWidget(buildSubject());
-    await tester.pumpAndSettle();
-
-    await tester.tap(find.text('Historial'));
-    await tester.pumpAndSettle();
-
-    expect(find.text('Pedro Soto'), findsOneWidget);
-
-    addTearDown(() {
-      tester.view.resetPhysicalSize();
-      tester.view.resetDevicePixelRatio();
-      FlutterError.onError = originalOnError;
-    });
-  });
-
   testWidgets(
-    'ReceivedReservationsScreen muestra banner cuando backend no disponible',
+    'ReceivedReservationsScreen layout web muestra historial en pestaña',
     (WidgetTester tester) async {
       final originalOnError = FlutterError.onError;
       FlutterError.onError = (FlutterErrorDetails details) {
         if (details.exceptionAsString().contains('overflowed')) return;
         originalOnError?.call(details);
       };
-      tester.view.physicalSize = const Size(390, 2400);
+      tester.view.physicalSize = const Size(1280, 800);
+      tester.view.devicePixelRatio = 1.0;
 
-      await tester.pumpWidget(
-        buildSubject(
-          overrides: [
-            receivedReservationsProvider.overrideWith(
-              (ref) => Future.error(
-                ServerException(
-                  code: 'ENDPOINT_NOT_AVAILABLE',
-                  message: 'no impl',
-                ),
-              ),
-            ),
-          ],
-        ),
-      );
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 100));
+      await tester.pumpWidget(buildSubject());
+      await tester.pumpAndSettle();
 
-      expect(
-        find.text('Pendiente de backend — se muestran datos de prueba'),
-        findsOneWidget,
-      );
+      await tester.tap(find.text('Historial'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Pedro Soto'), findsOneWidget);
 
       addTearDown(() {
         tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
         FlutterError.onError = originalOnError;
       });
     },

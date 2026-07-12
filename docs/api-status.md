@@ -1,6 +1,10 @@
 # SIRE — Estado de integración API (capa Flutter)
 
-> **Última actualización:** 2026-06-23 — capa de datos de **reservas (RF-05)** lista y verde en Costura A; backend vivo en Render. Ver **Sprint 3 — Reservas**.
+> **Última actualización:** 2026-07-12 — refresco honesto tras el flujo de
+> auth de 3 fases (ANON → GUEST → ACTIVE) y los guards de router: reservas y
+> notificaciones quedan **activas 1:1** contra el backend real (H8 y H10
+> cerrados, verificado contra Render). Ver **Sprint 3 — Reservas**, **Sprint
+> 4 — Notificaciones** y el resumen ejecutivo al final.
 
 Snapshot del estado actual de la integración entre Flutter y los servicios externos (backend REST + Supabase). Indico qué está implementado, qué se está mockeando ahorita, y qué necesito que el backend provea para reemplazar el mock por la integración real.
 
@@ -90,6 +94,11 @@ Estos no requieren nada del backend porque el dominio conecta directo con supa c
 
 Front mapea uppercase API ↔ lowercase enum Dart vía `publicationCategoryFromString` / `publicationCategoryToString` en `publication_detail_model.dart`. Si amplías el enum luego (ej: agregar `SALUD` cómo nueva categoría), me actualizas el contrato (`api-contract`) y agrego el case en el helper jojojo.
 
+### Deuda / regresiones conocidas (verificado 2026-07-12)
+
+- **Doble prefijo `/publications/publications`:** `publication.routes.ts` registra rutas con prefijo local `/publications` sobre un plugin ya montado bajo `/api/v1/publications` en `app.ts`, resultando en paths efectivos `/api/v1/publications/publications[/mine]`. Compensado en Flutter con `ApiConstants.publicationsFeedLive` / `publicationsFeedMineLive` (ver `lib/core/network/api_constants.dart`). **Sigue como deuda técnica del backend** — corregirla requiere alinear `publication.routes.ts` (`'/publications'` → `'/'`) y quitar el workaround de Flutter en el mismo cambio. Documentado también en `claude/comentarios_backend.txt` sección C.
+- **H1 (abierto):** `GET /feed` no filtra publicaciones con `isActive: false` (pausadas) — el contrato exige que el feed solo muestre activas. Confirmado por `test/backend/backend_contract_test.dart` (`PI-FEED-04b`), que corre contra el backend real con `--dart-define=SIRE_BACKEND_URL=...` y queda **rojo a propósito** como regresión documentada hasta que el backend filtre por `isActive` en el query. No afecta `flutter test` por defecto (esa suite se salta sin la variable de entorno).
+
 ### Storage
 
 | Operación | Estado |
@@ -100,20 +109,42 @@ Front mapea uppercase API ↔ lowercase enum Dart vía `publicationCategoryFromS
 
 ## Sprint 3 — Reservas (RF-05)
 
-Capa de datos **implementada y commiteada en `dev`** (espejo de publicaciones): datasources (real + mock), modelos, repositorio, usecases, entidad `Reservation` con `ReservationStatus`, y providers Riverpod. **Costura A** (HTTP simulado) **verde: 26 tests**. **Costura B** (backend real) **bloqueada por H10** (POST devuelve 500 en Render).
+Capa de datos **implementada y commiteada en `dev`**: datasources (real + mock), modelos, repositorio, usecases, entidad `Reservation` con `ReservationStatus`, y providers Riverpod. **Costura A** (HTTP simulado) verde. **Costura B** (backend real, `test/backend/backend_contract_test.dart`, se activa con `--dart-define=SIRE_BACKEND_URL=...`) **verde tras cerrar H8 y H10** (ver `test(contrato): PI-RES-01/02 en verde tras fixes H8/H10`). El flujo de pantallas (confirmar reserva → elegibilidad → activación) está cableado end-to-end desde el flujo de auth de 3 fases.
 
-### Backend REST (reservas)
+### Backend REST (reservas) — los 6 endpoints están activos 1:1
 
 | Endpoint | Estado | Notas de integración |
 |---|---|---|
-| `POST /reservations` | 🟡 | Body `{publicationId, date, startTime, endTime}` — **sin `slotId`** (H9: la capa se diseñó contra el backend real, no contra `api-contract.md`). **H10:** Render responde 500 en el INSERT (drift de migración: la tabla se lee pero el INSERT choca con columna/constraint no migrada, NO es `prisma generate`). Hasta resolver H10, Costura B de reservas no se puede verificar. |
-| `GET /reservations/mine` | 🟡 | Operativo (200). Incluye datos de la publicación aplanados en la entidad. |
-| `PATCH /reservations/:id/status` | 🟡 | Solo el dueño de la publicación acepta/rechaza. Valida contra el enum en minúsculas. |
-| `PATCH /reservations/:id/cancel` | 🔧 *bloqueado (H8)* | El cliente Flutter llama **PATCH**, pero el backend registró la ruta como **`DELETE /:id/cancel`** → method mismatch → 404. Implementado igual para estar listo al alinear el método (cliente `dio.patch`→`dio.delete`, o backend a PATCH). |
-| `GET /reservations/received` | ❌ | Stub `ENDPOINT_NOT_AVAILABLE` en Flutter. No existe en backend. Lo consumirá la vista "reservas recibidas" (publisher). |
-| `GET /reservations/:id` | ❌ | Stub `ENDPOINT_NOT_AVAILABLE` en Flutter. No existe en backend. Detalle de una reserva. |
+| `POST /reservations` | ✅ | Body `{publicationId, date, startTime, endTime}` — **sin `slotId`** (H9: la capa se diseñó contra el backend real, no contra `api-contract.md`; sigue como deuda de contrato, no bloquea nada). |
+| `GET /reservations/mine` | ✅ | Incluye datos de la publicación aplanados en la entidad. |
+| `PATCH /reservations/:id/status` | ✅ | Solo el dueño de la publicación acepta/rechaza. Valida contra el enum en minúsculas. |
+| `PATCH /reservations/:id/cancel` | ✅ | **H8 cerrado:** el backend alineó la ruta a `PATCH /:id/cancel` (antes registrada como `DELETE`, causaba 404). Verificado contra Render. |
+| `GET /reservations/received` | ✅ | Ya no es stub — `ReservationsRemoteDatasourceRealImpl.getReceivedReservations()` pega contra el endpoint real. El check muerto de `ENDPOINT_NOT_AVAILABLE` en `received_reservations_screen.dart` se eliminó (P1, flujo auth 3 fases). |
+| `GET /reservations/:id` | ✅ | Ya no es stub — `getReservationDetail()` pega contra el endpoint real. |
 
-> **Pendiente de cableado:** la capa de datos está lista, pero el **flujo de reservas** (pantallas → providers → usecases) aún no está conectado/verificado end-to-end. Es el objetivo de la rama `integracion/flujo-reservas`.
+**H10 cerrado:** el INSERT de `POST /reservations` en Render ya no responde 500 (era drift de migración, no `prisma generate`); verificado con la Costura B.
+
+---
+
+## Sprint 4 — Notificaciones (RF-06)
+
+Capa de datos **implementada y activa** (no queda mock por defecto): historial + marcar leídas vía REST, y stream en vivo vía **Supabase Realtime** directo a la tabla `notifications` (primer uso de realtime en la app, sin pasar por el backend).
+
+| Operación | Transporte | Estado |
+|---|---|---|
+| `GET /notifications` (historial, paginado, `unreadOnly`) | REST | ✅ |
+| `PATCH /notifications/:id/read` | REST | ✅ |
+| `PATCH /notifications/read-all` | REST | ✅ |
+| Notificaciones en vivo (`stream(primaryKey: ['id']).eq('user_id', uid)`) | Supabase Realtime | ✅ |
+
+Sin sesión activa, `watchNotifications()` devuelve un stream vacío en vez de fallar (no hay `user_id` al que suscribirse).
+
+---
+
+## Pendientes priorizados (2026-07-12)
+
+1. **`PUT /users/me`** — `AuthRemoteDatasourceRealImpl.updateProfile()` sigue lanzando `ENDPOINT_NOT_AVAILABLE` (stub intencional, bloqueado por backend). Sin esto, editar perfil (nombre/teléfono/avatar) no persiste contra el backend real.
+2. **`POST /auth/claim-guest`** — endpoint aún no existe en el backend. Es el que permitiría a un guest cuya sesión anónima de Supabase expiró/se perdió "reclamar" su perfil existente por correo y reactivar la sesión, sin tener que crear un perfil duplicado. **No se implementó UI para este camino** (para no dejar una feature a medias visible en la demo); queda documentado acá como el siguiente paso una vez el backend lo exponga. Mientras tanto, un guest que pierde su sesión anónima simplemente vuelve a pasar por "Comenzar" → nueva sesión anónima → si intenta `registerGuest` con el mismo correo, el backend responde `ConflictException` (ya manejado en `reservation_confirm_screen.dart`: "Este correo ya tiene cuenta; inicia sesión").
 
 ---
 
@@ -126,7 +157,7 @@ Capa de datos **implementada y commiteada en `dev`** (espejo de publicaciones): 
 3. **Endpoints Sprint 1 (4)** — al estar listos puedo dar de baja `AuthRemoteDatasourceMockImpl` e implementar la autenticación real.
 4. **Endpoints Sprint 2 (7)** — al estar listos puedo dar de baja `FeedRemoteDatasourceMockImpl` y `PublicationsRemoteDatasourceMockImpl` e implementar el repo de publicaciones real para feed y vista de publicaciones.
 
-**Total endpoints con capa de datos implementada:** 17 (4 Sprint 1 + 7 Sprint 2 + 6 Sprint 3 reservas). El backend ya está **vivo en Render**, así que el bloqueo dejó de ser "no hay host" y pasó a ser de **contrato/migración**: H3 (register-guest exige `id` Supabase precreado), H8 (método de `cancel`), H10 (500 en `POST /reservations`). Lo único sin capa de datos es Sprint 4 (notificaciones, RF-06) y los endpoints `reservations/received`, `reservations/:id` y `publications/:id/slots`. Cobertura de RF/RNF estimada **~50%+** con lo ya integrado.
+**Total endpoints con capa de datos implementada:** 24 (4 Sprint 1 + 7 Sprint 2 + 6 Sprint 3 reservas + 4 Sprint 4 notificaciones REST, más el stream de Realtime). El backend está **vivo en Render**; H3, H8 y H10 quedaron cerrados. Bloqueos vigentes: `PUT /users/me` y `POST /auth/claim-guest` (ver "Pendientes priorizados" arriba), `publications/:id/slots` (no implementado) y H1 (feed no filtra pausadas, regresión documentada). Doble prefijo `/publications/publications` sigue como deuda técnica compensada en Flutter. Cobertura de RF/RNF estimada **~70%+** con lo ya integrado (reservas y notificaciones end-to-end, guards de navegación por estado de cuenta).
 
 ---
 
@@ -177,11 +208,13 @@ Se levantó la arquitectura base con Fastify + Prisma ORM + Supabase PostgreSQL.
 | POST | /api/v1/reservations | ✅ Listo | Crea la solicitud en estado `pending`. Requiere header `x-user-id` (solicitante) |
 | GET | /api/v1/reservations/mine | ✅ Listo | Reservas del solicitante. Incluye datos de la publicación |
 | PATCH | /api/v1/reservations/:id/status | ✅ Listo | Solo el dueño de la publicación acepta/rechaza. Valida el estado contra el enum (minúsculas) |
+| PATCH | /api/v1/reservations/:id/cancel | ✅ Listo | **H8 cerrado** — método alineado a PATCH en el backend |
+| GET | /api/v1/reservations/received | ✅ Listo | Reservas recibidas por el publicador. Antes stub `ENDPOINT_NOT_AVAILABLE` en Flutter |
+| GET | /api/v1/reservations/:id | ✅ Listo | Detalle de una reserva. Antes stub `ENDPOINT_NOT_AVAILABLE` en Flutter |
 
-> **Notas de integración (verificadas desde Flutter, 2026-06-23):**
+> **Notas de integración (verificadas desde Flutter, actualizado 2026-07-12):**
 >
-> - **H8 — `cancel`:** el backend registró la ruta como `DELETE /:id/cancel`, pero el cliente Flutter llama `PATCH` → method mismatch → 404. Alinear método (cliente o backend).
-> - **H9 — body de `POST`:** el cliente envía `{publicationId, date, startTime, endTime}` (sin `slotId`), acorde al backend real; el contrato `api-contract.md` aún dice `slotId`.
-> - **H10 — `POST /reservations` 500 en Render:** `GET /mine` funciona (200) pero el INSERT falla → drift de migración en la BD desplegada (no es `prisma generate`). Bloquea la verificación de Costura B de reservas.
-> - **Pendientes backend:** `GET /reservations/received` y `GET /reservations/:id` aún no existen (el cliente los tiene como stub `ENDPOINT_NOT_AVAILABLE`).
-PATCH | /api/v1/reservations/:id/cancel | ✅ Listo | |
+> - **H8 — `cancel` (cerrado):** el backend alineó la ruta a `PATCH /:id/cancel` (antes `DELETE`, causaba 404 por method mismatch).
+> - **H9 (abierto, no bloqueante):** el cliente envía `{publicationId, date, startTime, endTime}` (sin `slotId`), acorde al backend real; el contrato `api-contract.md` aún dice `slotId`. Deuda de documentación, no de código.
+> - **H10 — `POST /reservations` 500 en Render (cerrado):** era drift de migración en la BD desplegada (no `prisma generate`); el INSERT ya no falla. Verificado con la Costura B (`test/backend/backend_contract_test.dart`).
+> - **`GET /reservations/received` y `GET /reservations/:id`:** ya no son stub, están implementados 1:1 en `ReservationsRemoteDatasourceRealImpl`.
