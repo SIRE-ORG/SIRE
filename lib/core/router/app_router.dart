@@ -1,4 +1,10 @@
+import 'package:flutter/foundation.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
+
+import '../../features/auth/domain/entities/user_profile.dart';
+import '../../features/auth/presentation/providers/auth_provider.dart';
 import '../../features/auth/presentation/screens/welcome_screen.dart';
 import '../../features/auth/presentation/screens/location_screen.dart';
 import '../../features/auth/presentation/screens/login_screen.dart';
@@ -21,11 +27,118 @@ import '../../features/profile/presentation/screens/profile_screen.dart';
 import '../../features/profile/presentation/screens/edit_profile_screen.dart';
 import '../../features/publications/presentation/screens/dashboard_screen.dart';
 
-class AppRouter {
-  AppRouter._();
+part 'app_router.g.dart';
 
-  static final GoRouter router = GoRouter(
+// ---------------------------------------------------------------------------
+// Guards de navegación por estado de cuenta (regla de negocio del flujo de 3
+// fases ANON → GUEST → ACTIVE). Las rutas se clasifican por plantilla
+// (`GoRouterState.fullPath`, ej. `/publication/:id/edit`), no por URL
+// resuelta, para que los path params no rompan la comparación.
+// ---------------------------------------------------------------------------
+
+/// No requieren ningún tipo de sesión.
+const _publicPaths = {
+  '/',
+  '/location',
+  '/feed',
+  '/publication/:id',
+  '/login',
+  '/register',
+  '/verify-otp',
+  '/activate-account',
+  '/forgot-password',
+};
+
+/// Requieren sesión (una sesión anónima de Supabase basta) — confirmar una
+/// reserva puede hacerlo un anónimo, que completa el form de invitado ahí
+/// mismo.
+const _requiresSessionPaths = {'/publication/:id/confirm'};
+
+/// Requieren `AccountStatus.active` (lado publicador: gestión de
+/// publicaciones y de las reservas que recibe).
+const _requiresActivePaths = {
+  '/dashboard',
+  '/my-publications',
+  '/publication/create',
+  '/publication/:id/edit',
+  '/received-reservations',
+  '/received-reservation/detail',
+};
+
+/// Requieren un perfil ya creado (`guest` o `active`); una sesión anónima
+/// sin perfil no basta.
+const _requiresProfilePaths = {
+  '/my-reservations',
+  '/reservation/:id',
+  '/notifications',
+  '/profile',
+  '/profile/edit',
+};
+
+/// Decide el destino de redirect para [path] (la plantilla de ruta, no la
+/// URL resuelta) dado el [status] actual. `null` significa "no redirigir".
+/// Expuesta (sin prefijo `_`) solo para poder testear la tabla de
+/// decisiones de forma aislada y rápida; no es parte de la superficie
+/// pública del router.
+@visibleForTesting
+String? decideRedirect(String path, AccountStatus? status) {
+  if (_publicPaths.contains(path)) return null;
+
+  final hasSession = status != null;
+  final hasProfile =
+      status == AccountStatus.guest || status == AccountStatus.active;
+  final isActive = status == AccountStatus.active;
+
+  if (_requiresSessionPaths.contains(path)) {
+    return hasSession ? null : '/login';
+  }
+  if (_requiresActivePaths.contains(path)) {
+    // Sin una pantalla dedicada de "activa tu cuenta", /profile es donde
+    // hoy se ve el estado de la cuenta (guest/active).
+    return isActive ? null : '/profile';
+  }
+  if (_requiresProfilePaths.contains(path)) {
+    return hasProfile ? null : '/login';
+  }
+
+  // Ruta no clasificada: no se bloquea (fail-open) para no romper
+  // navegación de pantallas nuevas que aún no se hayan catalogado acá.
+  return null;
+}
+
+Future<String?> _redirect(Ref ref, GoRouterState state) async {
+  final path = state.fullPath ?? state.matchedLocation;
+
+  AccountStatus? status;
+  try {
+    status = await ref.read(authStatusProvider.future);
+  } catch (_) {
+    // Fail-closed: si no se pudo verificar la cuenta (p. ej. error de red),
+    // se trata como "sin sesión verificada" en vez de dejar pasar.
+    status = null;
+  }
+
+  return decideRedirect(path, status);
+}
+
+/// Notifica a GoRouter cuando cambia `authStatusProvider` para que
+/// re-evalúe `redirect` sin necesidad de una navegación explícita (p. ej. un
+/// guest que activa su cuenta mientras sigue en la misma pantalla).
+class _GoRouterRefreshNotifier extends ChangeNotifier {
+  _GoRouterRefreshNotifier(Ref ref) {
+    ref.listen(authStatusProvider, (_, _) => notifyListeners());
+  }
+}
+
+@Riverpod(keepAlive: true)
+GoRouter appRouter(Ref ref) {
+  final refreshNotifier = _GoRouterRefreshNotifier(ref);
+  ref.onDispose(refreshNotifier.dispose);
+
+  return GoRouter(
     initialLocation: '/',
+    refreshListenable: refreshNotifier,
+    redirect: (context, state) => _redirect(ref, state),
     routes: [
       GoRoute(path: '/', builder: (context, state) => const WelcomeScreen()),
       GoRoute(
