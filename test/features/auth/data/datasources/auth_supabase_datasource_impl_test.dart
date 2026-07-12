@@ -44,6 +44,16 @@ void main() {
     ).called(1);
   });
 
+  test('signInAnonymously delega en el SDK', () async {
+    when(
+      () => auth.signInAnonymously(),
+    ).thenAnswer((_) async => MockAuthResponse());
+
+    await ds.signInAnonymously();
+
+    verify(() => auth.signInAnonymously()).called(1);
+  });
+
   test('signInWithOtp delega en el SDK (magic link)', () async {
     when(
       () => auth.signInWithOtp(email: any(named: 'email')),
@@ -54,21 +64,65 @@ void main() {
     verify(() => auth.signInWithOtp(email: 'a@b.cl')).called(1);
   });
 
-  test('verifyOtp delega en verifyOTP con OtpType.email', () async {
+  test(
+    'verifyOtp con type por defecto delega en verifyOTP con OtpType.email',
+    () async {
+      when(
+        () => auth.verifyOTP(
+          email: any(named: 'email'),
+          token: any(named: 'token'),
+          type: OtpType.email,
+        ),
+      ).thenAnswer((_) async => MockAuthResponse());
+
+      await ds.verifyOtp(email: 'a@b.cl', token: '123456');
+
+      verify(
+        () => auth.verifyOTP(
+          email: 'a@b.cl',
+          token: '123456',
+          type: OtpType.email,
+        ),
+      ).called(1);
+    },
+  );
+
+  test(
+    'verifyOtp con type: emailChange delega en verifyOTP con ese type',
+    () async {
+      when(
+        () => auth.verifyOTP(
+          email: any(named: 'email'),
+          token: any(named: 'token'),
+          type: OtpType.emailChange,
+        ),
+      ).thenAnswer((_) async => MockAuthResponse());
+
+      await ds.verifyOtp(
+        email: 'a@b.cl',
+        token: '123456',
+        type: OtpType.emailChange,
+      );
+
+      verify(
+        () => auth.verifyOTP(
+          email: 'a@b.cl',
+          token: '123456',
+          type: OtpType.emailChange,
+        ),
+      ).called(1);
+    },
+  );
+
+  test('updateEmail delega en updateUser con el email dado', () async {
     when(
-      () => auth.verifyOTP(
-        email: any(named: 'email'),
-        token: any(named: 'token'),
-        type: OtpType.email,
-      ),
-    ).thenAnswer((_) async => MockAuthResponse());
+      () => auth.updateUser(any()),
+    ).thenAnswer((_) async => MockUserResponse());
 
-    await ds.verifyOtp(email: 'a@b.cl', token: '123456');
+    await ds.updateEmail(email: 'nuevo@correo.cl');
 
-    verify(
-      () =>
-          auth.verifyOTP(email: 'a@b.cl', token: '123456', type: OtpType.email),
-    ).called(1);
+    final captured = verify(() => auth.updateUser(captureAny())).captured;
+    expect((captured.single as UserAttributes).email, 'nuevo@correo.cl');
   });
 
   test('updatePassword delega en updateUser', () async {

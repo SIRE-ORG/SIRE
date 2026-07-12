@@ -106,7 +106,10 @@ void main() {
       expect(PublicationCategory.values, hasLength(4));
       expect(PublicationCategory.values, contains(PublicationCategory.deporte));
       expect(PublicationCategory.values, contains(PublicationCategory.eventos));
-      expect(PublicationCategory.values, contains(PublicationCategory.recreacion));
+      expect(
+        PublicationCategory.values,
+        contains(PublicationCategory.recreacion),
+      );
       expect(PublicationCategory.values, contains(PublicationCategory.otros));
     });
   });
@@ -302,9 +305,12 @@ void main() {
     });
 
     test('AccountStatus tiene los valores esperados', () {
-      expect(AccountStatus.values, hasLength(2));
+      // `anon` es un tercer estado derivado en Flutter (sesión Supabase
+      // anónima sin fila de perfil): no existe en la DB ni en fromJson.
+      expect(AccountStatus.values, hasLength(3));
       expect(AccountStatus.values, contains(AccountStatus.guest));
       expect(AccountStatus.values, contains(AccountStatus.active));
+      expect(AccountStatus.values, contains(AccountStatus.anon));
     });
 
     test('instancias con mismo valor son iguales', () {

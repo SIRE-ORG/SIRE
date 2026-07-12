@@ -1,9 +1,39 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/widgets/custom_button.dart';
+import '../providers/auth_provider.dart';
 
-class WelcomeScreen extends StatelessWidget {
+class WelcomeScreen extends ConsumerStatefulWidget {
   const WelcomeScreen({super.key});
+
+  @override
+  ConsumerState<WelcomeScreen> createState() => _WelcomeScreenState();
+}
+
+class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
+  bool _cargando = false;
+
+  Future<void> _comenzar() async {
+    setState(() => _cargando = true);
+    try {
+      await ref.read(authNotifierProvider.notifier).startAnonymousSession();
+      if (!mounted) return;
+
+      if (ref.read(authNotifierProvider).hasError) {
+        // El feed es público: si la sesión anónima falla, se avisa pero se
+        // navega igual (no bloquea la exploración).
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('No se pudo iniciar sesión; puedes seguir igual'),
+          ),
+        );
+      }
+      context.push('/location');
+    } finally {
+      if (mounted) setState(() => _cargando = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -28,10 +58,7 @@ class WelcomeScreen extends StatelessWidget {
           child: Container(
             color: const Color(0xFF1E70CD),
             child: Center(
-              child: Image.asset(
-                'assets/images/Logo_SIRE.png',
-                width: 250,
-              ),
+              child: Image.asset('assets/images/Logo_SIRE.png', width: 250),
             ),
           ),
         ),
@@ -68,10 +95,7 @@ class WelcomeScreen extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Image.asset(
-                  'assets/images/Logo_SIRE.png',
-                  width: 180,
-                ),
+                Image.asset('assets/images/Logo_SIRE.png', width: 180),
                 const SizedBox(height: 20),
               ],
             ),
@@ -91,7 +115,10 @@ class WelcomeScreen extends StatelessWidget {
                 ),
               ),
               child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 30),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 40,
+                  vertical: 30,
+                ),
                 child: _buildContent(context),
               ),
             ),
@@ -136,9 +163,9 @@ class WelcomeScreen extends StatelessWidget {
         ),
         const SizedBox(height: 40),
         CustomButton(
-          text: 'Comenzar',
+          text: _cargando ? 'Comenzando...' : 'Comenzar',
           onPressed: () {
-            context.push('/location');
+            if (!_cargando) _comenzar();
           },
         ),
         const SizedBox(height: 20),

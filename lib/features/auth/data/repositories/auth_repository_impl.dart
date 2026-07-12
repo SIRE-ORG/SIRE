@@ -1,5 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../../core/network/app_exception.dart';
 import '../../../../core/storage/local_storage_service.dart';
 import '../../domain/entities/auth_result.dart';
 import '../../domain/entities/user_profile.dart';
@@ -27,13 +28,29 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
+  Future<void> signInAnonymously() async {
+    // Idempotente: si ya hay una sesión (anónima o no), no hace nada.
+    if (supabaseDatasource.getCurrentUserId() != null) return;
+    await supabaseDatasource.signInAnonymously();
+  }
+
+  @override
   Future<void> sendMagicLink({required String email}) async {
     await supabaseDatasource.signInWithOtp(email: email);
   }
 
   @override
-  Future<void> verifyOtp({required String email, required String token}) async {
-    await supabaseDatasource.verifyOtp(email: email, token: token);
+  Future<void> verifyOtp({
+    required String email,
+    required String token,
+    OtpType type = OtpType.email,
+  }) async {
+    await supabaseDatasource.verifyOtp(email: email, token: token, type: type);
+  }
+
+  @override
+  Future<void> updateEmail({required String email}) async {
+    await supabaseDatasource.updateEmail(email: email);
   }
 
   @override
@@ -68,8 +85,15 @@ class AuthRepositoryImpl implements AuthRepository {
   @override
   Future<UserProfile?> getProfile() async {
     if (supabaseDatasource.getCurrentUserId() == null) return null;
-    final model = await remoteDatasource.getProfile();
-    return model.toEntity();
+    try {
+      final model = await remoteDatasource.getProfile();
+      return model.toEntity();
+    } on NotFoundException {
+      // Sesión Supabase válida (p. ej. anónima) sin fila de perfil todavía:
+      // se trata como "sin perfil", no como error. authStatusProvider deriva
+      // AccountStatus.anon a partir de esto.
+      return null;
+    }
   }
 
   @override

@@ -27,7 +27,7 @@ final authSupabaseDatasourceProvider =
 typedef AuthSupabaseDatasourceRef =
     AutoDisposeProviderRef<AuthSupabaseDatasource>;
 String _$authRemoteDatasourceHash() =>
-    r'8ba426f99a95a7ce6728b5af63c3316bf5d3602a';
+    r'0a76af05ddf5b0ef29d143db7540ce885e89b06d';
 
 /// See also [authRemoteDatasource].
 @ProviderFor(authRemoteDatasource)
@@ -99,7 +99,7 @@ final currentProfileProvider = AutoDisposeFutureProvider<UserProfile?>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef CurrentProfileRef = AutoDisposeFutureProviderRef<UserProfile?>;
-String _$authStatusHash() => r'7592802e9646898475e78f98cb5aed2fedae7dae';
+String _$authStatusHash() => r'b167f4e71e4bea20a985640f049e5261d9515988';
 
 /// See also [authStatus].
 @ProviderFor(authStatus)
@@ -116,7 +116,7 @@ final authStatusProvider = AutoDisposeFutureProvider<AccountStatus?>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef AuthStatusRef = AutoDisposeFutureProviderRef<AccountStatus?>;
-String _$authNotifierHash() => r'0c2f54ac0d998d5e9f2bb85cedb4fddef28f9c49';
+String _$authNotifierHash() => r'1b13e75a7564d222cb7e9ec09e2610d2f68ba125';
 
 /// See also [AuthNotifier].
 @ProviderFor(AuthNotifier)

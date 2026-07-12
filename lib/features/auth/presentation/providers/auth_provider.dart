@@ -23,7 +23,9 @@ import '../../domain/usecases/get_profile_usecase.dart';
 import '../../domain/usecases/login_usecase.dart';
 import '../../domain/usecases/register_guest_usecase.dart';
 import '../../domain/usecases/send_magic_link_usecase.dart';
+import '../../domain/usecases/sign_in_anonymously_usecase.dart';
 import '../../domain/usecases/sign_out_usecase.dart';
+import '../../domain/usecases/update_email_usecase.dart';
 import '../../domain/usecases/update_profile_usecase.dart';
 import '../../domain/usecases/verify_otp_usecase.dart';
 
@@ -69,7 +71,14 @@ Future<UserProfile?> currentProfile(Ref ref) {
 @riverpod
 Future<AccountStatus?> authStatus(Ref ref) async {
   final profile = await ref.watch(currentProfileProvider.future);
-  return profile?.accountStatus;
+  if (profile != null) return profile.accountStatus;
+
+  // Perfil null puede significar "sin sesión" o "sesión anónima sin fila de
+  // perfil todavía" (registerGuest 404 tratado como null en el repositorio).
+  // Se distinguen consultando la sesión Supabase directamente.
+  final hasSession =
+      ref.watch(authSupabaseDatasourceProvider).getCurrentUserId() != null;
+  return hasSession ? AccountStatus.anon : null;
 }
 
 // ---------------------------------------------------------------------------
@@ -91,6 +100,29 @@ class AuthNotifier extends _$AuthNotifier {
     _refresh();
   }
 
+  /// Fase 1 del flujo de 3 fases: "Comenzar" en welcome_screen deja al
+  /// usuario con una sesión anónima de Supabase, sin pedirle datos.
+  Future<void> startAnonymousSession() async {
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(
+      () => SignInAnonymouslyUseCase(ref.read(authRepositoryProvider)).call(),
+    );
+    _refresh();
+  }
+
+  /// Paso 1 de la activación de un guest anónimo (fase 3): adjunta [email]
+  /// al usuario Supabase, lo que dispara el envío del OTP de cambio de
+  /// correo. El llamador debe seguir con `verifyOtp(type:
+  /// OtpType.emailChange)` y luego `activateAccount`.
+  Future<void> startActivation({required String email}) async {
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(
+      () => UpdateEmailUseCase(
+        ref.read(authRepositoryProvider),
+      ).call(email: email),
+    );
+  }
+
   Future<void> sendMagicLink({required String email}) async {
     state = const AsyncLoading();
     state = await AsyncValue.guard(
@@ -100,12 +132,16 @@ class AuthNotifier extends _$AuthNotifier {
     );
   }
 
-  Future<void> verifyOtp({required String email, required String token}) async {
+  Future<void> verifyOtp({
+    required String email,
+    required String token,
+    OtpType type = OtpType.email,
+  }) async {
     state = const AsyncLoading();
     state = await AsyncValue.guard(
       () => VerifyOtpUseCase(
         ref.read(authRepositoryProvider),
-      ).call(email: email, token: token),
+      ).call(email: email, token: token, type: type),
     );
     _refresh();
   }

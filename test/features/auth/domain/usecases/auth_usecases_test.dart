@@ -10,10 +10,13 @@ import 'package:sire/features/auth/domain/usecases/get_profile_usecase.dart';
 import 'package:sire/features/auth/domain/usecases/login_usecase.dart';
 import 'package:sire/features/auth/domain/usecases/register_guest_usecase.dart';
 import 'package:sire/features/auth/domain/usecases/send_magic_link_usecase.dart';
+import 'package:sire/features/auth/domain/usecases/sign_in_anonymously_usecase.dart';
 import 'package:sire/features/auth/domain/usecases/sign_out_usecase.dart';
+import 'package:sire/features/auth/domain/usecases/update_email_usecase.dart';
 import 'package:sire/features/auth/domain/usecases/update_profile_usecase.dart';
 import 'package:sire/features/auth/domain/usecases/verify_otp_usecase.dart';
 import 'package:sire/core/network/app_exception.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class _MockAuthRepository extends Mock implements AuthRepository {}
 
@@ -35,6 +38,10 @@ const _kAuthResult = AuthResult(
 
 void main() {
   late _MockAuthRepository repo;
+
+  setUpAll(() {
+    registerFallbackValue(OtpType.email);
+  });
 
   setUp(() {
     repo = _MockAuthRepository();
@@ -111,6 +118,28 @@ void main() {
     });
   });
 
+  group('SignInAnonymouslyUseCase', () {
+    test('delega al repositorio', () async {
+      when(() => repo.signInAnonymously()).thenAnswer((_) async {});
+
+      await SignInAnonymouslyUseCase(repo).call();
+
+      verify(() => repo.signInAnonymously()).called(1);
+    });
+  });
+
+  group('UpdateEmailUseCase', () {
+    test('delega al repositorio con el email', () async {
+      when(
+        () => repo.updateEmail(email: any(named: 'email')),
+      ).thenAnswer((_) async {});
+
+      await UpdateEmailUseCase(repo).call(email: 'nuevo@correo.cl');
+
+      verify(() => repo.updateEmail(email: 'nuevo@correo.cl')).called(1);
+    });
+  });
+
   group('SignOutUseCase', () {
     test('delega al repositorio', () async {
       when(() => repo.signOut()).thenAnswer((_) async {});
@@ -163,17 +192,47 @@ void main() {
   });
 
   group('VerifyOtpUseCase', () {
-    test('delega al repositorio con email y token', () async {
+    test('delega al repositorio con email, token y type por defecto '
+        '(OtpType.email)', () async {
       when(
         () => repo.verifyOtp(
           email: any(named: 'email'),
           token: any(named: 'token'),
+          type: any(named: 'type'),
         ),
       ).thenAnswer((_) async {});
 
       await VerifyOtpUseCase(repo).call(email: 'a@b.com', token: '123456');
 
-      verify(() => repo.verifyOtp(email: 'a@b.com', token: '123456')).called(1);
+      verify(
+        () => repo.verifyOtp(
+          email: 'a@b.com',
+          token: '123456',
+          type: OtpType.email,
+        ),
+      ).called(1);
+    });
+
+    test('propaga type: OtpType.emailChange al repositorio', () async {
+      when(
+        () => repo.verifyOtp(
+          email: any(named: 'email'),
+          token: any(named: 'token'),
+          type: any(named: 'type'),
+        ),
+      ).thenAnswer((_) async {});
+
+      await VerifyOtpUseCase(
+        repo,
+      ).call(email: 'a@b.com', token: '123456', type: OtpType.emailChange);
+
+      verify(
+        () => repo.verifyOtp(
+          email: 'a@b.com',
+          token: '123456',
+          type: OtpType.emailChange,
+        ),
+      ).called(1);
     });
   });
 }

@@ -20,17 +20,27 @@ class AuthSupabaseDatasourceImpl implements AuthSupabaseDatasource {
   }
 
   @override
+  Future<void> signInAnonymously() async {
+    await _client.auth.signInAnonymously();
+  }
+
+  @override
   Future<void> signInWithOtp({required String email}) async {
     await _client.auth.signInWithOtp(email: email);
   }
 
   @override
-  Future<void> verifyOtp({required String email, required String token}) async {
-    await _client.auth.verifyOTP(
-      email: email,
-      token: token,
-      type: OtpType.email,
-    );
+  Future<void> verifyOtp({
+    required String email,
+    required String token,
+    OtpType type = OtpType.email,
+  }) async {
+    await _client.auth.verifyOTP(email: email, token: token, type: type);
+  }
+
+  @override
+  Future<void> updateEmail({required String email}) async {
+    await _client.auth.updateUser(UserAttributes(email: email));
   }
 
   @override
