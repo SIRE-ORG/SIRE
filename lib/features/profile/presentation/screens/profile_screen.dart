@@ -16,15 +16,15 @@ class ProfileScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final isPublisher = ref.watch(isPublisherProvider);
     final profile = ref.watch(currentProfileProvider).valueOrNull;
+    // authStatusProvider distingue "anónimo" (sesión sin perfil) de
+    // "cargando" (todavía sin resolver); el perfil solo conoce guest/active.
+    final status =
+        profile?.accountStatus ?? ref.watch(authStatusProvider).valueOrNull;
+    final esAnonimo = status == AccountStatus.anon;
     final nombre = (profile?.name.isNotEmpty ?? false)
         ? profile!.name
-        : (profile?.email ?? 'Usuario');
+        : (profile?.email ?? (esAnonimo ? 'Visitante' : 'Usuario'));
     final email = profile?.email ?? '';
-    final estado = profile == null
-        ? 'Cargando…'
-        : (profile.accountStatus == AccountStatus.active
-              ? 'Cuenta activa'
-              : 'Invitado');
 
     final avatarUrl = profile?.avatarUrl;
     final pubCount =
@@ -72,11 +72,12 @@ class ProfileScreen extends ConsumerWidget {
                                 Expanded(
                                   flex: 3,
                                   child: _buildMainInfoCard(
+                                    context,
                                     ref,
                                     isPublisher,
                                     nombre: nombre,
                                     email: email,
-                                    estado: estado,
+                                    status: status,
                                     isWeb: true,
                                     avatarUrl: avatarUrl,
                                     pubCount: pubCount,
@@ -111,11 +112,12 @@ class ProfileScreen extends ConsumerWidget {
             body: Column(
               children: [
                 _buildHeader(
+                  context,
                   isPublisher,
                   isWeb: false,
                   nombre: nombre,
                   email: email,
-                  estado: estado,
+                  status: status,
                   avatarUrl: avatarUrl,
                   pubCount: pubCount,
                   receivedCount: receivedCount,
@@ -222,12 +224,67 @@ class ProfileScreen extends ConsumerWidget {
     );
   }
 
+  /// Chip de estado de cuenta: 3 valores posibles (Anónimo / Invitado /
+  /// Cuenta activa) más el intermedio "Cargando…" mientras resuelve.
+  Widget _buildAccountBadge(AccountStatus? status) {
+    final (String label, Color bg, Color fg, IconData icon) = switch (status) {
+      AccountStatus.active => (
+        'Cuenta activa',
+        const Color(0xFFE8F5E9),
+        const Color(0xFF2E7D32),
+        Icons.verified_user,
+      ),
+      AccountStatus.guest => (
+        'Invitado',
+        const Color(0xFFFFF3E0),
+        const Color(0xFF7A4B00),
+        Icons.hourglass_bottom,
+      ),
+      AccountStatus.anon => (
+        'Anónimo',
+        const Color(0xFFE2E8F0),
+        const Color(0xFF475569),
+        Icons.person_outline,
+      ),
+      null => (
+        'Cargando…',
+        const Color(0xFFE2E8F0),
+        const Color(0xFF475569),
+        Icons.sync,
+      ),
+    };
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: fg),
+          const SizedBox(width: 5),
+          Text(
+            label,
+            style: TextStyle(
+              color: fg,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildHeader(
+    BuildContext context,
     bool isPublisher, {
     required bool isWeb,
     required String nombre,
     required String email,
-    required String estado,
+    required AccountStatus? status,
     String? avatarUrl,
     required int pubCount,
     required int receivedCount,
@@ -283,35 +340,42 @@ class ProfileScreen extends ConsumerWidget {
                       ),
                     ),
                     Text(
-                      email,
+                      status == AccountStatus.anon && email.isEmpty
+                          ? 'Navegando sin registro'
+                          : email,
                       style: const TextStyle(
                         color: Colors.white70,
                         fontSize: 14,
                       ),
                     ),
                     const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        const Icon(
-                          Icons.verified_user,
-                          color: Colors.white,
-                          size: 14,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          estado,
-                          style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.9),
-                            fontSize: 14,
-                          ),
-                        ),
-                      ],
-                    ),
+                    _buildAccountBadge(status),
                   ],
                 ),
               ),
             ],
           ),
+          if (status == AccountStatus.anon) ...[
+            const SizedBox(height: 20),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: () => context.go('/register'),
+                icon: const Icon(Icons.edit_note, color: Colors.white),
+                label: const Text(
+                  'Completar registro',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                style: OutlinedButton.styleFrom(
+                  side: const BorderSide(color: Colors.white70),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                ),
+              ),
+            ),
+          ],
           const SizedBox(height: 32),
           isPublisher
               ? _buildPublisherStatsMobile(pubCount)
@@ -322,12 +386,13 @@ class ProfileScreen extends ConsumerWidget {
   }
 
   Widget _buildMainInfoCard(
+    BuildContext context,
     WidgetRef ref,
     bool isPublisher, {
     required bool isWeb,
     required String nombre,
     required String email,
-    required String estado,
+    required AccountStatus? status,
     String? avatarUrl,
     required int pubCount,
     required int receivedCount,
@@ -391,7 +456,9 @@ class ProfileScreen extends ConsumerWidget {
                       ),
                     ),
                     Text(
-                      email,
+                      status == AccountStatus.anon && email.isEmpty
+                          ? 'Navegando sin registro'
+                          : email,
                       style: const TextStyle(
                         color: Color(0xFF64748B),
                         fontSize: 16,
@@ -400,19 +467,18 @@ class ProfileScreen extends ConsumerWidget {
                     const SizedBox(height: 12),
                     Row(
                       children: [
-                        const Icon(
-                          Icons.verified_user,
-                          color: Color(0xFF94A3B8),
-                          size: 16,
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          estado,
-                          style: const TextStyle(
-                            color: Color(0xFF64748B),
-                            fontSize: 14,
+                        _buildAccountBadge(status),
+                        if (status == AccountStatus.anon) ...[
+                          const SizedBox(width: 12),
+                          TextButton.icon(
+                            onPressed: () => context.go('/register'),
+                            icon: const Icon(Icons.edit_note, size: 18),
+                            label: const Text(
+                              'Completar registro',
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
                           ),
-                        ),
+                        ],
                       ],
                     ),
                     const SizedBox(height: 12),

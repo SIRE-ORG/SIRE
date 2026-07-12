@@ -208,6 +208,9 @@ void main() {
         await tester.enterText(fields.at(2), '+56912345678');
         await tester.pump();
 
+        await tester.ensureVisible(
+          find.widgetWithText(ElevatedButton, 'Confirmar Reserva'),
+        );
         await tester.tap(
           find.widgetWithText(ElevatedButton, 'Confirmar Reserva'),
         );
@@ -257,6 +260,9 @@ void main() {
         await tester.enterText(fields.at(2), '+56912345678');
         await tester.pump();
 
+        await tester.ensureVisible(
+          find.widgetWithText(ElevatedButton, 'Confirmar Reserva'),
+        );
         await tester.tap(
           find.widgetWithText(ElevatedButton, 'Confirmar Reserva'),
         );
@@ -277,7 +283,7 @@ void main() {
       },
     );
 
-    testWidgets('fallo de red al crear la reserva muestra SnackBar genérico', (
+    testWidgets('fallo de red al crear la reserva muestra SnackBar de sin conexión', (
       tester,
     ) async {
       suppressOverflow(tester);
@@ -314,12 +320,17 @@ void main() {
       await tester.enterText(fields.at(2), '+56912345678');
       await tester.pump();
 
+      await tester.ensureVisible(
+        find.widgetWithText(ElevatedButton, 'Confirmar Reserva'),
+      );
       await tester.tap(
         find.widgetWithText(ElevatedButton, 'Confirmar Reserva'),
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('No se pudo confirmar la reserva'), findsOneWidget);
+      // NetworkException tiene mensaje propio (encargo H6): "sin conexión",
+      // no el genérico.
+      expect(find.textContaining('Sin conexión'), findsOneWidget);
     });
 
     testWidgets(
@@ -342,6 +353,9 @@ void main() {
         await tester.enterText(fields.at(2), '+56912345678');
         await tester.pump();
 
+        await tester.ensureVisible(
+          find.widgetWithText(ElevatedButton, 'Confirmar Reserva'),
+        );
         await tester.tap(
           find.widgetWithText(ElevatedButton, 'Confirmar Reserva'),
         );
@@ -393,6 +407,9 @@ void main() {
         );
         expect(btn.onPressed, isNotNull);
 
+        await tester.ensureVisible(
+          find.widgetWithText(ElevatedButton, 'Confirmar Reserva'),
+        );
         await tester.tap(
           find.widgetWithText(ElevatedButton, 'Confirmar Reserva'),
         );
@@ -559,6 +576,9 @@ void main() {
       );
       expect(btn.onPressed, isNotNull);
 
+      await tester.ensureVisible(
+        find.widgetWithText(ElevatedButton, 'Confirmar Reserva'),
+      );
       await tester.tap(
         find.widgetWithText(ElevatedButton, 'Confirmar Reserva'),
       );
@@ -614,6 +634,9 @@ void main() {
         await tester.enterText(fields.at(2), '+56912345678');
         await tester.pump();
 
+        await tester.ensureVisible(
+          find.widgetWithText(ElevatedButton, 'Confirmar Reserva'),
+        );
         await tester.tap(
           find.widgetWithText(ElevatedButton, 'Confirmar Reserva'),
         );

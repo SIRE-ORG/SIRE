@@ -20,7 +20,11 @@ const _kProfile = UserProfile(
 );
 
 void main() {
-  Widget buildSubject({bool isPublisher = false, bool withProfile = true}) {
+  Widget buildSubject({
+    bool isPublisher = false,
+    bool withProfile = true,
+    bool anon = false,
+  }) {
     final mockRouter = GoRouter(
       initialLocation: '/profile',
       routes: [
@@ -50,7 +54,10 @@ void main() {
     return ProviderScope(
       overrides: [
         isPublisherProvider.overrideWith((ref) => isPublisher),
-        if (withProfile)
+        if (anon) ...[
+          currentProfileProvider.overrideWith((ref) async => null),
+          authStatusProvider.overrideWith((ref) async => AccountStatus.anon),
+        ] else if (withProfile)
           currentProfileProvider.overrideWith((ref) async => _kProfile),
         // ProfileScreen también observa mis publicaciones/reservas para los
         // contadores del panel: se fuerzan los datasources mock porque
@@ -169,5 +176,30 @@ void main() {
     await tester.pumpWidget(buildSubject(isPublisher: true));
     await tester.pumpAndSettle();
     expect(find.text('Mis publicaciones'), findsOneWidget);
+  });
+
+  testWidgets('estado anónimo muestra badge Anónimo y CTA Completar registro', (
+    tester,
+  ) async {
+    setup(tester, size: const Size(390, 2400));
+
+    await tester.pumpWidget(buildSubject(anon: true));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Anónimo'), findsOneWidget);
+    expect(find.text('Visitante'), findsOneWidget);
+    expect(find.text('Completar registro'), findsOneWidget);
+  });
+
+  testWidgets('perfil activo muestra badge Cuenta activa y no Invitado', (
+    tester,
+  ) async {
+    setup(tester, size: const Size(390, 2400));
+
+    await tester.pumpWidget(buildSubject());
+    await tester.pumpAndSettle();
+
+    expect(find.text('Cuenta activa'), findsOneWidget);
+    expect(find.text('Invitado'), findsNothing);
   });
 }

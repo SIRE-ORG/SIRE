@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -90,23 +91,43 @@ class _ReservationConfirmScreenState
     return '${parts[2]}/${parts[1]}/${parts[0]}';
   }
 
-  void _snack(String msg) {
+  /// SnackBar de error: rojo, con ícono, flotante. Los mensajes de fallo
+  /// (sin conexión, correo tomado, slot ocupado, fecha inválida) usan este
+  /// estilo para distinguirse de los avisos neutros de [_snack].
+  void _snackError(String msg) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.error_outline, color: Colors.white, size: 18),
+            const SizedBox(width: 8),
+            Expanded(child: Text(msg)),
+          ],
+        ),
+        backgroundColor: const Color(0xFFC62828),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
   }
+
+  /// El interceptor de Dio envuelve la [AppException] tipada dentro de
+  /// `DioException.error`; acá se desenvuelve para poder mapear el mensaje
+  /// visible sin depender del transporte.
+  Object _unwrap(Object e) => e is DioException ? (e.error ?? e) : e;
 
   Future<void> _handleConfirm(
     ReservationEligibility elig,
     String? profileEmail,
   ) async {
     if (!_formValido(elig)) {
-      _snack('Completa nombre, correo válido y teléfono');
+      _snackError('Completa nombre, correo válido y teléfono');
       return;
     }
 
     final dateIso = _slotDateIso;
     if (dateIso == null) {
-      _snack(
+      _snackError(
         'No se pudo determinar la fecha de la reserva. Vuelve a '
         'seleccionar un horario.',
       );
@@ -124,8 +145,9 @@ class _ReservationConfirmScreenState
                 email: _correoCtrl.text.trim(),
                 phone: _telefonoCtrl.text.trim(),
               );
-        } on ConflictException {
-          _snack('Este correo ya tiene cuenta; inicia sesión');
+        } catch (e) {
+          if (_unwrap(e) is! ConflictException) rethrow;
+          _snackError('Este correo ya tiene cuenta; inicia sesión');
           return;
         }
       }
@@ -162,11 +184,14 @@ class _ReservationConfirmScreenState
         setState(() => _reservationCreated = true);
         _showSuccessDialog(context, email);
       }
-    } catch (_) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('No se pudo confirmar la reserva')),
-        );
+    } catch (e) {
+      final err = _unwrap(e);
+      if (err is NetworkException) {
+        _snackError('Sin conexión. Revisa tu internet e intenta nuevamente.');
+      } else if (err is ConflictException) {
+        _snackError('Ese horario ya no está disponible. Elige otro horario.');
+      } else {
+        _snackError('No se pudo confirmar la reserva');
       }
     } finally {
       if (mounted) setState(() => _loading = false);
@@ -180,7 +205,7 @@ class _ReservationConfirmScreenState
   /// por parámetro) para que el guard `mounted` sea válido tras el `await`.
   Future<void> _goToActivation(String? email) async {
     if (email == null || email.isEmpty) {
-      _snack('No se pudo determinar tu correo. Intenta más tarde.');
+      _snackError('No se pudo determinar tu correo. Intenta más tarde.');
       return;
     }
 
@@ -192,7 +217,7 @@ class _ReservationConfirmScreenState
       if (!mounted) return;
 
       if (ref.read(authNotifierProvider).hasError) {
-        _snack('No se pudo iniciar la activación; intenta más tarde');
+        _snackError('No se pudo iniciar la activación; intenta más tarde');
         return;
       }
 
@@ -240,14 +265,19 @@ class _ReservationConfirmScreenState
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Container(
-                      width: 60,
-                      height: 4,
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade300,
-                        borderRadius: BorderRadius.circular(2),
+                      width: 64,
+                      height: 64,
+                      decoration: const BoxDecoration(
+                        color: Color(0xFFE8F5E9),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.check_rounded,
+                        color: Color(0xFF2E7D32),
+                        size: 40,
                       ),
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 20),
                     const Text(
                       '¡Reserva confirmada!',
                       style: TextStyle(
@@ -258,7 +288,8 @@ class _ReservationConfirmScreenState
                     ),
                     const SizedBox(height: 12),
                     const Text(
-                      'Crea tu contraseña para gestionar tus reservas fácilmente. Puedes hacerlo ahora o más tarde.',
+                      'Crea tu contraseña para guardar tus reservas, seguir '
+                      'su estado y reservar más rápido la próxima vez.',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         color: Colors.grey,
@@ -266,6 +297,17 @@ class _ReservationConfirmScreenState
                         height: 1.5,
                       ),
                     ),
+                    if (guestEmail != null && guestEmail.isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      Text(
+                        'Te enviaremos un código a $guestEmail.',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          color: Color(0xFF94A3B8),
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: 32),
                     SizedBox(
                       width: double.infinity,
@@ -364,16 +406,44 @@ class _ReservationConfirmScreenState
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Container(
-          padding: const EdgeInsets.all(16),
+          width: double.infinity,
+          padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
             color: const Color(0xFFFFF3E0),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(color: Colors.orange.shade100),
           ),
-          child: const Text(
-            'Ya hiciste una reserva como invitado. Activa tu cuenta con una '
-            'contraseña para poder reservar de nuevo.',
-            style: TextStyle(color: Color(0xFF7A4B00), fontSize: 13),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: const [
+                  Icon(Icons.lock_clock, color: Color(0xFFE65100), size: 20),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Activa tu cuenta para volver a reservar',
+                      style: TextStyle(
+                        color: Color(0xFF7A4B00),
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Ya hiciste una reserva como invitado. Crea una contraseña '
+                'para proteger tus datos y seguir reservando; toma menos de '
+                'un minuto.',
+                style: TextStyle(
+                  color: Color(0xFF7A4B00),
+                  fontSize: 13,
+                  height: 1.4,
+                ),
+              ),
+            ],
           ),
         ),
         const SizedBox(height: 24),
@@ -381,7 +451,8 @@ class _ReservationConfirmScreenState
           width: double.infinity,
           height: 50,
           child: CustomButton(
-            text: _loading ? 'Activando...' : 'Activar cuenta',
+            text: 'Activar cuenta',
+            loading: _loading,
             onPressed: _loading ? null : () => _goToActivation(profileEmail),
           ),
         ),
@@ -400,6 +471,33 @@ class _ReservationConfirmScreenState
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         if (needsForm) ...[
+          Row(
+            children: const [
+              Icon(
+                Icons.person_add_alt_1,
+                color: Color(0xFF1E70CD),
+                size: 20,
+              ),
+              SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Es tu primera reserva: déjanos tus datos de contacto',
+                  style: TextStyle(
+                    color: Color(0xFF1E293B),
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          const Text(
+            'Solo los pediremos esta vez; el dueño del recinto los usará '
+            'para coordinar contigo.',
+            style: TextStyle(color: Color(0xFF64748B), fontSize: 13),
+          ),
+          const SizedBox(height: 20),
           CustomTextField(
             label: 'Nombre Completo',
             hintText: 'Ej: María Torres',
@@ -420,12 +518,31 @@ class _ReservationConfirmScreenState
             controller: _telefonoCtrl,
           ),
           const SizedBox(height: 16),
+        ] else ...[
+          Row(
+            children: const [
+              Icon(
+                Icons.check_circle_outline,
+                color: Color(0xFF2E7D32),
+                size: 18,
+              ),
+              SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Tu cuenta está lista: revisa el resumen y confirma.',
+                  style: TextStyle(color: Color(0xFF64748B), fontSize: 13),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
         ],
         SizedBox(
           width: double.infinity,
           height: 50,
           child: CustomButton(
-            text: _loading ? 'Confirmando...' : 'Confirmar Reserva',
+            text: 'Confirmar Reserva',
+            loading: _loading,
             onPressed: (_loading || _reservationCreated || !_formValido(elig))
                 ? null
                 : () => _handleConfirm(elig, profileEmail),

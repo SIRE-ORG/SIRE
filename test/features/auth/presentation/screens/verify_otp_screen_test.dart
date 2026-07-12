@@ -7,6 +7,7 @@ import 'package:sire/features/auth/presentation/screens/verify_otp_screen.dart';
 void main() {
   GoRouter buildRouter({Object? extra}) => GoRouter(
     initialLocation: '/verify-otp',
+    initialExtra: extra,
     routes: [
       GoRoute(path: '/verify-otp', builder: (_, _) => const VerifyOtpScreen()),
       GoRoute(
@@ -85,5 +86,36 @@ void main() {
     await tester.pump();
 
     expect(find.text('123456'), findsOneWidget);
+  });
+
+  testWidgets('contexto activación (otpType emailChange) cambia título y copy', (
+    tester,
+  ) async {
+    suppressOverflow(tester);
+
+    await tester.pumpWidget(
+      buildApp(
+        extra: {'email': 'ana@mail.com', 'otpType': 'emailChange'},
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Activa tu cuenta'), findsOneWidget);
+    expect(find.text('Verificar código'), findsNothing);
+    expect(find.textContaining('ana@mail.com'), findsOneWidget);
+  });
+
+  testWidgets('contexto registro directo muestra el correo del extra', (
+    tester,
+  ) async {
+    suppressOverflow(tester);
+
+    await tester.pumpWidget(
+      buildApp(extra: {'email': 'ana@mail.com', 'otpType': 'email'}),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Verificar código'), findsOneWidget);
+    expect(find.textContaining('ana@mail.com'), findsOneWidget);
   });
 }

@@ -28,6 +28,13 @@ class _VerifyOtpScreenState extends ConsumerState<VerifyOtpScreen> {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
   }
 
+  /// `extra` puede venir null (p. ej. deep link directo a /verify-otp);
+  /// se degrada a mapa vacío en vez de reventar con un cast.
+  Map<String, dynamic> _routeData(BuildContext context) {
+    final extra = GoRouterState.of(context).extra;
+    return extra is Map<String, dynamic> ? extra : const <String, dynamic>{};
+  }
+
   Future<void> _verificar() async {
     final code = _codigoCtrl.text.trim();
     if (code.length < 6) {
@@ -39,11 +46,15 @@ class _VerifyOtpScreenState extends ConsumerState<VerifyOtpScreen> {
     // 'emailChange'` marca el camino de activación de un guest anónimo
     // (welcome -> reserva -> "Crear contraseña"/"Activar cuenta"); cualquier
     // otro valor (o su ausencia) es el registro directo de siempre.
-    final extra = GoRouterState.of(context).extra as Map<String, dynamic>;
-    final email = extra['email'] as String;
-    final name = extra['name'] as String? ?? '';
-    final phone = extra['phone'] as String? ?? '';
-    final isEmailChange = extra['otpType'] == 'emailChange';
+    final data = _routeData(context);
+    final email = data['email'] as String? ?? '';
+    if (email.isEmpty) {
+      _snack('No encontramos tu correo. Vuelve al paso anterior.');
+      return;
+    }
+    final name = data['name'] as String? ?? '';
+    final phone = data['phone'] as String? ?? '';
+    final isEmailChange = data['otpType'] == 'emailChange';
 
     setState(() => _cargando = true);
     try {
@@ -90,6 +101,20 @@ class _VerifyOtpScreenState extends ConsumerState<VerifyOtpScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // La pantalla se comparte entre el registro directo (otpType `email`) y
+    // la activación post-reserva de un guest anónimo (otpType `emailChange`);
+    // el título y la instrucción cambian según el contexto.
+    final data = _routeData(context);
+    final isActivation = data['otpType'] == 'emailChange';
+    final email = data['email'] as String? ?? '';
+    final destino = email.isNotEmpty ? email : 'tu correo';
+
+    final titulo = isActivation ? 'Activa tu cuenta' : 'Verificar código';
+    final instruccion = isActivation
+        ? 'Te enviamos un código de 6 dígitos a $destino. Ingrésalo para '
+              'verificar tu correo; después solo falta crear tu contraseña.'
+        : 'Ingresa el código de 6 dígitos que enviamos a $destino.';
+
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
       appBar: AppBar(
@@ -97,7 +122,11 @@ class _VerifyOtpScreenState extends ConsumerState<VerifyOtpScreen> {
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new, color: Color(0xFF1E70CD)),
-          onPressed: () => context.pop(),
+          // El camino de activación llega acá vía context.go() (pila vacía):
+          // sin el guard, pop() revienta con "There is nothing to pop".
+          onPressed: () => context.canPop()
+              ? context.pop()
+              : context.go(isActivation ? '/my-reservations' : '/register'),
         ),
       ),
       body: SafeArea(
@@ -108,18 +137,22 @@ class _VerifyOtpScreenState extends ConsumerState<VerifyOtpScreen> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Verificar código',
-                  style: TextStyle(
+                Text(
+                  titulo,
+                  style: const TextStyle(
                     color: Color(0xFF1E70CD),
                     fontSize: 28,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
                 const SizedBox(height: 16),
-                const Text(
-                  'Ingresa el código de 6 dígitos que enviamos a tu correo.',
-                  style: TextStyle(color: Colors.grey, fontSize: 14),
+                Text(
+                  instruccion,
+                  style: const TextStyle(
+                    color: Colors.grey,
+                    fontSize: 14,
+                    height: 1.5,
+                  ),
                 ),
                 const SizedBox(height: 32),
                 CustomTextField(
@@ -133,7 +166,8 @@ class _VerifyOtpScreenState extends ConsumerState<VerifyOtpScreen> {
                   width: double.infinity,
                   height: 50,
                   child: CustomButton(
-                    text: _cargando ? 'Verificando...' : 'Verificar',
+                    text: 'Verificar',
+                    loading: _cargando,
                     onPressed: () {
                       if (!_cargando) _verificar();
                     },
