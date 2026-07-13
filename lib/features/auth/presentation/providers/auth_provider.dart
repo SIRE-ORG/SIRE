@@ -219,6 +219,11 @@ class ProfileNotifier extends _$ProfileNotifier {
   @override
   AsyncValue<void> build() => const AsyncData(null);
 
+  /// Lanza si la actualización falla: `AsyncValue.guard` deja el error en
+  /// [state] (para quien observe el provider) pero por sí solo no relanza,
+  /// así que sin este rethrow un `await` sobre este método nunca fallaba y
+  /// la pantalla mostraba éxito aunque el backend hubiera rechazado el
+  /// cambio (bug confirmado en el smoke test).
   Future<void> updateProfile({
     required String userId,
     String? name,
@@ -242,5 +247,10 @@ class ProfileNotifier extends _$ProfileNotifier {
     );
     ref.invalidate(currentProfileProvider);
     ref.invalidate(authStatusProvider);
+    if (state.hasError) {
+      // Se relanza tal cual (AppException) para que el catch de la pantalla
+      // lo pueda tipar sin perder información.
+      throw state.error!;
+    }
   }
 }

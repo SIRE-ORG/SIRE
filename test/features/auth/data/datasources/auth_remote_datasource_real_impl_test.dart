@@ -160,15 +160,63 @@ void main() {
         throwsA(isA<UnauthorizedException>()),
       );
     });
+  });
 
-    test('updateProfile -> error controlado ENDPOINT_NOT_AVAILABLE', () {
+  group('updateProfile (PI-AUTH-03) - PUT /users/me', () {
+    test('200 -> perfil actualizado con el shape de GET /auth/me', () async {
+      adapter.onPut(
+        ApiConstants.usersMe,
+        (server) => server.reply(200, {
+          'data': profileJson(id: 'user-1', name: 'Nuevo Nombre'),
+        }),
+        data: {'name': 'Nuevo Nombre', 'phone': '+56922222222'},
+      );
+
+      final model = await datasourceCon().updateProfile(
+        name: 'Nuevo Nombre',
+        phone: '+56922222222',
+      );
+
+      expect(model.userId, 'user-1');
+      expect(model.name, 'Nuevo Nombre');
+      expect(model.emailVerified, isTrue);
+    });
+
+    test('solo manda los campos presentes (phone ausente no viaja)', () async {
+      adapter.onPut(
+        ApiConstants.usersMe,
+        (server) => server.reply(200, {'data': profileJson(id: 'user-1')}),
+        data: {'name': 'Solo Nombre'},
+      );
+
+      await expectLater(
+        datasourceCon().updateProfile(name: 'Solo Nombre'),
+        completes,
+      );
+    });
+
+    test('404 (endpoint no desplegado aún en Render, o perfil inexistente) '
+        '-> NotFoundException', () async {
+      adapter.onPut(
+        ApiConstants.usersMe,
+        (server) =>
+            server.reply(404, errorBody('NOT_FOUND', 'Perfil no encontrado')),
+        data: Matchers.any,
+      );
+
       try {
-        datasourceCon().updateProfile(name: 'Otro');
-        fail('Se esperaba un ServerException');
-      } on ServerException catch (e) {
-        expect(e.code, 'ENDPOINT_NOT_AVAILABLE');
-        expect(e.message, contains('no implementado en el backend'));
+        await datasourceCon().updateProfile(name: 'Otro');
+        fail('Se esperaba un DioException');
+      } on DioException catch (e) {
+        expect(e.error, isA<NotFoundException>());
       }
+    });
+
+    test('sin sesión -> UnauthorizedException sin tocar la red', () async {
+      await expectLater(
+        datasourceCon(conUsuario: false).updateProfile(name: 'Otro'),
+        throwsA(isA<UnauthorizedException>()),
+      );
     });
   });
 }

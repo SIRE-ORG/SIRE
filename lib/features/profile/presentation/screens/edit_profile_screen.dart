@@ -1,10 +1,12 @@
 import 'dart:typed_data';
 
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
+import '../../../../core/network/app_exception.dart';
 import '../../../../core/providers/role_provider.dart';
 import '../../../../core/widgets/custom_button.dart';
 import '../../../../core/widgets/custom_text_field.dart';
@@ -79,14 +81,45 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
         ).showSnackBar(const SnackBar(content: Text('Perfil actualizado')));
         context.pop();
       }
-    } catch (_) {
+    } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('No se pudo guardar el perfil')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(_errorMessage(e))));
       }
     } finally {
       if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  /// El interceptor de Dio envuelve la [AppException] tipada dentro de
+  /// `DioException.error`; acá se desenvuelve para poder mapear el mensaje
+  /// visible sin depender del transporte (mismo patrón que
+  /// ReservationConfirmScreen).
+  Object _unwrap(Object e) => e is DioException ? (e.error ?? e) : e;
+
+  String _errorMessage(Object error) {
+    final err = _unwrap(error);
+    switch (err) {
+      case NotFoundException():
+      case ServerException(code: 'ENDPOINT_NOT_AVAILABLE'):
+        // Cubre tanto "el backend viejo de Render todavía no tiene el
+        // endpoint" (404 sin match de shape -> NotFoundException con code
+        // UNKNOWN) como "el perfil no existe" una vez desplegado.
+        return 'La edición de perfil estará disponible tras la próxima '
+            'actualización del servidor';
+      case NetworkException():
+        return 'Sin conexión. Revisa tu internet e intenta nuevamente.';
+      default:
+        final code = switch (err) {
+          ServerException(:final code) => code,
+          ConflictException(:final code) => code,
+          NotFoundException(:final code) => code,
+          _ => null,
+        };
+        return code != null
+            ? 'No se pudo guardar el perfil (error $code)'
+            : 'No se pudo guardar el perfil';
     }
   }
 
