@@ -54,6 +54,12 @@ class FeedRepositoryImpl implements FeedRepository {
     if (geo.region.isNotEmpty) {
       await storage.write(StorageKeys.region, geo.region);
     }
+    // La ciudad viaja junto a la región en el reverse geocoding; se cachea
+    // para pre-llenar formularios (p. ej. crear publicación).
+    final city = geo.city;
+    if (city != null && city.isNotEmpty) {
+      await storage.write(StorageKeys.city, city);
+    }
     return geo;
   }
 }

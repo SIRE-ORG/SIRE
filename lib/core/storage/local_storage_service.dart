@@ -4,6 +4,10 @@ class StorageKeys {
   StorageKeys._();
   static const String token = 'auth_token';
   static const String region = 'last_region';
+
+  /// Ciudad/comuna detectada por reverse geocoding, cacheada junto a
+  /// [region] para pre-llenar formularios (p. ej. crear publicación).
+  static const String city = 'last_city';
 }
 
 class LocalStorageService {

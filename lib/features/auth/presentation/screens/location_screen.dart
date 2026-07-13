@@ -23,10 +23,15 @@ class _LocationScreenState extends ConsumerState<LocationScreen> {
     setState(() => _detecting = true);
     try {
       final loc = await ref.read(geoDatasourceProvider).getCurrentLocation();
-      // Cacheo best-effort: no bloquea la navegación.
+      // Cacheo best-effort: no bloquea la navegación. La ciudad se guarda
+      // junto a la región para pre-llenar formularios después.
       const LocalStorageService()
           .write(StorageKeys.region, loc.region)
           .ignore();
+      final city = loc.city;
+      if (city != null && city.isNotEmpty) {
+        const LocalStorageService().write(StorageKeys.city, city).ignore();
+      }
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
