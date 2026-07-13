@@ -51,8 +51,9 @@ const _publicPaths = {
 
 /// Requieren sesión (una sesión anónima de Supabase basta) - confirmar una
 /// reserva puede hacerlo un anónimo, que completa el form de invitado ahí
-/// mismo.
-const _requiresSessionPaths = {'/publication/:id/confirm'};
+/// mismo. `/profile` también: un anónimo sin perfil ve un empty-state
+/// invitándolo a crear cuenta en vez de un redirect en seco a /login.
+const _requiresSessionPaths = {'/publication/:id/confirm', '/profile'};
 
 /// Requieren `AccountStatus.active` (lado publicador: gestión de
 /// publicaciones y de las reservas que recibe).
@@ -66,12 +67,12 @@ const _requiresActivePaths = {
 };
 
 /// Requieren un perfil ya creado (`guest` o `active`); una sesión anónima
-/// sin perfil no basta.
+/// sin perfil no basta. `/profile/edit` sigue acá (a diferencia de
+/// `/profile`): no tiene sentido editar un perfil que no existe.
 const _requiresProfilePaths = {
   '/my-reservations',
   '/reservation/:id',
   '/notifications',
-  '/profile',
   '/profile/edit',
 };
 
@@ -82,9 +83,14 @@ const _requiresProfilePaths = {
 /// pública del router.
 @visibleForTesting
 String? decideRedirect(String path, AccountStatus? status) {
+  final hasSession = status != null;
+
+  // Con sesión activa (incluida anon), welcome no tiene nada que ofrecer:
+  // manda directo al feed. Sin sesión, welcome se muestra normal.
+  if (path == '/' && hasSession) return '/feed';
+
   if (_publicPaths.contains(path)) return null;
 
-  final hasSession = status != null;
   final hasProfile =
       status == AccountStatus.guest || status == AccountStatus.active;
   final isActive = status == AccountStatus.active;

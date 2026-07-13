@@ -18,12 +18,16 @@ class FeedScreen extends ConsumerStatefulWidget {
 class _FeedScreenState extends ConsumerState<FeedScreen> {
   String _selectedCategory = 'Todos';
 
+  // Solo categorías que el backend acepta (enum congelado vía Zod:
+  // DEPORTE|EVENTOS|RECREACION|OTROS, ver docs/api-status.md). Un chip fuera
+  // de este set haría que `_categoryEnum` devuelva null y `_filterLocally`
+  // lo trate como "sin filtro" (mostraba todo bajo el chip "Salud").
   static const _categories = [
     'Todos',
     'Deporte',
     'Eventos',
     'Recreación',
-    'Salud',
+    'Otros',
   ];
 
   PublicationCategory? _categoryEnum(String label) {
@@ -34,6 +38,8 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
         return PublicationCategory.eventos;
       case 'Recreación':
         return PublicationCategory.recreacion;
+      case 'Otros':
+        return PublicationCategory.otros;
       default:
         return null;
     }
@@ -354,9 +360,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-      child: Row(
-        children: _categories.map(_buildChip).toList(),
-      ),
+      child: Row(children: _categories.map(_buildChip).toList()),
     );
   }
 

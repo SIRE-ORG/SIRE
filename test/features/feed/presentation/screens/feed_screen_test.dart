@@ -33,6 +33,12 @@ class _FakeFeedNotifier extends FeedNotifier {
     ),
   ];
 
+  /// Última categoría recibida por [setCategory]; permite comprobar que cada
+  /// chip manda el valor de enum correcto (el "query param" real lo arma
+  /// GetFeedUseCase -> repo -> datasource a partir de este valor).
+  PublicationCategory? lastCategory;
+  var setCategoryCallCount = 0;
+
   @override
   Future<FeedPage> build() async => const FeedPage(
     items: _items,
@@ -44,23 +50,26 @@ class _FakeFeedNotifier extends FeedNotifier {
     currentOrder: FeedOrder.recent,
   );
 
-  // No-op: el filtro visual lo hace _filterLocally en el widget
+  // El filtro visual lo hace _filterLocally en el widget; acá solo
+  // registramos con qué categoría se llamó para poder aserirlo en el test.
   @override
-  Future<void> setCategory(PublicationCategory? category) async {}
+  Future<void> setCategory(PublicationCategory? category) async {
+    lastCategory = category;
+    setCategoryCallCount++;
+  }
 }
 
 GoRouter _makeRouter() => GoRouter(
   initialLocation: '/feed',
   routes: [
-    GoRoute(
-      path: '/feed',
-      builder: (context, state) => const FeedScreen(),
-    ),
+    GoRoute(path: '/feed', builder: (context, state) => const FeedScreen()),
   ],
 );
 
-Widget _buildSubject() => ProviderScope(
-  overrides: [feedNotifierProvider.overrideWith(_FakeFeedNotifier.new)],
+Widget _buildSubject({_FakeFeedNotifier? notifier}) => ProviderScope(
+  overrides: [
+    feedNotifierProvider.overrideWith(() => notifier ?? _FakeFeedNotifier()),
+  ],
   child: MaterialApp.router(routerConfig: _makeRouter()),
 );
 
@@ -92,8 +101,9 @@ void main() {
     });
   });
 
-  testWidgets('FeedScreen filtro Deporte muestra solo publicación de Deporte',
-      (WidgetTester tester) async {
+  testWidgets('FeedScreen filtro Deporte muestra solo publicación de Deporte', (
+    WidgetTester tester,
+  ) async {
     final originalOnError = FlutterError.onError;
     FlutterError.onError = (FlutterErrorDetails details) {
       if (details.exceptionAsString().contains('overflowed')) return;
@@ -119,4 +129,119 @@ void main() {
       FlutterError.onError = originalOnError;
     });
   });
+
+  testWidgets(
+    'FeedScreen no ofrece el chip Salud (categoría muerta, fuera del enum '
+    'congelado por el backend)',
+    (WidgetTester tester) async {
+      final originalOnError = FlutterError.onError;
+      FlutterError.onError = (FlutterErrorDetails details) {
+        if (details.exceptionAsString().contains('overflowed')) return;
+        originalOnError?.call(details);
+      };
+
+      tester.view.physicalSize = const Size(1080, 2400);
+      tester.view.devicePixelRatio = 1.0;
+
+      await tester.pumpWidget(_buildSubject());
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      expect(find.text('Salud'), findsNothing);
+      // Las 4 categorías válidas del enum congelado + "Todos" sí se ofrecen
+      // como chip. "Deporte" y "Otros" además aparecen como badge en las
+      // tarjetas (p1 es deporte, p2 es otros), de ahí findsWidgets en esos
+      // dos en vez de findsOneWidget.
+      expect(find.text('Todos'), findsOneWidget);
+      expect(find.text('Deporte'), findsWidgets);
+      expect(find.text('Eventos'), findsOneWidget);
+      expect(find.text('Recreación'), findsOneWidget);
+      expect(find.text('Otros'), findsWidgets);
+
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+        FlutterError.onError = originalOnError;
+      });
+    },
+  );
+
+  testWidgets('FeedScreen filtro Otros muestra solo publicación de Otros', (
+    WidgetTester tester,
+  ) async {
+    final originalOnError = FlutterError.onError;
+    FlutterError.onError = (FlutterErrorDetails details) {
+      if (details.exceptionAsString().contains('overflowed')) return;
+      originalOnError?.call(details);
+    };
+
+    // Viewport ancho: el chip "Otros" es el último de la fila con scroll
+    // horizontal y en un ancho angosto (390) queda fuera de la vista inicial.
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 1.0;
+
+    await tester.pumpWidget(_buildSubject());
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+
+    await tester.tap(find.text('Otros').first);
+    await tester.pump();
+
+    expect(find.text('Clases de yoga Namaste'), findsOneWidget);
+    expect(find.text('Cancha de fútbol El Estadio'), findsNothing);
+
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+      FlutterError.onError = originalOnError;
+    });
+  });
+
+  testWidgets(
+    'FeedScreen: cada chip válido manda la categoría de enum correcta a '
+    'setCategory',
+    (WidgetTester tester) async {
+      final originalOnError = FlutterError.onError;
+      FlutterError.onError = (FlutterErrorDetails details) {
+        if (details.exceptionAsString().contains('overflowed')) return;
+        originalOnError?.call(details);
+      };
+
+      tester.view.physicalSize = const Size(1080, 2400);
+      tester.view.devicePixelRatio = 1.0;
+
+      final notifier = _FakeFeedNotifier();
+      await tester.pumpWidget(_buildSubject(notifier: notifier));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      const casos = {
+        'Deporte': PublicationCategory.deporte,
+        'Eventos': PublicationCategory.eventos,
+        'Recreación': PublicationCategory.recreacion,
+        'Otros': PublicationCategory.otros,
+      };
+
+      for (final entry in casos.entries) {
+        await tester.tap(find.text(entry.key).first);
+        await tester.pump();
+        expect(
+          notifier.lastCategory,
+          entry.value,
+          reason: 'chip ${entry.key} debe mandar ${entry.value}',
+        );
+      }
+
+      await tester.tap(find.text('Todos').first);
+      await tester.pump();
+      expect(notifier.lastCategory, isNull);
+      expect(notifier.setCategoryCallCount, casos.length + 1);
+
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+        FlutterError.onError = originalOnError;
+      });
+    },
+  );
 }

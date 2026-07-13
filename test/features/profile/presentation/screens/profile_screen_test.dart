@@ -49,6 +49,10 @@ void main() {
           path: '/my-publications',
           builder: (_, _) => const Scaffold(body: Text('Mis Publicaciones')),
         ),
+        GoRoute(
+          path: '/login',
+          builder: (_, _) => const Scaffold(body: Text('Login')),
+        ),
       ],
     );
     return ProviderScope(
@@ -178,17 +182,33 @@ void main() {
     expect(find.text('Mis publicaciones'), findsOneWidget);
   });
 
-  testWidgets('estado anónimo muestra badge Anónimo y CTA Completar registro', (
-    tester,
-  ) async {
+  testWidgets(
+    'estado anónimo (sin perfil) muestra empty-state amable en vez del '
+    'layout completo',
+    (tester) async {
+      setup(tester, size: const Size(390, 2400));
+
+      await tester.pumpWidget(buildSubject(anon: true));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Aún no tienes una cuenta'), findsOneWidget);
+      expect(find.text('Crear cuenta o iniciar sesión'), findsOneWidget);
+      // El layout completo (que asume un perfil real) no se muestra.
+      expect(find.text('Editar perfil'), findsNothing);
+      expect(find.text('Cerrar sesión'), findsNothing);
+    },
+  );
+
+  testWidgets('estado anónimo: tap en el CTA navega a /login', (tester) async {
     setup(tester, size: const Size(390, 2400));
 
     await tester.pumpWidget(buildSubject(anon: true));
     await tester.pumpAndSettle();
 
-    expect(find.text('Anónimo'), findsOneWidget);
-    expect(find.text('Visitante'), findsOneWidget);
-    expect(find.text('Completar registro'), findsOneWidget);
+    await tester.tap(find.text('Crear cuenta o iniciar sesión'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Login'), findsOneWidget);
   });
 
   testWidgets('perfil activo muestra badge Cuenta activa y no Invitado', (

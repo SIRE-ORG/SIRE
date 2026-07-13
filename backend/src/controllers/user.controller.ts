@@ -22,11 +22,26 @@ export const updateMyProfile = async (request: FastifyRequest, reply: FastifyRep
             });
         }
 
-        const data = request.body as {
+        const body = request.body as {
             name?: string | null;
             phone?: string | null;
             avatarUrl?: string | null;
+            [key: string]: unknown;
         };
+
+        // Whitelist: solo estos campos son editables por el propio usuario.
+        // Cualquier otro campo (ej. accountStatus, email) se ignora para evitar
+        // escalada de privilegios o bypass del flujo de activacion por OTP.
+        const data: { name?: string | null; phone?: string | null; avatarUrl?: string | null } = {};
+        if (body.name !== undefined) data.name = body.name;
+        if (body.phone !== undefined) data.phone = body.phone;
+        if (body.avatarUrl !== undefined) data.avatarUrl = body.avatarUrl;
+
+        if (Object.keys(data).length === 0) {
+            return reply.status(400).send({
+                error: { code: 'VALIDATION_ERROR', message: 'Debes enviar al menos un campo editable (name, phone o avatarUrl)' }
+            });
+        }
 
         const updatedProfile = await UserService.updateProfile(userId, data);
 

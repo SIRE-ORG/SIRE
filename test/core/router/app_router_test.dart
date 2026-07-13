@@ -17,7 +17,6 @@ import 'package:sire/features/reservations/presentation/providers/reservations_p
 void main() {
   group('decideRedirect - rutas públicas', () {
     const publicPaths = [
-      '/',
       '/location',
       '/feed',
       '/publication/:id',
@@ -38,11 +37,9 @@ void main() {
     }
   });
 
-  group('decideRedirect - requiere sesión (anon basta)', () {
-    const path = '/publication/:id/confirm';
-
-    test('sin sesión (status null) -> /login', () {
-      expect(decideRedirect(path, null), '/login');
+  group('decideRedirect - / (welcome)', () {
+    test('sin sesión no redirige (welcome se muestra normal)', () {
+      expect(decideRedirect('/', null), isNull);
     });
 
     for (final status in [
@@ -50,9 +47,32 @@ void main() {
       AccountStatus.guest,
       AccountStatus.active,
     ]) {
-      test('$status no redirige', () {
-        expect(decideRedirect(path, status), isNull);
+      test('con sesión ($status) redirige a /feed', () {
+        expect(decideRedirect('/', status), '/feed');
       });
+    }
+  });
+
+  group('decideRedirect - requiere sesión (anon basta)', () {
+    // `/profile` está acá (y no en "requiere perfil"): un anónimo sin perfil
+    // no se redirige en seco a /login, ve un empty-state invitándolo a crear
+    // cuenta.
+    const sessionPaths = ['/publication/:id/confirm', '/profile'];
+
+    for (final path in sessionPaths) {
+      test('$path: sin sesión (status null) -> /login', () {
+        expect(decideRedirect(path, null), '/login');
+      });
+
+      for (final status in [
+        AccountStatus.anon,
+        AccountStatus.guest,
+        AccountStatus.active,
+      ]) {
+        test('$path: $status no redirige', () {
+          expect(decideRedirect(path, status), isNull);
+        });
+      }
     }
   });
 
@@ -84,7 +104,6 @@ void main() {
       '/my-reservations',
       '/reservation/:id',
       '/notifications',
-      '/profile',
       '/profile/edit',
     ];
 

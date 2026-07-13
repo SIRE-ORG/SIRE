@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:sire/core/network/api_flags.dart';
+import 'package:sire/core/network/app_exception.dart';
 import 'package:sire/features/auth/data/datasources/auth_remote_datasource_real_impl.dart';
 import 'package:sire/features/auth/data/datasources/auth_supabase_datasource.dart';
 import 'package:sire/features/auth/data/datasources/avatar_storage_datasource.dart';
@@ -411,5 +412,45 @@ void main() {
         ),
       ).called(1);
     });
+
+    // Fix 3+4 del smoke test: antes de este fix, AsyncValue.guard dejaba el
+    // error en `state` pero el Future de `updateProfile` nunca fallaba, así
+    // que EditProfileScreen mostraba "Perfil actualizado" aunque el
+    // repositorio hubiera lanzado. `updateProfile` debe relanzar.
+    test(
+      'updateProfile relanza cuando el repositorio falla (no éxito falso)',
+      () async {
+        final mockRepository = MockAuthRepository();
+        when(
+          () => mockRepository.updateProfile(
+            name: any(named: 'name'),
+            phone: any(named: 'phone'),
+            avatarUrl: any(named: 'avatarUrl'),
+          ),
+        ).thenThrow(NotFoundException(code: 'NOT_FOUND'));
+
+        final container = ProviderContainer(
+          overrides: [
+            authRepositoryProvider.overrideWithValue(mockRepository),
+            avatarStorageDatasourceProvider.overrideWithValue(
+              MockAvatarStorageDatasource(),
+            ),
+          ],
+        );
+        addTearDown(container.dispose);
+
+        await expectLater(
+          container
+              .read(profileNotifierProvider.notifier)
+              .updateProfile(userId: 'u1', name: 'Dani'),
+          throwsA(isA<NotFoundException>()),
+        );
+
+        expect(
+          container.read(profileNotifierProvider),
+          isA<AsyncError<void>>(),
+        );
+      },
+    );
   });
 }

@@ -16,17 +16,23 @@ class ProfileScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final isPublisher = ref.watch(isPublisherProvider);
     final profile = ref.watch(currentProfileProvider).valueOrNull;
+
+    // Sin perfil (sesión anónima que nunca completó su registro, o sin
+    // sesión): empty-state amable en vez del layout completo, que asume
+    // datos de un perfil real (reservas, publicaciones, editar perfil). El
+    // guard de /profile en app_router.dart ya permite entrar acá con una
+    // sesión anónima (antes redirigía en seco a /login).
+    if (profile == null) {
+      return _buildEmptyState(context);
+    }
+
     // authStatusProvider distingue "anónimo" (sesión sin perfil) de
     // "cargando" (todavía sin resolver); el perfil solo conoce guest/active.
-    final status =
-        profile?.accountStatus ?? ref.watch(authStatusProvider).valueOrNull;
-    final esAnonimo = status == AccountStatus.anon;
-    final nombre = (profile?.name.isNotEmpty ?? false)
-        ? profile!.name
-        : (profile?.email ?? (esAnonimo ? 'Visitante' : 'Usuario'));
-    final email = profile?.email ?? '';
+    final status = profile.accountStatus;
+    final nombre = profile.name.isNotEmpty ? profile.name : profile.email;
+    final email = profile.email;
 
-    final avatarUrl = profile?.avatarUrl;
+    final avatarUrl = profile.avatarUrl;
     final pubCount =
         ref.watch(myPublicationsNotifierProvider).value?.length ?? 0;
     final myRes = ref.watch(myReservationsNotifierProvider).value ?? [];
@@ -142,6 +148,70 @@ class ProfileScreen extends ConsumerWidget {
           );
         }
       },
+    );
+  }
+
+  /// Empty-state para una sesión sin perfil (anónima que nunca completó su
+  /// registro, o sin sesión todavía resuelta). Antes de este fix, el guard
+  /// de `/profile` ni siquiera dejaba llegar acá a un anónimo (redirect en
+  /// seco a /login); ahora sí, y esta pantalla lo recibe con un mensaje
+  /// honesto en vez de asumir datos de un perfil que no existe.
+  Widget _buildEmptyState(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFFF5F5F5),
+      body: SafeArea(
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(32),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                  Icons.person_outline,
+                  size: 72,
+                  color: Color(0xFF94A3B8),
+                ),
+                const SizedBox(height: 24),
+                const Text(
+                  'Aún no tienes una cuenta',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Color(0xFF1E293B),
+                    fontSize: 20,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  'Crea una cuenta o inicia sesión para ver tu perfil, tus '
+                  'reservas y más.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Color(0xFF64748B), fontSize: 14),
+                ),
+                const SizedBox(height: 32),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () => context.go('/login'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF1E70CD),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: const Text(
+                      'Crear cuenta o iniciar sesión',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 
