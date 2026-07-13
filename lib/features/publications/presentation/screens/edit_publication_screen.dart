@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../core/constants/chile_comunas.dart';
 import '../../../../core/constants/chile_regions.dart';
 import '../../../../core/providers/role_provider.dart';
 import '../../../../core/widgets/custom_button.dart';
@@ -36,12 +37,16 @@ class _EditPublicationScreenState extends ConsumerState<EditPublicationScreen> {
   bool _sameSchedule = true;
   bool _initialized = false;
 
+  /// Región seleccionada en el dropdown; gobierna las opciones de Ciudad.
+  String? _selectedRegion;
+
   late TextEditingController _nameController;
   late TextEditingController _descController;
   late TextEditingController _catController;
   final _catFocusNode = FocusNode();
   late TextEditingController _urlController;
   late TextEditingController _regionController;
+  late TextEditingController _cityController;
 
   final List<Map<String, dynamic>> _days = [
     {'name': 'Lunes', 'disabled': false, 'start': '09:00', 'end': '18:00'},
@@ -61,6 +66,7 @@ class _EditPublicationScreenState extends ConsumerState<EditPublicationScreen> {
     _catController = TextEditingController();
     _urlController = TextEditingController();
     _regionController = TextEditingController();
+    _cityController = TextEditingController();
   }
 
   @override
@@ -71,6 +77,7 @@ class _EditPublicationScreenState extends ConsumerState<EditPublicationScreen> {
     _catFocusNode.dispose();
     _urlController.dispose();
     _regionController.dispose();
+    _cityController.dispose();
     super.dispose();
   }
 
@@ -137,6 +144,7 @@ class _EditPublicationScreenState extends ConsumerState<EditPublicationScreen> {
       );
       return;
     }
+    final city = _cityController.text.trim();
     try {
       await ref
           .read(publicationFormNotifierProvider.notifier)
@@ -147,6 +155,8 @@ class _EditPublicationScreenState extends ConsumerState<EditPublicationScreen> {
               description: _descController.text.trim(),
               category: publicationCategoryFromString(_catController.text),
               region: _regionController.text.trim(),
+              // Ciudad es opcional: si queda vacía se omite del request.
+              city: city.isEmpty ? null : city,
               availability: _buildAvailability(),
             ),
           );
@@ -179,6 +189,16 @@ class _EditPublicationScreenState extends ConsumerState<EditPublicationScreen> {
       _catController.text = _catToString(pub.category);
       _urlController.text = pub.imageUrl ?? '';
       _regionController.text = pub.region;
+      // Región y ciudad de la entidad gobiernan el filtrado de comunas: la
+      // ciudad solo se pre-llena si pertenece a la región de la publicación.
+      if (chileRegions.contains(pub.region)) {
+        _selectedRegion = pub.region;
+        final comunas = comunasPorRegion[pub.region] ?? const <String>[];
+        final city = pub.city;
+        if (city != null && comunas.contains(city)) {
+          _cityController.text = city;
+        }
+      }
       _selectedDuration = pub.availability.slotDurationMinutes;
       _sameSchedule = pub.availability.sameScheduleAllDays;
     });
@@ -398,6 +418,8 @@ class _EditPublicationScreenState extends ConsumerState<EditPublicationScreen> {
         _buildTextField('Imagen (URL)', _urlController),
         const SizedBox(height: 16),
         _buildRegionField(),
+        const SizedBox(height: 16),
+        _buildCiudadField(),
         const SizedBox(height: 32),
         Container(height: 1, color: Colors.grey.shade300),
         const SizedBox(height: 24),
@@ -722,7 +744,9 @@ class _EditPublicationScreenState extends ConsumerState<EditPublicationScreen> {
 
   /// Selector de región: misma lista que usa el onboarding
   /// ([chileRegions]), con `selectOnly` para que solo se puedan elegir
-  /// regiones válidas (texto libre ensuciaba el filtro del feed).
+  /// regiones válidas (texto libre ensuciaba el filtro del feed). Se
+  /// pre-llena con la región de la publicación y al cambiarla se actualizan
+  /// las opciones de Ciudad, limpiando la selección si ya no pertenece.
   Widget _buildRegionField() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -744,6 +768,17 @@ class _EditPublicationScreenState extends ConsumerState<EditPublicationScreen> {
               selectOnly: true,
               hintText: 'Selecciona una región',
               menuHeight: 320,
+              onSelected: (region) {
+                setState(() {
+                  _selectedRegion = region;
+                  final comunas = region != null
+                      ? (comunasPorRegion[region] ?? const <String>[])
+                      : const <String>[];
+                  if (!comunas.contains(_cityController.text)) {
+                    _cityController.clear();
+                  }
+                });
+              },
               inputDecorationTheme: InputDecorationTheme(
                 filled: true,
                 fillColor: Colors.white,
@@ -762,6 +797,62 @@ class _EditPublicationScreenState extends ConsumerState<EditPublicationScreen> {
               ),
               dropdownMenuEntries: chileRegions
                   .map((r) => DropdownMenuEntry<String>(value: r, label: r))
+                  .toList(),
+            );
+          },
+        ),
+      ],
+    );
+  }
+
+  /// Selector de ciudad/comuna: opciones filtradas por la región
+  /// seleccionada ([comunasPorRegion]), selección estricta y OPCIONAL
+  /// (el backend acepta null). Deshabilitado hasta elegir una región.
+  Widget _buildCiudadField() {
+    final comunas = _selectedRegion != null
+        ? (comunasPorRegion[_selectedRegion] ?? const <String>[])
+        : const <String>[];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Ciudad (opcional)',
+          style: TextStyle(
+            color: Color(0xFF64748B),
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        const SizedBox(height: 8),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            return DropdownMenu<String>(
+              controller: _cityController,
+              width: constraints.maxWidth,
+              selectOnly: true,
+              enabled: comunas.isNotEmpty,
+              hintText: comunas.isEmpty
+                  ? 'Elige primero una región'
+                  : 'Selecciona una comuna (opcional)',
+              menuHeight: 320,
+              inputDecorationTheme: InputDecorationTheme(
+                filled: true,
+                fillColor: Colors.white,
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 16,
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Colors.grey.shade300),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Color(0xFF1E70CD)),
+                ),
+              ),
+              dropdownMenuEntries: comunas
+                  .map((c) => DropdownMenuEntry<String>(value: c, label: c))
                   .toList(),
             );
           },

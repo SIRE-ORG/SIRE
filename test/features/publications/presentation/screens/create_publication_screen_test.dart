@@ -2,10 +2,13 @@ import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:sire/core/constants/chile_comunas.dart';
 import 'package:sire/core/constants/chile_regions.dart';
+import 'package:sire/core/storage/local_storage_service.dart';
 import 'package:sire/features/publications/data/datasources/publication_image_datasource.dart';
 import 'package:sire/features/publications/domain/entities/availability_config.dart';
 import 'package:sire/features/publications/domain/entities/publication.dart';
@@ -22,6 +25,7 @@ class _StubPublicationsRepository implements PublicationsRepository {
   int createCallCount = 0;
   PublicationCategory? capturedCategory;
   String? capturedRegion;
+  String? capturedCity;
 
   /// Completa la llamada a [createPublication] en curso (permite controlar
   /// cuándo termina la operación async para probar el estado de loading).
@@ -41,6 +45,7 @@ class _StubPublicationsRepository implements PublicationsRepository {
     createCallCount++;
     capturedCategory = category;
     capturedRegion = region;
+    capturedCity = city;
     return _completer.future;
   }
 
@@ -115,6 +120,13 @@ Publication _dummyPublication({
 }
 
 void main() {
+  // La pantalla pre-carga región/ciudad desde el cache seguro en initState:
+  // sin este mock cada test dependería del plugin real (inexistente en el
+  // entorno de test). Los tests de pre-llenado lo sobreescriben con valores.
+  setUp(() {
+    FlutterSecureStorage.setMockInitialValues({});
+  });
+
   Widget buildSubject({
     Size size = const Size(1080, 2400),
     PublicationsRepository? repository,
@@ -471,11 +483,18 @@ void main() {
 
       // Región: abre el selector y elige la primera región de la lista
       // compartida (misma fuente que usa el onboarding).
-      await tester.tap(find.byType(DropdownMenu<String>));
+      await tester.tap(find.byType(DropdownMenu<String>).first);
       await tester.pumpAndSettle();
       await tester.tap(
         find.widgetWithText(MenuItemButton, chileRegions.first).last,
       );
+      await tester.pumpAndSettle();
+
+      // Ciudad: con la región elegida, el dropdown ofrece sus comunas.
+      final comuna = comunasPorRegion[chileRegions.first]!.first;
+      await tester.tap(find.byType(DropdownMenu<String>).at(1));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(MenuItemButton, comuna).last);
       await tester.pumpAndSettle();
 
       await tester.tap(find.text('Guardar publicación'));
@@ -490,6 +509,7 @@ void main() {
 
       expect(repo.capturedCategory, PublicationCategory.eventos);
       expect(repo.capturedRegion, chileRegions.first);
+      expect(repo.capturedCity, comuna);
     },
   );
 
@@ -536,6 +556,109 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(repo.capturedCategory, PublicationCategory.otros);
+    },
+  );
+
+  testWidgets(
+    'CreatePublicationScreen pre-llena región y ciudad desde el cache del '
+    'usuario y las manda al repositorio al guardar',
+    (WidgetTester tester) async {
+      final originalOnError = FlutterError.onError;
+      FlutterError.onError = (FlutterErrorDetails details) {
+        if (details.exceptionAsString().contains('overflowed')) return;
+        originalOnError?.call(details);
+      };
+      tester.view.physicalSize = const Size(1080, 2400);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+        FlutterError.onError = originalOnError;
+      });
+
+      FlutterSecureStorage.setMockInitialValues({
+        StorageKeys.region: 'Región de La Araucanía',
+        StorageKeys.city: 'Temuco',
+      });
+
+      final repo = _StubPublicationsRepository();
+      await tester.pumpWidget(buildSubject(repository: repo));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(find.byType(TextField).first, 'Cancha techada');
+      await tester.pump();
+
+      // Sin tocar Región ni Ciudad: se guardan los valores pre-llenados.
+      await tester.tap(find.text('Guardar publicación'));
+      await tester.pump();
+      repo.completeWith(
+        _dummyPublication(
+          category: PublicationCategory.otros,
+          region: 'Región de La Araucanía',
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(repo.capturedRegion, 'Región de La Araucanía');
+      expect(repo.capturedCity, 'Temuco');
+    },
+  );
+
+  testWidgets(
+    'CreatePublicationScreen al cambiar la región se limpia la ciudad que no '
+    'pertenece a la nueva región',
+    (WidgetTester tester) async {
+      final originalOnError = FlutterError.onError;
+      FlutterError.onError = (FlutterErrorDetails details) {
+        if (details.exceptionAsString().contains('overflowed')) return;
+        originalOnError?.call(details);
+      };
+      tester.view.physicalSize = const Size(1080, 2400);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+        FlutterError.onError = originalOnError;
+      });
+
+      FlutterSecureStorage.setMockInitialValues({
+        StorageKeys.region: 'Región de La Araucanía',
+        StorageKeys.city: 'Temuco',
+      });
+
+      final repo = _StubPublicationsRepository();
+      await tester.pumpWidget(buildSubject(repository: repo));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(find.byType(TextField).first, 'Cancha techada');
+      await tester.pump();
+
+      // Cambia la región: Temuco no pertenece a Los Ríos, así que la
+      // selección de ciudad debe limpiarse. Se elige una región adyacente a
+      // la resaltada porque el menú abre desplazado hasta la selección
+      // actual (La Araucanía) y las regiones lejanas quedan fuera de vista.
+      await tester.tap(find.byType(DropdownMenu<String>).first);
+      await tester.pumpAndSettle();
+      final opcionLosRios = find
+          .widgetWithText(MenuItemButton, 'Región de Los Ríos')
+          .last;
+      await tester.ensureVisible(opcionLosRios);
+      await tester.pumpAndSettle();
+      await tester.tap(opcionLosRios);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Guardar publicación'));
+      await tester.pump();
+      repo.completeWith(
+        _dummyPublication(
+          category: PublicationCategory.otros,
+          region: 'Región de Los Ríos',
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(repo.capturedRegion, 'Región de Los Ríos');
+      expect(repo.capturedCity, isNull);
     },
   );
 }
