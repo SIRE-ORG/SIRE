@@ -186,7 +186,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             width: double.infinity,
             height: 50,
             child: CustomButton(
-              text: _cargando ? 'Enviando código...' : 'Enviar código',
+              text: _cargando ? 'Enviando código...' : 'Crear cuenta',
               onPressed: () {
                 if (!_cargando) _enviarCodigo();
               },
