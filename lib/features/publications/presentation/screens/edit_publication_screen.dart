@@ -1,12 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../core/constants/chile_comunas.dart';
+import '../../../../core/constants/chile_regions.dart';
 import '../../../../core/providers/role_provider.dart';
 import '../../../../core/widgets/custom_button.dart';
+import '../../../publications/data/models/publication_detail_model.dart';
 import '../../../publications/domain/entities/availability_config.dart';
 import '../../../publications/domain/entities/publication.dart';
 import '../../../publications/domain/usecases/update_publication_usecase.dart';
 import '../providers/my_publications_provider.dart';
+
+/// Opciones del selector de categoría: todas las categorías válidas del
+/// enum excepto `otros` (decisión de Dani: "Otros" no aparece como opción,
+/// es el resultado defensivo de un texto que no matchea ninguna).
+const _categoryOptions = <String>['Deporte', 'Eventos', 'Recreación'];
 
 String _catToString(PublicationCategory cat) => switch (cat) {
   PublicationCategory.deporte => 'Deporte',
@@ -29,11 +37,16 @@ class _EditPublicationScreenState extends ConsumerState<EditPublicationScreen> {
   bool _sameSchedule = true;
   bool _initialized = false;
 
+  /// Región seleccionada en el dropdown; gobierna las opciones de Ciudad.
+  String? _selectedRegion;
+
   late TextEditingController _nameController;
   late TextEditingController _descController;
   late TextEditingController _catController;
+  final _catFocusNode = FocusNode();
   late TextEditingController _urlController;
   late TextEditingController _regionController;
+  late TextEditingController _cityController;
 
   final List<Map<String, dynamic>> _days = [
     {'name': 'Lunes', 'disabled': false, 'start': '09:00', 'end': '18:00'},
@@ -53,65 +66,76 @@ class _EditPublicationScreenState extends ConsumerState<EditPublicationScreen> {
     _catController = TextEditingController();
     _urlController = TextEditingController();
     _regionController = TextEditingController();
+    _cityController = TextEditingController();
   }
-
-  bool _saving = false;
 
   @override
   void dispose() {
     _nameController.dispose();
     _descController.dispose();
     _catController.dispose();
+    _catFocusNode.dispose();
     _urlController.dispose();
     _regionController.dispose();
+    _cityController.dispose();
     super.dispose();
-  }
-
-  PublicationCategory _parseCategory(String raw) {
-    switch (raw.toLowerCase().trim()) {
-      case 'deporte':
-        return PublicationCategory.deporte;
-      case 'eventos':
-        return PublicationCategory.eventos;
-      case 'recreacion':
-      case 'recreación':
-        return PublicationCategory.recreacion;
-      default:
-        return PublicationCategory.otros;
-    }
   }
 
   AvailabilityConfig _buildAvailability() {
     final dayNames = [
-      'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo',
+      'Lunes',
+      'Martes',
+      'Miércoles',
+      'Jueves',
+      'Viernes',
+      'Sábado',
+      'Domingo',
     ];
     final dayEnums = [
-      DayOfWeek.monday, DayOfWeek.tuesday, DayOfWeek.wednesday,
-      DayOfWeek.thursday, DayOfWeek.friday, DayOfWeek.saturday, DayOfWeek.sunday,
+      DayOfWeek.monday,
+      DayOfWeek.tuesday,
+      DayOfWeek.wednesday,
+      DayOfWeek.thursday,
+      DayOfWeek.friday,
+      DayOfWeek.saturday,
+      DayOfWeek.sunday,
     ];
     final overrides = <DayOverride>[];
     for (var i = 0; i < _days.length; i++) {
       final day = _days[i];
       final idx = dayNames.indexOf(day['name'] as String);
       if (idx < 0) continue;
-      overrides.add(DayOverride(
-        dayOfWeek: dayEnums[idx],
-        isClosed: day['disabled'] as bool,
-        schedules: (day['disabled'] as bool)
-            ? []
-            : [DaySchedule(startTime: day['start'] as String, endTime: day['end'] as String)],
-      ));
+      overrides.add(
+        DayOverride(
+          dayOfWeek: dayEnums[idx],
+          isClosed: day['disabled'] as bool,
+          schedules: (day['disabled'] as bool)
+              ? []
+              : [
+                  DaySchedule(
+                    startTime: day['start'] as String,
+                    endTime: day['end'] as String,
+                  ),
+                ],
+        ),
+      );
     }
     return AvailabilityConfig(
       slotDurationMinutes: _selectedDuration,
       sameScheduleAllDays: _sameSchedule,
-      defaultSchedules: _sameSchedule && overrides.isNotEmpty && !overrides.first.isClosed
+      defaultSchedules:
+          _sameSchedule && overrides.isNotEmpty && !overrides.first.isClosed
           ? overrides.first.schedules
           : [],
       dayOverrides: overrides,
     );
   }
 
+  /// No hay `setState`/`finally` local para el estado de guardado: el botón
+  /// se deshabilita observando directamente `publicationFormNotifierProvider`
+  /// (ver [build]), que ya queda en loading mientras esta llamada está en
+  /// vuelo. Evita la carrera de doble tap que producía publicaciones
+  /// duplicadas en el smoke test.
   Future<void> _handleSave() async {
     final title = _nameController.text.trim();
     if (title.isEmpty) {
@@ -120,15 +144,19 @@ class _EditPublicationScreenState extends ConsumerState<EditPublicationScreen> {
       );
       return;
     }
-    setState(() => _saving = true);
+    final city = _cityController.text.trim();
     try {
-      await ref.read(publicationFormNotifierProvider.notifier).edit(
+      await ref
+          .read(publicationFormNotifierProvider.notifier)
+          .edit(
             id: widget.id,
             params: UpdatePublicationParams(
               title: title,
               description: _descController.text.trim(),
-              category: _parseCategory(_catController.text),
+              category: publicationCategoryFromString(_catController.text),
               region: _regionController.text.trim(),
+              // Ciudad es opcional: si queda vacía se omite del request.
+              city: city.isEmpty ? null : city,
               availability: _buildAvailability(),
             ),
           );
@@ -136,7 +164,7 @@ class _EditPublicationScreenState extends ConsumerState<EditPublicationScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Publicación actualizada')),
         );
-        context.pop();
+        context.go('/my-publications');
       }
     } catch (_) {
       if (mounted) {
@@ -144,14 +172,13 @@ class _EditPublicationScreenState extends ConsumerState<EditPublicationScreen> {
           const SnackBar(content: Text('No se pudo guardar la publicación')),
         );
       }
-    } finally {
-      if (mounted) setState(() => _saving = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final isPublisher = ref.watch(isPublisherProvider);
+    final isSaving = ref.watch(publicationFormNotifierProvider).isLoading;
 
     // Pre-fill controllers with real publication data on first load
     ref.watch(publicationDetailProvider(widget.id)).whenData((pub) {
@@ -162,6 +189,16 @@ class _EditPublicationScreenState extends ConsumerState<EditPublicationScreen> {
       _catController.text = _catToString(pub.category);
       _urlController.text = pub.imageUrl ?? '';
       _regionController.text = pub.region;
+      // Región y ciudad de la entidad gobiernan el filtrado de comunas: la
+      // ciudad solo se pre-llena si pertenece a la región de la publicación.
+      if (chileRegions.contains(pub.region)) {
+        _selectedRegion = pub.region;
+        final comunas = comunasPorRegion[pub.region] ?? const <String>[];
+        final city = pub.city;
+        if (city != null && comunas.contains(city)) {
+          _cityController.text = city;
+        }
+      }
       _selectedDuration = pub.availability.slotDurationMinutes;
       _sameSchedule = pub.availability.sameScheduleAllDays;
     });
@@ -201,7 +238,7 @@ class _EditPublicationScreenState extends ConsumerState<EditPublicationScreen> {
                                     ),
                                   ],
                                 ),
-                                child: _buildForm(),
+                                child: _buildForm(isSaving),
                               ),
                             ),
                           ),
@@ -240,7 +277,7 @@ class _EditPublicationScreenState extends ConsumerState<EditPublicationScreen> {
           ),
           body: SingleChildScrollView(
             padding: const EdgeInsets.all(24),
-            child: _buildForm(),
+            child: _buildForm(isSaving),
           ),
         );
       },
@@ -359,7 +396,7 @@ class _EditPublicationScreenState extends ConsumerState<EditPublicationScreen> {
     );
   }
 
-  Widget _buildForm() {
+  Widget _buildForm(bool isSaving) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -376,11 +413,13 @@ class _EditPublicationScreenState extends ConsumerState<EditPublicationScreen> {
         const SizedBox(height: 16),
         _buildTextField('Descripción', _descController, maxLines: 4),
         const SizedBox(height: 16),
-        _buildTextField('Categoría', _catController),
+        _buildCategoriaField(),
         const SizedBox(height: 16),
         _buildTextField('Imagen (URL)', _urlController),
         const SizedBox(height: 16),
-        _buildTextField('Región', _regionController),
+        _buildRegionField(),
+        const SizedBox(height: 16),
+        _buildCiudadField(),
         const SizedBox(height: 32),
         Container(height: 1, color: Colors.grey.shade300),
         const SizedBox(height: 24),
@@ -591,8 +630,9 @@ class _EditPublicationScreenState extends ConsumerState<EditPublicationScreen> {
           ),
         const SizedBox(height: 32),
         CustomButton(
-          text: _saving ? 'Guardando...' : 'Guardar cambios',
-          onPressed: _saving ? null : _handleSave,
+          text: 'Guardar cambios',
+          loading: isSaving,
+          onPressed: isSaving ? null : _handleSave,
         ),
         const SizedBox(height: 40),
       ],
@@ -639,6 +679,183 @@ class _EditPublicationScreenState extends ConsumerState<EditPublicationScreen> {
               borderSide: const BorderSide(color: Color(0xFF1E70CD)),
             ),
           ),
+        ),
+      ],
+    );
+  }
+
+  /// Campo de categoría con autocompletado: sugiere las categorías válidas
+  /// (excepto `otros`, que no es una opción elegible) pero permite texto
+  /// libre. `publicationCategoryFromString` decide el mapeo final al
+  /// guardar: si el texto no matchea, cae a `otros`.
+  Widget _buildCategoriaField() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Categoría',
+          style: TextStyle(
+            color: Color(0xFF64748B),
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Autocomplete<String>(
+          textEditingController: _catController,
+          focusNode: _catFocusNode,
+          optionsBuilder: (TextEditingValue value) {
+            if (value.text.isEmpty) return _categoryOptions;
+            final query = value.text.toLowerCase();
+            return _categoryOptions.where(
+              (opt) => opt.toLowerCase().contains(query),
+            );
+          },
+          fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
+            return TextFormField(
+              controller: controller,
+              focusNode: focusNode,
+              decoration: InputDecoration(
+                filled: true,
+                fillColor: Colors.white,
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 16,
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Colors.grey.shade300),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Colors.grey.shade300),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Color(0xFF1E70CD)),
+                ),
+              ),
+            );
+          },
+        ),
+      ],
+    );
+  }
+
+  /// Selector de región: misma lista que usa el onboarding
+  /// ([chileRegions]), con `selectOnly` para que solo se puedan elegir
+  /// regiones válidas (texto libre ensuciaba el filtro del feed). Se
+  /// pre-llena con la región de la publicación y al cambiarla se actualizan
+  /// las opciones de Ciudad, limpiando la selección si ya no pertenece.
+  Widget _buildRegionField() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Región',
+          style: TextStyle(
+            color: Color(0xFF64748B),
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        const SizedBox(height: 8),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            return DropdownMenu<String>(
+              controller: _regionController,
+              width: constraints.maxWidth,
+              selectOnly: true,
+              hintText: 'Selecciona una región',
+              menuHeight: 320,
+              onSelected: (region) {
+                setState(() {
+                  _selectedRegion = region;
+                  final comunas = region != null
+                      ? (comunasPorRegion[region] ?? const <String>[])
+                      : const <String>[];
+                  if (!comunas.contains(_cityController.text)) {
+                    _cityController.clear();
+                  }
+                });
+              },
+              inputDecorationTheme: InputDecorationTheme(
+                filled: true,
+                fillColor: Colors.white,
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 16,
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Colors.grey.shade300),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Color(0xFF1E70CD)),
+                ),
+              ),
+              dropdownMenuEntries: chileRegions
+                  .map((r) => DropdownMenuEntry<String>(value: r, label: r))
+                  .toList(),
+            );
+          },
+        ),
+      ],
+    );
+  }
+
+  /// Selector de ciudad/comuna: opciones filtradas por la región
+  /// seleccionada ([comunasPorRegion]), selección estricta y OPCIONAL
+  /// (el backend acepta null). Deshabilitado hasta elegir una región.
+  Widget _buildCiudadField() {
+    final comunas = _selectedRegion != null
+        ? (comunasPorRegion[_selectedRegion] ?? const <String>[])
+        : const <String>[];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Ciudad (opcional)',
+          style: TextStyle(
+            color: Color(0xFF64748B),
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        const SizedBox(height: 8),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            return DropdownMenu<String>(
+              controller: _cityController,
+              width: constraints.maxWidth,
+              selectOnly: true,
+              enabled: comunas.isNotEmpty,
+              hintText: comunas.isEmpty
+                  ? 'Elige primero una región'
+                  : 'Selecciona una comuna (opcional)',
+              menuHeight: 320,
+              inputDecorationTheme: InputDecorationTheme(
+                filled: true,
+                fillColor: Colors.white,
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 16,
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Colors.grey.shade300),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Color(0xFF1E70CD)),
+                ),
+              ),
+              dropdownMenuEntries: comunas
+                  .map((c) => DropdownMenuEntry<String>(value: c, label: c))
+                  .toList(),
+            );
+          },
         ),
       ],
     );

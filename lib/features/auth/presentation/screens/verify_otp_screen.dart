@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../../core/network/app_exception.dart';
 import '../../../../core/widgets/custom_button.dart';
 import '../../../../core/widgets/custom_text_field.dart';
 import '../providers/auth_provider.dart';
@@ -16,11 +19,86 @@ class VerifyOtpScreen extends ConsumerStatefulWidget {
 class _VerifyOtpScreenState extends ConsumerState<VerifyOtpScreen> {
   final _codigoCtrl = TextEditingController();
   bool _cargando = false;
+  bool _reenviando = false;
+
+  /// Segundos que faltan para habilitar "Reenviar código". Parte en 60 al
+  /// abrir la pantalla y se reinicia tras cada reenvío EXITOSO (si el
+  /// reenvío falla se queda en 0, para poder reintentar de inmediato).
+  int _segundosParaReenvio = 60;
+  Timer? _reenvioTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    _iniciarContadorReenvio();
+  }
 
   @override
   void dispose() {
+    _reenvioTimer?.cancel();
     _codigoCtrl.dispose();
     super.dispose();
+  }
+
+  void _iniciarContadorReenvio() {
+    _reenvioTimer?.cancel();
+    _segundosParaReenvio = 60;
+    _reenvioTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+      setState(() {
+        _segundosParaReenvio--;
+        if (_segundosParaReenvio <= 0) timer.cancel();
+      });
+    });
+  }
+
+  String get _contadorReenvio {
+    final min = _segundosParaReenvio ~/ 60;
+    final seg = _segundosParaReenvio % 60;
+    return '$min:${seg.toString().padLeft(2, '0')}';
+  }
+
+  Future<void> _reenviar() async {
+    final data = _routeData(context);
+    final email = data['email'] as String? ?? '';
+    if (email.isEmpty) {
+      _snack('No encontramos tu correo. Vuelve al paso anterior.');
+      return;
+    }
+    final isEmailChange = data['otpType'] == 'emailChange';
+
+    setState(() => _reenviando = true);
+    try {
+      // Reusa la acción que originó el OTP en cada contexto: magic link en
+      // el registro directo, updateEmail (el OTP de cambio de correo de
+      // startActivation) en la activación de un guest anónimo.
+      final auth = ref.read(authNotifierProvider.notifier);
+      if (isEmailChange) {
+        await auth.startActivation(email: email);
+      } else {
+        await auth.sendMagicLink(email: email);
+      }
+      if (!mounted) return;
+
+      final estado = ref.read(authNotifierProvider);
+      if (estado.hasError) {
+        _snack(
+          estado.error is NetworkException
+              ? 'Sin conexión. Revisa tu internet e intenta nuevamente.'
+              : 'No pudimos reenviar el código. Intenta nuevamente.',
+        );
+        // El contador NO se reinicia: el usuario puede reintentar de una.
+        return;
+      }
+
+      _snack('Código reenviado a $email');
+      setState(_iniciarContadorReenvio);
+    } finally {
+      if (mounted) setState(() => _reenviando = false);
+    }
   }
 
   void _snack(String msg) {
@@ -161,7 +239,29 @@ class _VerifyOtpScreenState extends ConsumerState<VerifyOtpScreen> {
                   keyboardType: TextInputType.number,
                   controller: _codigoCtrl,
                 ),
-                const SizedBox(height: 32),
+                const SizedBox(height: 8),
+                // Reenvío del código: deshabilitado con cuenta regresiva de
+                // 60s desde que se abre la pantalla; se habilita al llegar
+                // a 0 y el contador reinicia tras un reenvío exitoso.
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: TextButton(
+                    onPressed: (_segundosParaReenvio > 0 || _reenviando)
+                        ? null
+                        : _reenviar,
+                    style: TextButton.styleFrom(
+                      padding: EdgeInsets.zero,
+                      foregroundColor: const Color(0xFF1E70CD),
+                    ),
+                    child: Text(
+                      _segundosParaReenvio > 0
+                          ? 'Reenviar código ($_contadorReenvio)'
+                          : 'Reenviar código',
+                      style: const TextStyle(fontSize: 14),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 24),
                 SizedBox(
                   width: double.infinity,
                   height: 50,

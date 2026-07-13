@@ -2,10 +2,79 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:sire/features/auth/domain/entities/auth_result.dart';
+import 'package:sire/features/auth/domain/entities/user_profile.dart';
+import 'package:sire/features/auth/domain/repositories/auth_repository.dart';
+import 'package:sire/features/auth/presentation/providers/auth_provider.dart';
 import 'package:sire/features/auth/presentation/screens/activate_account_screen.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+
+/// Doble controlable de [AuthRepository]: solo implementa [activateAccount]
+/// (lo único que ejercita ActivateAccountScreen); el resto no debe
+/// invocarse en estas pruebas.
+class _StubAuthRepository implements AuthRepository {
+  _StubAuthRepository({this.error});
+
+  final Object? error;
+
+  @override
+  Future<void> activateAccount({required String password}) async {
+    if (error != null) throw error!;
+  }
+
+  @override
+  Future<void> login({required String email, required String password}) =>
+      throw UnimplementedError();
+
+  @override
+  Future<void> signInAnonymously() => throw UnimplementedError();
+
+  @override
+  Future<void> sendMagicLink({required String email}) =>
+      throw UnimplementedError();
+
+  @override
+  Future<void> verifyOtp({
+    required String email,
+    required String token,
+    OtpType type = OtpType.email,
+  }) => throw UnimplementedError();
+
+  @override
+  Future<void> updateEmail({required String email}) =>
+      throw UnimplementedError();
+
+  @override
+  Future<void> signOut() => throw UnimplementedError();
+
+  @override
+  Future<AuthResult> registerGuest({
+    required String name,
+    required String email,
+    required String phone,
+  }) => throw UnimplementedError();
+
+  @override
+  Future<UserProfile?> getProfile() => throw UnimplementedError();
+
+  @override
+  Future<UserProfile> updateProfile({
+    String? name,
+    String? phone,
+    String? avatarUrl,
+  }) => throw UnimplementedError();
+
+  @override
+  Stream<AuthState> authStateChanges() => throw UnimplementedError();
+}
 
 void main() {
-  Widget buildApp() => ProviderScope(
+  Widget buildApp({AuthRepository? repository}) => ProviderScope(
+    overrides: [
+      if (repository != null)
+        authRepositoryProvider.overrideWithValue(repository),
+      currentProfileProvider.overrideWith((ref) => Future.value(null)),
+    ],
     child: MaterialApp.router(
       routerConfig: GoRouter(
         initialLocation: '/activate-account',
@@ -15,8 +84,8 @@ void main() {
             builder: (_, _) => const ActivateAccountScreen(),
           ),
           GoRoute(
-            path: '/publication/create',
-            builder: (_, _) => const Scaffold(body: Text('Crear publicación')),
+            path: '/feed',
+            builder: (_, _) => const Scaffold(body: Text('Feed')),
           ),
         ],
       ),
@@ -90,5 +159,42 @@ void main() {
 
     // El campo es de tipo password, el texto puede estar ofuscado pero el widget lo acepta
     expect(find.byType(TextField), findsOneWidget);
+  });
+
+  testWidgets('activación exitosa navega al feed (no a crear publicación)', (
+    tester,
+  ) async {
+    suppressOverflow(tester);
+
+    await tester.pumpWidget(buildApp(repository: _StubAuthRepository()));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextField).first, 'mipassword123');
+    await tester.pump();
+
+    await tester.tap(find.text('Activar cuenta').last);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Feed'), findsOneWidget);
+  });
+
+  testWidgets('activación fallida se queda en la pantalla y muestra error', (
+    tester,
+  ) async {
+    suppressOverflow(tester);
+
+    await tester.pumpWidget(
+      buildApp(repository: _StubAuthRepository(error: Exception('boom'))),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextField).first, 'mipassword123');
+    await tester.pump();
+
+    await tester.tap(find.text('Activar cuenta').last);
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('No se pudo activar'), findsOneWidget);
+    expect(find.text('Feed'), findsNothing);
   });
 }

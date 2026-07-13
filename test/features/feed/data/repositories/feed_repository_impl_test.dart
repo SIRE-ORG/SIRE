@@ -4,6 +4,7 @@
 // del contrato termina en entidades de dominio completas.
 
 import 'package:dio/dio.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http_mock_adapter/http_mock_adapter.dart';
 import 'package:sire/core/network/api_constants.dart';
@@ -11,14 +12,28 @@ import 'package:sire/core/network/app_exception.dart';
 import 'package:sire/core/network/dio_client.dart';
 import 'package:sire/core/storage/local_storage_service.dart';
 import 'package:sire/features/feed/data/datasources/feed_remote_datasource_real_impl.dart';
+import 'package:sire/features/feed/data/datasources/geo_datasource.dart';
 import 'package:sire/features/feed/data/repositories/feed_repository_impl.dart';
+import 'package:sire/features/feed/domain/entities/geo_location.dart';
 import 'package:sire/features/publications/data/models/publication_detail_model.dart';
 import 'package:sire/features/publications/domain/entities/publication.dart';
 
 import '../../../../helpers/fixtures.dart';
 import '../../../../helpers/test_doubles.dart';
 
+/// GeoDatasource controlable: siempre devuelve [location].
+class _StubGeoDatasource implements GeoDatasource {
+  const _StubGeoDatasource(this.location);
+
+  final GeoLocation location;
+
+  @override
+  Future<GeoLocation> getCurrentLocation() async => location;
+}
+
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
   late Dio dio;
   late DioAdapter adapter;
   late FeedRepositoryImpl repository;
@@ -111,6 +126,42 @@ void main() {
         publicationCategoryFromString('RECREACIÓN'),
         PublicationCategory.recreacion,
       );
+    });
+  });
+
+  group('FeedRepositoryImpl.detectRegion - cache de región y ciudad', () {
+    FeedRepositoryImpl repoConGeo(GeoLocation location) => FeedRepositoryImpl(
+      remoteDatasource: FeedRemoteDatasourceRealImpl(dio: dio),
+      geoDatasource: _StubGeoDatasource(location),
+      storage: const LocalStorageService(),
+    );
+
+    test('persiste región Y ciudad cuando el geocoding trae ambas', () async {
+      FlutterSecureStorage.setMockInitialValues({});
+      final repo = repoConGeo(
+        const GeoLocation(region: 'Región de La Araucanía', city: 'Temuco'),
+      );
+
+      final geo = await repo.detectRegion();
+
+      expect(geo.region, 'Región de La Araucanía');
+      expect(geo.city, 'Temuco');
+      const storage = LocalStorageService();
+      expect(await storage.read(StorageKeys.region), 'Región de La Araucanía');
+      expect(await storage.read(StorageKeys.city), 'Temuco');
+    });
+
+    test('sin ciudad en el geocoding solo persiste la región', () async {
+      FlutterSecureStorage.setMockInitialValues({});
+      final repo = repoConGeo(
+        const GeoLocation(region: 'Región Metropolitana'),
+      );
+
+      await repo.detectRegion();
+
+      const storage = LocalStorageService();
+      expect(await storage.read(StorageKeys.region), 'Región Metropolitana');
+      expect(await storage.read(StorageKeys.city), isNull);
     });
   });
 }

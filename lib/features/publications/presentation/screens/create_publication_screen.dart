@@ -1,13 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/constants/chile_comunas.dart';
+import '../../../../core/constants/chile_regions.dart';
 import '../../../../core/providers/role_provider.dart';
+import '../../../../core/storage/local_storage_service.dart';
 import '../../../../core/widgets/custom_button.dart';
 import '../../../../core/widgets/custom_text_field.dart';
+import '../../data/models/publication_detail_model.dart';
 import '../../domain/entities/availability_config.dart';
-import '../../domain/entities/publication.dart';
 import '../../domain/usecases/create_publication_usecase.dart';
 import '../providers/my_publications_provider.dart';
+
+/// Opciones del selector de categoría: todas las categorías válidas del
+/// enum excepto `otros` (decisión de Dani: "Otros" no aparece como opción,
+/// es el resultado defensivo de un texto que no matchea ninguna).
+const _categoryOptions = <String>['Deporte', 'Eventos', 'Recreación'];
 
 class CreatePublicationScreen extends ConsumerStatefulWidget {
   const CreatePublicationScreen({super.key});
@@ -21,13 +29,48 @@ class _CreatePublicationScreenState
     extends ConsumerState<CreatePublicationScreen> {
   int _selectedDuration = 30;
   bool _sameSchedule = true;
-  bool _guardando = false;
+
+  /// Región seleccionada en el dropdown; gobierna las opciones de Ciudad.
+  String? _selectedRegion;
 
   final _nombreCtrl = TextEditingController();
   final _descripcionCtrl = TextEditingController();
   final _categoriaCtrl = TextEditingController();
+  final _categoriaFocusNode = FocusNode();
   final _imagenCtrl = TextEditingController();
   final _regionCtrl = TextEditingController();
+  final _ciudadCtrl = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _precargarUbicacion();
+  }
+
+  /// Pre-llena Región y Ciudad con lo que ya sabemos del usuario (cacheado
+  /// por el onboarding o la geo-detección del feed). Best-effort: si no hay
+  /// cache o el valor no calza con nuestras listas, el campo queda vacío.
+  Future<void> _precargarUbicacion() async {
+    const storage = LocalStorageService();
+    String? region;
+    String? city;
+    try {
+      region = await storage.read(StorageKeys.region);
+      city = await storage.read(StorageKeys.city);
+    } catch (_) {
+      return; // Sin cache disponible: el usuario elige manualmente.
+    }
+    if (!mounted) return;
+    if (region == null || !chileRegions.contains(region)) return;
+    setState(() {
+      _selectedRegion = region;
+      _regionCtrl.text = region!;
+      final comunas = comunasPorRegion[region] ?? const <String>[];
+      if (city != null && comunas.contains(city)) {
+        _ciudadCtrl.text = city;
+      }
+    });
+  }
 
   final List<Map<String, dynamic>> _days = [
     {'name': 'Lunes', 'disabled': false, 'start': '09:00', 'end': '18:00'},
@@ -44,23 +87,11 @@ class _CreatePublicationScreenState
     _nombreCtrl.dispose();
     _descripcionCtrl.dispose();
     _categoriaCtrl.dispose();
+    _categoriaFocusNode.dispose();
     _imagenCtrl.dispose();
     _regionCtrl.dispose();
+    _ciudadCtrl.dispose();
     super.dispose();
-  }
-
-  PublicationCategory _parseCat(String s) {
-    switch (s.trim().toLowerCase()) {
-      case 'deporte':
-        return PublicationCategory.deporte;
-      case 'eventos':
-        return PublicationCategory.eventos;
-      case 'recreacion':
-      case 'recreación':
-        return PublicationCategory.recreacion;
-      default:
-        return PublicationCategory.otros;
-    }
   }
 
   AvailabilityConfig _buildAvailabilityConfig() {
@@ -88,20 +119,24 @@ class _CreatePublicationScreenState
       final day = _days[i];
       final disabled = day['disabled'] as bool;
       if (disabled) {
-        overrides.add(DayOverride(
-          dayOfWeek: dayOfWeekMap[i],
-          isClosed: true,
-          schedules: const [],
-        ));
+        overrides.add(
+          DayOverride(
+            dayOfWeek: dayOfWeekMap[i],
+            isClosed: true,
+            schedules: const [],
+          ),
+        );
       } else if (!_sameSchedule) {
         final s = day['start'] as String;
         final e = day['end'] as String;
         if (s != defaultSchedule.startTime || e != defaultSchedule.endTime) {
-          overrides.add(DayOverride(
-            dayOfWeek: dayOfWeekMap[i],
-            isClosed: false,
-            schedules: [DaySchedule(startTime: s, endTime: e)],
-          ));
+          overrides.add(
+            DayOverride(
+              dayOfWeek: dayOfWeekMap[i],
+              isClosed: false,
+              schedules: [DaySchedule(startTime: s, endTime: e)],
+            ),
+          );
         }
       }
     }
@@ -114,16 +149,23 @@ class _CreatePublicationScreenState
     );
   }
 
+  /// No hay `setState`/`finally` local para el estado de guardado: el botón
+  /// se deshabilita observando directamente `publicationFormNotifierProvider`
+  /// (ver [build]), que ya queda en loading mientras esta llamada está en
+  /// vuelo. Evita la carrera de doble tap que producía publicaciones
+  /// duplicadas en el smoke test.
   Future<void> _guardar() async {
+    final city = _ciudadCtrl.text.trim();
     final params = CreatePublicationParams(
       title: _nombreCtrl.text.trim(),
       description: _descripcionCtrl.text.trim(),
-      category: _parseCat(_categoriaCtrl.text),
+      category: publicationCategoryFromString(_categoriaCtrl.text),
       region: _regionCtrl.text.trim(),
+      // Ciudad es opcional: el backend acepta null y el request la omite.
+      city: city.isEmpty ? null : city,
       availability: _buildAvailabilityConfig(),
     );
 
-    setState(() => _guardando = true);
     try {
       await ref
           .read(publicationFormNotifierProvider.notifier)
@@ -132,20 +174,19 @@ class _CreatePublicationScreenState
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('Publicación creada')));
-      context.pop();
+      context.go('/my-publications');
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text('No se pudo crear: $e')));
-    } finally {
-      if (mounted) setState(() => _guardando = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final isPublisher = ref.watch(isPublisherProvider);
+    final isSaving = ref.watch(publicationFormNotifierProvider).isLoading;
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -182,7 +223,7 @@ class _CreatePublicationScreenState
                                     ),
                                   ],
                                 ),
-                                child: _buildForm(),
+                                child: _buildForm(isSaving),
                               ),
                             ),
                           ),
@@ -221,7 +262,7 @@ class _CreatePublicationScreenState
           ),
           body: SingleChildScrollView(
             padding: const EdgeInsets.all(24),
-            child: _buildForm(),
+            child: _buildForm(isSaving),
           ),
         );
       },
@@ -340,7 +381,7 @@ class _CreatePublicationScreenState
     );
   }
 
-  Widget _buildForm() {
+  Widget _buildForm(bool isSaving) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -365,11 +406,7 @@ class _CreatePublicationScreenState
           controller: _descripcionCtrl,
         ),
         const SizedBox(height: 16),
-        CustomTextField(
-          label: 'Categoría',
-          hintText: 'Deporte',
-          controller: _categoriaCtrl,
-        ),
+        _buildCategoriaField(),
         const SizedBox(height: 16),
         CustomTextField(
           label: 'Imagen (URL)',
@@ -377,11 +414,9 @@ class _CreatePublicationScreenState
           controller: _imagenCtrl,
         ),
         const SizedBox(height: 16),
-        CustomTextField(
-          label: 'Región',
-          hintText: 'Temuco',
-          controller: _regionCtrl,
-        ),
+        _buildRegionField(),
+        const SizedBox(height: 16),
+        _buildCiudadField(),
         const SizedBox(height: 32),
         Container(height: 1, color: Colors.grey.shade300),
         const SizedBox(height: 24),
@@ -562,12 +597,199 @@ class _CreatePublicationScreenState
           ),
         const SizedBox(height: 32),
         CustomButton(
-          text: _guardando ? 'Guardando...' : 'Guardar publicación',
-          onPressed: () {
-            if (!_guardando) _guardar();
-          },
+          text: 'Guardar publicación',
+          loading: isSaving,
+          onPressed: isSaving ? null : _guardar,
         ),
         const SizedBox(height: 40),
+      ],
+    );
+  }
+
+  /// Campo de categoría con autocompletado: sugiere las categorías válidas
+  /// (excepto `otros`, que no es una opción elegible) pero permite texto
+  /// libre. `publicationCategoryFromString` decide el mapeo final al
+  /// guardar: si el texto no matchea, cae a `otros`.
+  Widget _buildCategoriaField() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Categoría',
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+            color: Color(0xFF666666),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Autocomplete<String>(
+          textEditingController: _categoriaCtrl,
+          focusNode: _categoriaFocusNode,
+          optionsBuilder: (TextEditingValue value) {
+            if (value.text.isEmpty) return _categoryOptions;
+            final query = value.text.toLowerCase();
+            return _categoryOptions.where(
+              (opt) => opt.toLowerCase().contains(query),
+            );
+          },
+          fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
+            return TextField(
+              controller: controller,
+              focusNode: focusNode,
+              decoration: InputDecoration(
+                hintText: 'Deporte',
+                hintStyle: const TextStyle(
+                  color: Color(0xFFB3B3B3),
+                  fontSize: 14,
+                ),
+                filled: true,
+                fillColor: Colors.white,
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 14,
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(
+                    color: Color(0xFF1E70CD),
+                    width: 1.5,
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
+      ],
+    );
+  }
+
+  /// Selector de región: misma lista que usa el onboarding
+  /// ([chileRegions]), con `selectOnly` para que solo se puedan elegir
+  /// regiones válidas (texto libre ensuciaba el filtro del feed). Se
+  /// pre-llena con la región cacheada del usuario (ver
+  /// [_precargarUbicacion]) y al cambiarla se actualizan las opciones de
+  /// Ciudad, limpiando la selección si ya no pertenece.
+  Widget _buildRegionField() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Región',
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+            color: Color(0xFF666666),
+          ),
+        ),
+        const SizedBox(height: 8),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            return DropdownMenu<String>(
+              controller: _regionCtrl,
+              width: constraints.maxWidth,
+              selectOnly: true,
+              hintText: 'Selecciona una región',
+              menuHeight: 320,
+              onSelected: (region) {
+                setState(() {
+                  _selectedRegion = region;
+                  final comunas = region != null
+                      ? (comunasPorRegion[region] ?? const <String>[])
+                      : const <String>[];
+                  if (!comunas.contains(_ciudadCtrl.text)) {
+                    _ciudadCtrl.clear();
+                  }
+                });
+              },
+              inputDecorationTheme: InputDecorationTheme(
+                filled: true,
+                fillColor: Colors.white,
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 14,
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(
+                    color: Color(0xFF1E70CD),
+                    width: 1.5,
+                  ),
+                ),
+              ),
+              dropdownMenuEntries: chileRegions
+                  .map((r) => DropdownMenuEntry<String>(value: r, label: r))
+                  .toList(),
+            );
+          },
+        ),
+      ],
+    );
+  }
+
+  /// Selector de ciudad/comuna: opciones filtradas por la región
+  /// seleccionada ([comunasPorRegion]), selección estricta y OPCIONAL
+  /// (el backend acepta null). Deshabilitado hasta elegir una región.
+  Widget _buildCiudadField() {
+    final comunas = _selectedRegion != null
+        ? (comunasPorRegion[_selectedRegion] ?? const <String>[])
+        : const <String>[];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Ciudad (opcional)',
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+            color: Color(0xFF666666),
+          ),
+        ),
+        const SizedBox(height: 8),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            return DropdownMenu<String>(
+              controller: _ciudadCtrl,
+              width: constraints.maxWidth,
+              selectOnly: true,
+              enabled: comunas.isNotEmpty,
+              hintText: comunas.isEmpty
+                  ? 'Elige primero una región'
+                  : 'Selecciona una comuna (opcional)',
+              menuHeight: 320,
+              inputDecorationTheme: InputDecorationTheme(
+                filled: true,
+                fillColor: Colors.white,
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 14,
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(
+                    color: Color(0xFF1E70CD),
+                    width: 1.5,
+                  ),
+                ),
+              ),
+              dropdownMenuEntries: comunas
+                  .map((c) => DropdownMenuEntry<String>(value: c, label: c))
+                  .toList(),
+            );
+          },
+        ),
       ],
     );
   }

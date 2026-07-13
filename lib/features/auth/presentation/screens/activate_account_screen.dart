@@ -48,7 +48,7 @@ class _ActivateAccountScreenState extends ConsumerState<ActivateAccountScreen> {
       }
 
       _snack('Cuenta activada');
-      context.go('/publication/create');
+      context.go('/feed');
     } finally {
       if (mounted) setState(() => _cargando = false);
     }
