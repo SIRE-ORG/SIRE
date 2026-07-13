@@ -104,4 +104,42 @@ describe('Módulo 1b: Perfiles - PUT /users/me', () => {
             error: { code: 'INTERNAL_SERVER_ERROR', message: 'Error al actualizar el perfil del usuario' }
         });
     });
+
+    it('Ignora campos no permitidos (accountStatus, email): no se envían a Prisma', async () => {
+        mockRequest.headers['x-user-id'] = 'uuid-supabase';
+        mockRequest.body = {
+            phone: '+56933333333',
+            accountStatus: 'active',
+            email: 'otro@x.cl'
+        };
+        prismaMock.profile.update.mockResolvedValue({
+            id: 'uuid-supabase',
+            phone: '+56933333333',
+            accountStatus: 'guest'
+        });
+
+        await updateMyProfile(mockRequest, mockReply);
+
+        expect(prismaMock.profile.update).toHaveBeenCalledWith({
+            where: { id: 'uuid-supabase' },
+            data: { phone: '+56933333333' }
+        });
+        const dataArg = prismaMock.profile.update.mock.calls[0][0].data;
+        expect(dataArg).not.toHaveProperty('accountStatus');
+        expect(dataArg).not.toHaveProperty('email');
+        expect(mockReply.status).toHaveBeenCalledWith(200);
+    });
+
+    it('Debería fallar con 400 si el body no trae ningún campo editable', async () => {
+        mockRequest.headers['x-user-id'] = 'uuid-supabase';
+        mockRequest.body = {};
+
+        await updateMyProfile(mockRequest, mockReply);
+
+        expect(mockReply.status).toHaveBeenCalledWith(400);
+        expect(mockReply.send).toHaveBeenCalledWith({
+            error: { code: 'VALIDATION_ERROR', message: 'Debes enviar al menos un campo editable (name, phone o avatarUrl)' }
+        });
+        expect(prismaMock.profile.update).not.toHaveBeenCalled();
+    });
 });
