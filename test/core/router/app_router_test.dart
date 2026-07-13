@@ -17,7 +17,6 @@ import 'package:sire/features/reservations/presentation/providers/reservations_p
 void main() {
   group('decideRedirect - rutas públicas', () {
     const publicPaths = [
-      '/',
       '/location',
       '/feed',
       '/publication/:id',
@@ -34,6 +33,22 @@ void main() {
         expect(decideRedirect(path, AccountStatus.anon), isNull);
         expect(decideRedirect(path, AccountStatus.guest), isNull);
         expect(decideRedirect(path, AccountStatus.active), isNull);
+      });
+    }
+  });
+
+  group('decideRedirect - / (welcome)', () {
+    test('sin sesión no redirige (welcome se muestra normal)', () {
+      expect(decideRedirect('/', null), isNull);
+    });
+
+    for (final status in [
+      AccountStatus.anon,
+      AccountStatus.guest,
+      AccountStatus.active,
+    ]) {
+      test('con sesión ($status) redirige a /feed', () {
+        expect(decideRedirect('/', status), '/feed');
       });
     }
   });

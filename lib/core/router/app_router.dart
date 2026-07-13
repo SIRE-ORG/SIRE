@@ -82,9 +82,14 @@ const _requiresProfilePaths = {
 /// pública del router.
 @visibleForTesting
 String? decideRedirect(String path, AccountStatus? status) {
+  final hasSession = status != null;
+
+  // Con sesión activa (incluida anon), welcome no tiene nada que ofrecer:
+  // manda directo al feed. Sin sesión, welcome se muestra normal.
+  if (path == '/' && hasSession) return '/feed';
+
   if (_publicPaths.contains(path)) return null;
 
-  final hasSession = status != null;
   final hasProfile =
       status == AccountStatus.guest || status == AccountStatus.active;
   final isActive = status == AccountStatus.active;
