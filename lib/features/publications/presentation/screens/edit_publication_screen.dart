@@ -3,10 +3,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/providers/role_provider.dart';
 import '../../../../core/widgets/custom_button.dart';
+import '../../../publications/data/models/publication_detail_model.dart';
 import '../../../publications/domain/entities/availability_config.dart';
 import '../../../publications/domain/entities/publication.dart';
 import '../../../publications/domain/usecases/update_publication_usecase.dart';
 import '../providers/my_publications_provider.dart';
+
+/// Opciones del selector de categoría: todas las categorías válidas del
+/// enum excepto `otros` (decisión de Dani: "Otros" no aparece como opción,
+/// es el resultado defensivo de un texto que no matchea ninguna).
+const _categoryOptions = <String>['Deporte', 'Eventos', 'Recreación'];
 
 String _catToString(PublicationCategory cat) => switch (cat) {
   PublicationCategory.deporte => 'Deporte',
@@ -32,6 +38,7 @@ class _EditPublicationScreenState extends ConsumerState<EditPublicationScreen> {
   late TextEditingController _nameController;
   late TextEditingController _descController;
   late TextEditingController _catController;
+  final _catFocusNode = FocusNode();
   late TextEditingController _urlController;
   late TextEditingController _regionController;
 
@@ -60,23 +67,10 @@ class _EditPublicationScreenState extends ConsumerState<EditPublicationScreen> {
     _nameController.dispose();
     _descController.dispose();
     _catController.dispose();
+    _catFocusNode.dispose();
     _urlController.dispose();
     _regionController.dispose();
     super.dispose();
-  }
-
-  PublicationCategory _parseCategory(String raw) {
-    switch (raw.toLowerCase().trim()) {
-      case 'deporte':
-        return PublicationCategory.deporte;
-      case 'eventos':
-        return PublicationCategory.eventos;
-      case 'recreacion':
-      case 'recreación':
-        return PublicationCategory.recreacion;
-      default:
-        return PublicationCategory.otros;
-    }
   }
 
   AvailabilityConfig _buildAvailability() {
@@ -150,7 +144,7 @@ class _EditPublicationScreenState extends ConsumerState<EditPublicationScreen> {
             params: UpdatePublicationParams(
               title: title,
               description: _descController.text.trim(),
-              category: _parseCategory(_catController.text),
+              category: publicationCategoryFromString(_catController.text),
               region: _regionController.text.trim(),
               availability: _buildAvailability(),
             ),
@@ -398,7 +392,7 @@ class _EditPublicationScreenState extends ConsumerState<EditPublicationScreen> {
         const SizedBox(height: 16),
         _buildTextField('Descripción', _descController, maxLines: 4),
         const SizedBox(height: 16),
-        _buildTextField('Categoría', _catController),
+        _buildCategoriaField(),
         const SizedBox(height: 16),
         _buildTextField('Imagen (URL)', _urlController),
         const SizedBox(height: 16),
@@ -662,6 +656,64 @@ class _EditPublicationScreenState extends ConsumerState<EditPublicationScreen> {
               borderSide: const BorderSide(color: Color(0xFF1E70CD)),
             ),
           ),
+        ),
+      ],
+    );
+  }
+
+  /// Campo de categoría con autocompletado: sugiere las categorías válidas
+  /// (excepto `otros`, que no es una opción elegible) pero permite texto
+  /// libre. `publicationCategoryFromString` decide el mapeo final al
+  /// guardar: si el texto no matchea, cae a `otros`.
+  Widget _buildCategoriaField() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Categoría',
+          style: TextStyle(
+            color: Color(0xFF64748B),
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Autocomplete<String>(
+          textEditingController: _catController,
+          focusNode: _catFocusNode,
+          optionsBuilder: (TextEditingValue value) {
+            if (value.text.isEmpty) return _categoryOptions;
+            final query = value.text.toLowerCase();
+            return _categoryOptions.where(
+              (opt) => opt.toLowerCase().contains(query),
+            );
+          },
+          fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
+            return TextFormField(
+              controller: controller,
+              focusNode: focusNode,
+              decoration: InputDecoration(
+                filled: true,
+                fillColor: Colors.white,
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 16,
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Colors.grey.shade300),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Colors.grey.shade300),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Color(0xFF1E70CD)),
+                ),
+              ),
+            );
+          },
         ),
       ],
     );

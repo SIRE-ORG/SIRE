@@ -435,4 +435,96 @@ void main() {
       expect(find.text('Mis Publicaciones'), findsOneWidget);
     },
   );
+
+  testWidgets(
+    'CreatePublicationScreen selecciona categoría válida del autocompletado: '
+    'guarda con esa categoría exacta',
+    (WidgetTester tester) async {
+      final originalOnError = FlutterError.onError;
+      FlutterError.onError = (FlutterErrorDetails details) {
+        if (details.exceptionAsString().contains('overflowed')) return;
+        originalOnError?.call(details);
+      };
+      tester.view.physicalSize = const Size(1080, 2400);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+        FlutterError.onError = originalOnError;
+      });
+
+      final repo = _StubPublicationsRepository();
+      await tester.pumpWidget(buildSubject(repository: repo));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(find.byType(TextField).first, 'Cancha de fútbol');
+      await tester.pump();
+
+      // Categoría: escribe un prefijo y selecciona la sugerencia "Eventos".
+      final categoriaField = find.byType(TextField).at(2);
+      await tester.tap(categoriaField);
+      await tester.enterText(categoriaField, 'Even');
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Eventos').last);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Guardar publicación'));
+      await tester.pump();
+      repo.completeWith(
+        _dummyPublication(
+          category: PublicationCategory.eventos,
+          region: 'Región Metropolitana',
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(repo.capturedCategory, PublicationCategory.eventos);
+    },
+  );
+
+  testWidgets(
+    'CreatePublicationScreen categoría con texto libre desconocido se guarda como Otros',
+    (WidgetTester tester) async {
+      final originalOnError = FlutterError.onError;
+      FlutterError.onError = (FlutterErrorDetails details) {
+        if (details.exceptionAsString().contains('overflowed')) return;
+        originalOnError?.call(details);
+      };
+      tester.view.physicalSize = const Size(1080, 2400);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+        FlutterError.onError = originalOnError;
+      });
+
+      final repo = _StubPublicationsRepository();
+      await tester.pumpWidget(buildSubject(repository: repo));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(
+        find.byType(TextField).first,
+        'Yoga al aire libre',
+      );
+      await tester.pump();
+
+      // Categoría: texto libre que no matchea ninguna opción del enum.
+      final categoriaField = find.byType(TextField).at(2);
+      await tester.tap(categoriaField);
+      await tester.enterText(categoriaField, 'Yoga');
+      await tester.pump();
+
+      await tester.tap(find.text('Guardar publicación'));
+      await tester.pump();
+      repo.completeWith(
+        _dummyPublication(
+          category: PublicationCategory.otros,
+          region: 'Región Metropolitana',
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(repo.capturedCategory, PublicationCategory.otros);
+    },
+  );
 }

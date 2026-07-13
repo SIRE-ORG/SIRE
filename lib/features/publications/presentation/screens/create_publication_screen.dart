@@ -4,10 +4,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/providers/role_provider.dart';
 import '../../../../core/widgets/custom_button.dart';
 import '../../../../core/widgets/custom_text_field.dart';
+import '../../data/models/publication_detail_model.dart';
 import '../../domain/entities/availability_config.dart';
-import '../../domain/entities/publication.dart';
 import '../../domain/usecases/create_publication_usecase.dart';
 import '../providers/my_publications_provider.dart';
+
+/// Opciones del selector de categoría: todas las categorías válidas del
+/// enum excepto `otros` (decisión de Dani: "Otros" no aparece como opción,
+/// es el resultado defensivo de un texto que no matchea ninguna).
+const _categoryOptions = <String>['Deporte', 'Eventos', 'Recreación'];
 
 class CreatePublicationScreen extends ConsumerStatefulWidget {
   const CreatePublicationScreen({super.key});
@@ -25,6 +30,7 @@ class _CreatePublicationScreenState
   final _nombreCtrl = TextEditingController();
   final _descripcionCtrl = TextEditingController();
   final _categoriaCtrl = TextEditingController();
+  final _categoriaFocusNode = FocusNode();
   final _imagenCtrl = TextEditingController();
   final _regionCtrl = TextEditingController();
 
@@ -43,23 +49,10 @@ class _CreatePublicationScreenState
     _nombreCtrl.dispose();
     _descripcionCtrl.dispose();
     _categoriaCtrl.dispose();
+    _categoriaFocusNode.dispose();
     _imagenCtrl.dispose();
     _regionCtrl.dispose();
     super.dispose();
-  }
-
-  PublicationCategory _parseCat(String s) {
-    switch (s.trim().toLowerCase()) {
-      case 'deporte':
-        return PublicationCategory.deporte;
-      case 'eventos':
-        return PublicationCategory.eventos;
-      case 'recreacion':
-      case 'recreación':
-        return PublicationCategory.recreacion;
-      default:
-        return PublicationCategory.otros;
-    }
   }
 
   AvailabilityConfig _buildAvailabilityConfig() {
@@ -126,7 +119,7 @@ class _CreatePublicationScreenState
     final params = CreatePublicationParams(
       title: _nombreCtrl.text.trim(),
       description: _descripcionCtrl.text.trim(),
-      category: _parseCat(_categoriaCtrl.text),
+      category: publicationCategoryFromString(_categoriaCtrl.text),
       region: _regionCtrl.text.trim(),
       availability: _buildAvailabilityConfig(),
     );
@@ -371,11 +364,7 @@ class _CreatePublicationScreenState
           controller: _descripcionCtrl,
         ),
         const SizedBox(height: 16),
-        CustomTextField(
-          label: 'Categoría',
-          hintText: 'Deporte',
-          controller: _categoriaCtrl,
-        ),
+        _buildCategoriaField(),
         const SizedBox(height: 16),
         CustomTextField(
           label: 'Imagen (URL)',
@@ -573,6 +562,68 @@ class _CreatePublicationScreenState
           onPressed: isSaving ? null : _guardar,
         ),
         const SizedBox(height: 40),
+      ],
+    );
+  }
+
+  /// Campo de categoría con autocompletado: sugiere las categorías válidas
+  /// (excepto `otros`, que no es una opción elegible) pero permite texto
+  /// libre. `publicationCategoryFromString` decide el mapeo final al
+  /// guardar: si el texto no matchea, cae a `otros`.
+  Widget _buildCategoriaField() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Categoría',
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+            color: Color(0xFF666666),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Autocomplete<String>(
+          textEditingController: _categoriaCtrl,
+          focusNode: _categoriaFocusNode,
+          optionsBuilder: (TextEditingValue value) {
+            if (value.text.isEmpty) return _categoryOptions;
+            final query = value.text.toLowerCase();
+            return _categoryOptions.where(
+              (opt) => opt.toLowerCase().contains(query),
+            );
+          },
+          fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
+            return TextField(
+              controller: controller,
+              focusNode: focusNode,
+              decoration: InputDecoration(
+                hintText: 'Deporte',
+                hintStyle: const TextStyle(
+                  color: Color(0xFFB3B3B3),
+                  fontSize: 14,
+                ),
+                filled: true,
+                fillColor: Colors.white,
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 14,
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(
+                    color: Color(0xFF1E70CD),
+                    width: 1.5,
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
       ],
     );
   }
