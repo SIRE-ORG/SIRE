@@ -14,10 +14,6 @@ vi.mock('@prisma/client', () => ({
     AccountStatus: { guest: 'guest', active: 'active' }
 }));
 
-vi.mock('../src/services/user.service', () => ({
-    getAllProfiles: vi.fn()
-}));
-
 describe('Módulo 1b: Perfiles - PUT /users/me', () => {
     let mockRequest: any;
     let mockReply: any;
@@ -40,26 +36,24 @@ describe('Módulo 1b: Perfiles - PUT /users/me', () => {
         expect(prismaMock.profile.update).not.toHaveBeenCalled();
     });
 
-    it('Debería fallar con 404 si el perfil no existe', async () => {
+    it('Debería fallar con 404 si el perfil no existe (P2025 de Prisma)', async () => {
         mockRequest.headers['x-user-id'] = 'uuid-fantasma';
         mockRequest.body = { name: 'Nuevo Nombre' };
-        prismaMock.profile.findUnique.mockResolvedValue(null);
+        const prismaError: any = new Error('An operation failed because it depends on one or more records that were required but not found.');
+        prismaError.code = 'P2025';
+        prismaMock.profile.update.mockRejectedValue(prismaError);
 
         await updateMyProfile(mockRequest, mockReply);
 
         expect(mockReply.status).toHaveBeenCalledWith(404);
-        expect(prismaMock.profile.update).not.toHaveBeenCalled();
+        expect(mockReply.send).toHaveBeenCalledWith({
+            error: { code: 'NOT_FOUND', message: 'Perfil no encontrado' }
+        });
     });
 
     it('Éxito parcial: actualiza solo phone y responde 200 con el perfil actualizado', async () => {
         mockRequest.headers['x-user-id'] = 'uuid-supabase';
         mockRequest.body = { phone: '+56922222222' };
-        prismaMock.profile.findUnique.mockResolvedValue({
-            id: 'uuid-supabase',
-            name: 'Nombre Original',
-            phone: '+56900000000',
-            accountStatus: 'active'
-        });
         prismaMock.profile.update.mockResolvedValue({
             id: 'uuid-supabase',
             name: 'Nombre Original',
@@ -82,12 +76,6 @@ describe('Módulo 1b: Perfiles - PUT /users/me', () => {
     it('name ausente en el body no se pisa (solo se actualizan los campos presentes)', async () => {
         mockRequest.headers['x-user-id'] = 'uuid-supabase';
         mockRequest.body = { avatarUrl: 'https://cdn.test/avatar.png' };
-        prismaMock.profile.findUnique.mockResolvedValue({
-            id: 'uuid-supabase',
-            name: 'Nombre Que No Debe Cambiar',
-            phone: null,
-            accountStatus: 'guest'
-        });
         prismaMock.profile.update.mockResolvedValue({
             id: 'uuid-supabase',
             name: 'Nombre Que No Debe Cambiar',
@@ -107,11 +95,13 @@ describe('Módulo 1b: Perfiles - PUT /users/me', () => {
     it('Debería retornar 500 si Prisma falla al actualizar', async () => {
         mockRequest.headers['x-user-id'] = 'uuid-supabase';
         mockRequest.body = { name: 'Nuevo Nombre' };
-        prismaMock.profile.findUnique.mockResolvedValue({ id: 'uuid-supabase' });
         prismaMock.profile.update.mockRejectedValue(new Error('Prisma Network Error'));
 
         await updateMyProfile(mockRequest, mockReply);
 
         expect(mockReply.status).toHaveBeenCalledWith(500);
+        expect(mockReply.send).toHaveBeenCalledWith({
+            error: { code: 'INTERNAL_SERVER_ERROR', message: 'Error al actualizar el perfil del usuario' }
+        });
     });
 });
