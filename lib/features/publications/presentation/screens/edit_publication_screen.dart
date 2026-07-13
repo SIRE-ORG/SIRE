@@ -55,8 +55,6 @@ class _EditPublicationScreenState extends ConsumerState<EditPublicationScreen> {
     _regionController = TextEditingController();
   }
 
-  bool _saving = false;
-
   @override
   void dispose() {
     _nameController.dispose();
@@ -83,35 +81,59 @@ class _EditPublicationScreenState extends ConsumerState<EditPublicationScreen> {
 
   AvailabilityConfig _buildAvailability() {
     final dayNames = [
-      'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo',
+      'Lunes',
+      'Martes',
+      'Miércoles',
+      'Jueves',
+      'Viernes',
+      'Sábado',
+      'Domingo',
     ];
     final dayEnums = [
-      DayOfWeek.monday, DayOfWeek.tuesday, DayOfWeek.wednesday,
-      DayOfWeek.thursday, DayOfWeek.friday, DayOfWeek.saturday, DayOfWeek.sunday,
+      DayOfWeek.monday,
+      DayOfWeek.tuesday,
+      DayOfWeek.wednesday,
+      DayOfWeek.thursday,
+      DayOfWeek.friday,
+      DayOfWeek.saturday,
+      DayOfWeek.sunday,
     ];
     final overrides = <DayOverride>[];
     for (var i = 0; i < _days.length; i++) {
       final day = _days[i];
       final idx = dayNames.indexOf(day['name'] as String);
       if (idx < 0) continue;
-      overrides.add(DayOverride(
-        dayOfWeek: dayEnums[idx],
-        isClosed: day['disabled'] as bool,
-        schedules: (day['disabled'] as bool)
-            ? []
-            : [DaySchedule(startTime: day['start'] as String, endTime: day['end'] as String)],
-      ));
+      overrides.add(
+        DayOverride(
+          dayOfWeek: dayEnums[idx],
+          isClosed: day['disabled'] as bool,
+          schedules: (day['disabled'] as bool)
+              ? []
+              : [
+                  DaySchedule(
+                    startTime: day['start'] as String,
+                    endTime: day['end'] as String,
+                  ),
+                ],
+        ),
+      );
     }
     return AvailabilityConfig(
       slotDurationMinutes: _selectedDuration,
       sameScheduleAllDays: _sameSchedule,
-      defaultSchedules: _sameSchedule && overrides.isNotEmpty && !overrides.first.isClosed
+      defaultSchedules:
+          _sameSchedule && overrides.isNotEmpty && !overrides.first.isClosed
           ? overrides.first.schedules
           : [],
       dayOverrides: overrides,
     );
   }
 
+  /// No hay `setState`/`finally` local para el estado de guardado: el botón
+  /// se deshabilita observando directamente `publicationFormNotifierProvider`
+  /// (ver [build]), que ya queda en loading mientras esta llamada está en
+  /// vuelo. Evita la carrera de doble tap que producía publicaciones
+  /// duplicadas en el smoke test.
   Future<void> _handleSave() async {
     final title = _nameController.text.trim();
     if (title.isEmpty) {
@@ -120,9 +142,10 @@ class _EditPublicationScreenState extends ConsumerState<EditPublicationScreen> {
       );
       return;
     }
-    setState(() => _saving = true);
     try {
-      await ref.read(publicationFormNotifierProvider.notifier).edit(
+      await ref
+          .read(publicationFormNotifierProvider.notifier)
+          .edit(
             id: widget.id,
             params: UpdatePublicationParams(
               title: title,
@@ -136,7 +159,7 @@ class _EditPublicationScreenState extends ConsumerState<EditPublicationScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Publicación actualizada')),
         );
-        context.pop();
+        context.go('/my-publications');
       }
     } catch (_) {
       if (mounted) {
@@ -144,14 +167,13 @@ class _EditPublicationScreenState extends ConsumerState<EditPublicationScreen> {
           const SnackBar(content: Text('No se pudo guardar la publicación')),
         );
       }
-    } finally {
-      if (mounted) setState(() => _saving = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final isPublisher = ref.watch(isPublisherProvider);
+    final isSaving = ref.watch(publicationFormNotifierProvider).isLoading;
 
     // Pre-fill controllers with real publication data on first load
     ref.watch(publicationDetailProvider(widget.id)).whenData((pub) {
@@ -201,7 +223,7 @@ class _EditPublicationScreenState extends ConsumerState<EditPublicationScreen> {
                                     ),
                                   ],
                                 ),
-                                child: _buildForm(),
+                                child: _buildForm(isSaving),
                               ),
                             ),
                           ),
@@ -240,7 +262,7 @@ class _EditPublicationScreenState extends ConsumerState<EditPublicationScreen> {
           ),
           body: SingleChildScrollView(
             padding: const EdgeInsets.all(24),
-            child: _buildForm(),
+            child: _buildForm(isSaving),
           ),
         );
       },
@@ -359,7 +381,7 @@ class _EditPublicationScreenState extends ConsumerState<EditPublicationScreen> {
     );
   }
 
-  Widget _buildForm() {
+  Widget _buildForm(bool isSaving) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -591,8 +613,9 @@ class _EditPublicationScreenState extends ConsumerState<EditPublicationScreen> {
           ),
         const SizedBox(height: 32),
         CustomButton(
-          text: _saving ? 'Guardando...' : 'Guardar cambios',
-          onPressed: _saving ? null : _handleSave,
+          text: 'Guardar cambios',
+          loading: isSaving,
+          onPressed: isSaving ? null : _handleSave,
         ),
         const SizedBox(height: 40),
       ],

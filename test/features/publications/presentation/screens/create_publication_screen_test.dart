@@ -1,11 +1,123 @@
+import 'dart:async';
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:sire/features/publications/data/datasources/publication_image_datasource.dart';
+import 'package:sire/features/publications/domain/entities/availability_config.dart';
+import 'package:sire/features/publications/domain/entities/publication.dart';
+import 'package:sire/features/publications/domain/repositories/publications_repository.dart';
+import 'package:sire/features/publications/presentation/providers/my_publications_provider.dart';
 import 'package:sire/features/publications/presentation/screens/create_publication_screen.dart';
 
+/// Doble controlable de [PublicationsRepository]: solo implementa
+/// [createPublication] (lo único que ejercita CreatePublicationScreen) y
+/// captura los argumentos con los que se llamó. El resto revienta si se
+/// invoca (no debería pasar en estas pruebas).
+class _StubPublicationsRepository implements PublicationsRepository {
+  final _completer = Completer<Publication>();
+  int createCallCount = 0;
+  PublicationCategory? capturedCategory;
+  String? capturedRegion;
+
+  /// Completa la llamada a [createPublication] en curso (permite controlar
+  /// cuándo termina la operación async para probar el estado de loading).
+  void completeWith(Publication publication) =>
+      _completer.complete(publication);
+
+  @override
+  Future<Publication> createPublication({
+    required String title,
+    required String description,
+    required PublicationCategory category,
+    String? imageUrl,
+    required String region,
+    String? city,
+    required AvailabilityConfig availability,
+  }) {
+    createCallCount++;
+    capturedCategory = category;
+    capturedRegion = region;
+    return _completer.future;
+  }
+
+  @override
+  Future<Publication> getPublicationDetail({required String id}) =>
+      throw UnimplementedError();
+
+  @override
+  Future<MyPublicationsResult> getMyPublications({
+    int page = 1,
+    int limit = 20,
+  }) => throw UnimplementedError();
+
+  @override
+  Future<Publication> updatePublication({
+    required String id,
+    String? title,
+    String? description,
+    PublicationCategory? category,
+    String? imageUrl,
+    String? region,
+    String? city,
+    AvailabilityConfig? availability,
+  }) => throw UnimplementedError();
+
+  @override
+  Future<void> togglePublicationStatus({
+    required String id,
+    required bool isActive,
+  }) => throw UnimplementedError();
+
+  @override
+  Future<void> deletePublication({required String id}) =>
+      throw UnimplementedError();
+}
+
+/// PublicationImageDatasource que revienta si se invoca: el formulario no
+/// selecciona imagen en estas pruebas, así que no debería llamarse.
+class _UnusedImageDatasource implements PublicationImageDatasource {
+  const _UnusedImageDatasource();
+
+  @override
+  Future<String> uploadImage({
+    required Uint8List bytes,
+    required String extension,
+  }) => throw StateError(
+    'PublicationImageDatasource no debía ser invocado en esta prueba',
+  );
+}
+
+Publication _dummyPublication({
+  required PublicationCategory category,
+  required String region,
+}) {
+  return Publication(
+    id: 'pub-test',
+    title: 'Cancha de prueba',
+    description: 'Descripción de prueba',
+    region: region,
+    category: category,
+    ownerId: 'owner-1',
+    ownerName: 'Dueño de prueba',
+    isActive: true,
+    availability: const AvailabilityConfig(
+      slotDurationMinutes: 30,
+      sameScheduleAllDays: true,
+      defaultSchedules: [DaySchedule(startTime: '09:00', endTime: '18:00')],
+      dayOverrides: [],
+    ),
+    createdAt: DateTime(2026).toIso8601String(),
+  );
+}
+
 void main() {
-  Widget buildSubject({Size size = const Size(1080, 2400)}) {
+  Widget buildSubject({
+    Size size = const Size(1080, 2400),
+    PublicationsRepository? repository,
+  }) {
     final mockRouter = GoRouter(
       initialLocation: '/create-publication',
       routes: [
@@ -29,9 +141,22 @@ void main() {
           path: '/my-reservations',
           builder: (_, _) => const Scaffold(body: Text('Reservas')),
         ),
+        GoRoute(
+          path: '/my-publications',
+          builder: (_, _) => const Scaffold(body: Text('Mis Publicaciones')),
+        ),
       ],
     );
-    return ProviderScope(child: MaterialApp.router(routerConfig: mockRouter));
+    return ProviderScope(
+      overrides: [
+        if (repository != null)
+          publicationsRepositoryProvider.overrideWithValue(repository),
+        publicationImageDatasourceProvider.overrideWithValue(
+          const _UnusedImageDatasource(),
+        ),
+      ],
+      child: MaterialApp.router(routerConfig: mockRouter),
+    );
   }
 
   testWidgets('CreatePublicationScreen muestra título del formulario', (
@@ -262,4 +387,52 @@ void main() {
       FlutterError.onError = originalOnError;
     });
   });
+
+  testWidgets(
+    'CreatePublicationScreen deshabilita el botón mientras guarda (evita doble '
+    'envío) y navega a Mis Publicaciones al terminar',
+    (WidgetTester tester) async {
+      final originalOnError = FlutterError.onError;
+      FlutterError.onError = (FlutterErrorDetails details) {
+        if (details.exceptionAsString().contains('overflowed')) return;
+        originalOnError?.call(details);
+      };
+      tester.view.physicalSize = const Size(1080, 2400);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+        FlutterError.onError = originalOnError;
+      });
+
+      final repo = _StubPublicationsRepository();
+      await tester.pumpWidget(buildSubject(repository: repo));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(find.byType(TextField).first, 'Cancha de prueba');
+      await tester.pump();
+
+      await tester.tap(find.text('Guardar publicación'));
+      await tester.pump();
+
+      // Mientras la operación está en vuelo, el botón queda deshabilitado
+      // (spinner en vez de texto) y un segundo tap no dispara otro guardado.
+      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      expect(find.text('Guardar publicación'), findsNothing);
+      await tester.tap(find.byType(ElevatedButton));
+      await tester.pump();
+      expect(repo.createCallCount, 1);
+
+      repo.completeWith(
+        _dummyPublication(
+          category: PublicationCategory.otros,
+          region: 'Región Metropolitana',
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(repo.createCallCount, 1);
+      expect(find.text('Mis Publicaciones'), findsOneWidget);
+    },
+  );
 }

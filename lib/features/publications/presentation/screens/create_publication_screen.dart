@@ -21,7 +21,6 @@ class _CreatePublicationScreenState
     extends ConsumerState<CreatePublicationScreen> {
   int _selectedDuration = 30;
   bool _sameSchedule = true;
-  bool _guardando = false;
 
   final _nombreCtrl = TextEditingController();
   final _descripcionCtrl = TextEditingController();
@@ -88,20 +87,24 @@ class _CreatePublicationScreenState
       final day = _days[i];
       final disabled = day['disabled'] as bool;
       if (disabled) {
-        overrides.add(DayOverride(
-          dayOfWeek: dayOfWeekMap[i],
-          isClosed: true,
-          schedules: const [],
-        ));
+        overrides.add(
+          DayOverride(
+            dayOfWeek: dayOfWeekMap[i],
+            isClosed: true,
+            schedules: const [],
+          ),
+        );
       } else if (!_sameSchedule) {
         final s = day['start'] as String;
         final e = day['end'] as String;
         if (s != defaultSchedule.startTime || e != defaultSchedule.endTime) {
-          overrides.add(DayOverride(
-            dayOfWeek: dayOfWeekMap[i],
-            isClosed: false,
-            schedules: [DaySchedule(startTime: s, endTime: e)],
-          ));
+          overrides.add(
+            DayOverride(
+              dayOfWeek: dayOfWeekMap[i],
+              isClosed: false,
+              schedules: [DaySchedule(startTime: s, endTime: e)],
+            ),
+          );
         }
       }
     }
@@ -114,6 +117,11 @@ class _CreatePublicationScreenState
     );
   }
 
+  /// No hay `setState`/`finally` local para el estado de guardado: el botón
+  /// se deshabilita observando directamente `publicationFormNotifierProvider`
+  /// (ver [build]), que ya queda en loading mientras esta llamada está en
+  /// vuelo. Evita la carrera de doble tap que producía publicaciones
+  /// duplicadas en el smoke test.
   Future<void> _guardar() async {
     final params = CreatePublicationParams(
       title: _nombreCtrl.text.trim(),
@@ -123,7 +131,6 @@ class _CreatePublicationScreenState
       availability: _buildAvailabilityConfig(),
     );
 
-    setState(() => _guardando = true);
     try {
       await ref
           .read(publicationFormNotifierProvider.notifier)
@@ -132,20 +139,19 @@ class _CreatePublicationScreenState
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('Publicación creada')));
-      context.pop();
+      context.go('/my-publications');
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text('No se pudo crear: $e')));
-    } finally {
-      if (mounted) setState(() => _guardando = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final isPublisher = ref.watch(isPublisherProvider);
+    final isSaving = ref.watch(publicationFormNotifierProvider).isLoading;
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -182,7 +188,7 @@ class _CreatePublicationScreenState
                                     ),
                                   ],
                                 ),
-                                child: _buildForm(),
+                                child: _buildForm(isSaving),
                               ),
                             ),
                           ),
@@ -221,7 +227,7 @@ class _CreatePublicationScreenState
           ),
           body: SingleChildScrollView(
             padding: const EdgeInsets.all(24),
-            child: _buildForm(),
+            child: _buildForm(isSaving),
           ),
         );
       },
@@ -340,7 +346,7 @@ class _CreatePublicationScreenState
     );
   }
 
-  Widget _buildForm() {
+  Widget _buildForm(bool isSaving) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -562,10 +568,9 @@ class _CreatePublicationScreenState
           ),
         const SizedBox(height: 32),
         CustomButton(
-          text: _guardando ? 'Guardando...' : 'Guardar publicación',
-          onPressed: () {
-            if (!_guardando) _guardar();
-          },
+          text: 'Guardar publicación',
+          loading: isSaving,
+          onPressed: isSaving ? null : _guardar,
         ),
         const SizedBox(height: 40),
       ],
