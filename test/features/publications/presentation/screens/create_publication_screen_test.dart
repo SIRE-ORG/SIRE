@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:sire/core/constants/chile_regions.dart';
 import 'package:sire/features/publications/data/datasources/publication_image_datasource.dart';
 import 'package:sire/features/publications/domain/entities/availability_config.dart';
 import 'package:sire/features/publications/domain/entities/publication.dart';
@@ -437,8 +438,8 @@ void main() {
   );
 
   testWidgets(
-    'CreatePublicationScreen selecciona categoría válida del autocompletado: '
-    'guarda con esa categoría exacta',
+    'CreatePublicationScreen selecciona categoría válida del autocompletado y '
+    'región de la lista compartida: guarda con esos valores exactos',
     (WidgetTester tester) async {
       final originalOnError = FlutterError.onError;
       FlutterError.onError = (FlutterErrorDetails details) {
@@ -468,17 +469,27 @@ void main() {
       await tester.tap(find.text('Eventos').last);
       await tester.pumpAndSettle();
 
+      // Región: abre el selector y elige la primera región de la lista
+      // compartida (misma fuente que usa el onboarding).
+      await tester.tap(find.byType(DropdownMenu<String>));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.widgetWithText(MenuItemButton, chileRegions.first).last,
+      );
+      await tester.pumpAndSettle();
+
       await tester.tap(find.text('Guardar publicación'));
       await tester.pump();
       repo.completeWith(
         _dummyPublication(
           category: PublicationCategory.eventos,
-          region: 'Región Metropolitana',
+          region: chileRegions.first,
         ),
       );
       await tester.pumpAndSettle();
 
       expect(repo.capturedCategory, PublicationCategory.eventos);
+      expect(repo.capturedRegion, chileRegions.first);
     },
   );
 

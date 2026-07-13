@@ -85,7 +85,11 @@ void main() {
 
     expect(find.text('Cancha de fútbol El Estadio'), findsOneWidget);
     expect(find.text('Deporte'), findsOneWidget);
-    expect(find.text('Región de La Araucanía'), findsOneWidget);
+    // findsWidgets (no findsOneWidget): DropdownMenu construye un Text
+    // oculto por cada entrada de la lista (para medir el ancho preferido),
+    // así que el label de la región seleccionada aparece dos veces en el
+    // árbol de widgets aunque el usuario solo vea una.
+    expect(find.text('Región de La Araucanía'), findsWidgets);
 
     addTearDown(() {
       tester.view.resetPhysicalSize();

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../core/constants/chile_regions.dart';
 import '../../../../core/providers/role_provider.dart';
 import '../../../../core/widgets/custom_button.dart';
 import '../../../publications/data/models/publication_detail_model.dart';
@@ -396,7 +397,7 @@ class _EditPublicationScreenState extends ConsumerState<EditPublicationScreen> {
         const SizedBox(height: 16),
         _buildTextField('Imagen (URL)', _urlController),
         const SizedBox(height: 16),
-        _buildTextField('Región', _regionController),
+        _buildRegionField(),
         const SizedBox(height: 32),
         Container(height: 1, color: Colors.grey.shade300),
         const SizedBox(height: 24),
@@ -712,6 +713,56 @@ class _EditPublicationScreenState extends ConsumerState<EditPublicationScreen> {
                   borderSide: const BorderSide(color: Color(0xFF1E70CD)),
                 ),
               ),
+            );
+          },
+        ),
+      ],
+    );
+  }
+
+  /// Selector de región: misma lista que usa el onboarding
+  /// ([chileRegions]), con `selectOnly` para que solo se puedan elegir
+  /// regiones válidas (texto libre ensuciaba el filtro del feed).
+  Widget _buildRegionField() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Región',
+          style: TextStyle(
+            color: Color(0xFF64748B),
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        const SizedBox(height: 8),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            return DropdownMenu<String>(
+              controller: _regionController,
+              width: constraints.maxWidth,
+              selectOnly: true,
+              hintText: 'Selecciona una región',
+              menuHeight: 320,
+              inputDecorationTheme: InputDecorationTheme(
+                filled: true,
+                fillColor: Colors.white,
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 16,
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Colors.grey.shade300),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Color(0xFF1E70CD)),
+                ),
+              ),
+              dropdownMenuEntries: chileRegions
+                  .map((r) => DropdownMenuEntry<String>(value: r, label: r))
+                  .toList(),
             );
           },
         ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../core/constants/chile_regions.dart';
 import '../../../../core/storage/local_storage_service.dart';
 import '../../../../core/widgets/custom_button.dart';
 import '../../../feed/presentation/providers/feed_provider.dart';
@@ -14,25 +15,6 @@ class LocationScreen extends ConsumerStatefulWidget {
 
 class _LocationScreenState extends ConsumerState<LocationScreen> {
   bool _detecting = false;
-
-  static const _regiones = <String>[
-    'Región de Arica y Parinacota',
-    'Región de Tarapacá',
-    'Región de Antofagasta',
-    'Región de Atacama',
-    'Región de Coquimbo',
-    'Región de Valparaíso',
-    'Región Metropolitana',
-    "Región del Libertador General Bernardo O'Higgins",
-    'Región del Maule',
-    'Región de Ñuble',
-    'Región del Biobío',
-    'Región de La Araucanía',
-    'Región de Los Ríos',
-    'Región de Los Lagos',
-    'Región de Aysén',
-    'Región de Magallanes',
-  ];
 
   /// Pide la ubicación real (dispara el permiso nativo vía Geolocator), cachea
   /// la región y entra al feed. Si falla (denegado / sin soporte), avisa y entra
@@ -76,7 +58,7 @@ class _LocationScreenState extends ConsumerState<LocationScreen> {
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
               ),
             ),
-            for (final r in _regiones)
+            for (final r in chileRegions)
               ListTile(title: Text(r), onTap: () => Navigator.of(ctx).pop(r)),
           ],
         ),
