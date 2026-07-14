@@ -548,6 +548,19 @@ void main() {
           ),
         ).called(1);
         expect(find.text('¡Reserva confirmada!'), findsOneWidget);
+
+        // F: cuenta ya activa no ofrece el CTA de contraseña (ya tiene
+        // una); allowedExistingProfile sigue siendo guest, así que
+        // conserva ambos botones como antes.
+        if (elig == ReservationEligibility.allowed) {
+          expect(find.text('Ir a Mis Reservas'), findsOneWidget);
+          expect(find.text('Crear contraseña'), findsNothing);
+          expect(find.text('Ahora no'), findsNothing);
+        } else {
+          expect(find.text('Crear contraseña'), findsOneWidget);
+          expect(find.text('Ahora no'), findsOneWidget);
+          expect(find.text('Ir a Mis Reservas'), findsNothing);
+        }
       });
     }
   });

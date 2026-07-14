@@ -211,7 +211,13 @@ class _ReservationConfirmScreenState
           : profileEmail;
       if (mounted) {
         setState(() => _reservationCreated = true);
-        _showSuccessDialog(context, email);
+        // F: cuenta ya activa no necesita el CTA de "Crear contraseña" (ya
+        // tiene una); solo se lo ofrecemos a quien todavía no activó.
+        _showSuccessDialog(
+          context,
+          email,
+          isActive: elig == ReservationEligibility.allowed,
+        );
       }
     } catch (e) {
       final err = _unwrap(e);
@@ -259,7 +265,11 @@ class _ReservationConfirmScreenState
     }
   }
 
-  void _showSuccessDialog(BuildContext context, String? guestEmail) {
+  void _showSuccessDialog(
+    BuildContext context,
+    String? guestEmail, {
+    required bool isActive,
+  }) {
     showGeneralDialog(
       context: context,
       barrierDismissible: false,
@@ -316,17 +326,23 @@ class _ReservationConfirmScreenState
                       ),
                     ),
                     const SizedBox(height: 12),
-                    const Text(
-                      'Crea tu contraseña para guardar tus reservas, seguir '
-                      'su estado y reservar más rápido la próxima vez.',
+                    Text(
+                      isActive
+                          ? 'Puedes revisar el estado de tu reserva cuando '
+                                'quieras en Mis Reservas.'
+                          : 'Crea tu contraseña para guardar tus reservas, '
+                                'seguir su estado y reservar más rápido la '
+                                'próxima vez.',
                       textAlign: TextAlign.center,
-                      style: TextStyle(
+                      style: const TextStyle(
                         color: Colors.grey,
                         fontSize: 14,
                         height: 1.5,
                       ),
                     ),
-                    if (guestEmail != null && guestEmail.isNotEmpty) ...[
+                    if (!isActive &&
+                        guestEmail != null &&
+                        guestEmail.isNotEmpty) ...[
                       const SizedBox(height: 8),
                       Text(
                         'Te enviaremos un código a $guestEmail.',
@@ -338,38 +354,51 @@ class _ReservationConfirmScreenState
                       ),
                     ],
                     const SizedBox(height: 32),
-                    SizedBox(
-                      width: double.infinity,
-                      height: 50,
-                      child: CustomButton(
-                        text: 'Crear contraseña',
-                        onPressed: () async {
-                          Navigator.of(context).pop();
-                          await _goToActivation(guestEmail);
-                        },
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    SizedBox(
-                      width: double.infinity,
-                      height: 50,
-                      child: OutlinedButton(
-                        onPressed: () => context.go('/my-reservations'),
-                        style: OutlinedButton.styleFrom(
-                          side: const BorderSide(color: Color(0xFF1E70CD)),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
+                    // F: una cuenta activa ya tiene contraseña; el único CTA
+                    // relevante es ir a ver la reserva recién creada.
+                    if (isActive)
+                      SizedBox(
+                        width: double.infinity,
+                        height: 50,
+                        child: CustomButton(
+                          text: 'Ir a Mis Reservas',
+                          onPressed: () => context.go('/my-reservations'),
                         ),
-                        child: const Text(
-                          'Ahora no',
-                          style: TextStyle(
-                            color: Color(0xFF1E70CD),
-                            fontWeight: FontWeight.bold,
-                          ),
+                      )
+                    else ...[
+                      SizedBox(
+                        width: double.infinity,
+                        height: 50,
+                        child: CustomButton(
+                          text: 'Crear contraseña',
+                          onPressed: () async {
+                            Navigator.of(context).pop();
+                            await _goToActivation(guestEmail);
+                          },
                         ),
                       ),
-                    ),
+                      const SizedBox(height: 16),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 50,
+                        child: OutlinedButton(
+                          onPressed: () => context.go('/my-reservations'),
+                          style: OutlinedButton.styleFrom(
+                            side: const BorderSide(color: Color(0xFF1E70CD)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          child: const Text(
+                            'Ahora no',
+                            style: TextStyle(
+                              color: Color(0xFF1E70CD),
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),
