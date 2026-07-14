@@ -45,6 +45,18 @@ SIRE **centraliza tres cosas** en un solo lugar:
 
 ---
 
+## Despliegue
+
+| Servicio | URL |
+|---|---|
+| **Backend REST (Fastify / Render)** | <https://sire-backend-k19n.onrender.com/api/v1> |
+| **APK Android (GitHub Releases)** | <https://github.com/SIRE-ORG/SIRE/releases> |
+| **Repositorio** | <https://github.com/SIRE-ORG/SIRE> |
+
+> El backend corre en el tier gratuito de Render: la primera request tras un período de inactividad puede tardar 30–60 s mientras la instancia arranca.
+
+---
+
 ## Equipo
 
 | Integrante | Rol |
