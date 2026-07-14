@@ -7,7 +7,7 @@ part of 'my_publications_provider.dart';
 // **************************************************************************
 
 String _$publicationsRemoteDatasourceHash() =>
-    r'c8ac75a2ef3f611e0891382857c4364e02950908';
+    r'31b4c1f7710483e4f461a47fcdfdfa8de3ae63d7';
 
 /// See also [publicationsRemoteDatasource].
 @ProviderFor(publicationsRemoteDatasource)

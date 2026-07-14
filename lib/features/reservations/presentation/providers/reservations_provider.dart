@@ -35,16 +35,6 @@ ReservationsRepository reservationsRepository(Ref ref) =>
     );
 
 // ---------------------------------------------------------------------------
-// ReceivedReservationsNotifier - reservas recibidas por el publicador
-// ---------------------------------------------------------------------------
-
-@riverpod
-Future<List<Reservation>> receivedReservations(Ref ref) =>
-    GetReceivedReservationsUseCase(
-      ref.read(reservationsRepositoryProvider),
-    ).call();
-
-// ---------------------------------------------------------------------------
 // ReservationDetail - detalle de una reserva por id
 // ---------------------------------------------------------------------------
 

@@ -24,6 +24,7 @@ class Reservation extends Equatable {
     this.publicationImageUrl,
     this.applicantName,
     this.applicantEmail,
+    this.applicantPhone,
   });
 
   final String id;
@@ -38,6 +39,7 @@ class Reservation extends Equatable {
   final String? publicationImageUrl;
   final String? applicantName;
   final String? applicantEmail;
+  final String? applicantPhone;
 
   @override
   List<Object?> get props => [
@@ -53,5 +55,6 @@ class Reservation extends Equatable {
     publicationImageUrl,
     applicantName,
     applicantEmail,
+    applicantPhone,
   ];
 }

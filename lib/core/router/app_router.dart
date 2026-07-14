@@ -220,6 +220,8 @@ GoRouter appRouter(Ref ref) {
         builder: (context, state) => ReceivedReservationDetailScreen(
           id: state.uri.queryParameters['id'] ?? '',
           applicantName: state.uri.queryParameters['name'] ?? '',
+          applicantEmail: state.uri.queryParameters['email'],
+          applicantPhone: state.uri.queryParameters['phone'],
           publication: state.uri.queryParameters['pub'] ?? '',
           date: state.uri.queryParameters['date'] ?? '',
           time: state.uri.queryParameters['time'] ?? '',

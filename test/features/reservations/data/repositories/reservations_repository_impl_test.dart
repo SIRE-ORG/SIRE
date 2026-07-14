@@ -159,7 +159,11 @@ void main() {
           'data': [
             {
               ...reservationJson(id: 'recv-1', withPublication: true),
-              'applicant': {'name': 'Carlos Pérez', 'email': 'c@mail.com'},
+              'solicitante': {
+                'name': 'Carlos Pérez',
+                'email': 'c@mail.com',
+                'phone': '+56911112222',
+              },
             },
           ],
         }),
@@ -169,6 +173,8 @@ void main() {
       expect(result, hasLength(1));
       expect(result.first.id, 'recv-1');
       expect(result.first.applicantName, 'Carlos Pérez');
+      expect(result.first.applicantEmail, 'c@mail.com');
+      expect(result.first.applicantPhone, '+56911112222');
     },
   );
 

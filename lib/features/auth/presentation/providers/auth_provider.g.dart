@@ -132,7 +132,7 @@ final authNotifierProvider =
     );
 
 typedef _$AuthNotifier = AutoDisposeNotifier<AsyncValue<void>>;
-String _$profileNotifierHash() => r'da1d1940ef31adaa41e3fdec79b6ba5c1c37e561';
+String _$profileNotifierHash() => r'f7db24e5f76efbadde5a7d4de75515ab1b0f4dd8';
 
 /// See also [ProfileNotifier].
 @ProviderFor(ProfileNotifier)

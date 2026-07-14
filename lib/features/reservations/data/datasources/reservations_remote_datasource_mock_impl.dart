@@ -46,6 +46,7 @@ class ReservationsRemoteDatasourceMockImpl
       publicationTitle: 'Cancha de futbol sintetica',
       applicantName: 'Carlos Pérez',
       applicantEmail: 'carlosperez@mail.com',
+      applicantPhone: '+56912345678',
     ),
     ReservationModel(
       id: 'mock-recv-002',
@@ -58,6 +59,7 @@ class ReservationsRemoteDatasourceMockImpl
       publicationTitle: 'Cancha de futbol sintetica',
       applicantName: 'Ana Ruiz',
       applicantEmail: 'anaruiz@mail.com',
+      applicantPhone: '+56923456789',
     ),
     ReservationModel(
       id: 'mock-recv-hist-001',
@@ -70,6 +72,7 @@ class ReservationsRemoteDatasourceMockImpl
       publicationTitle: 'Cancha de futbol sintetica',
       applicantName: 'Pedro Soto',
       applicantEmail: 'pedrosoto@mail.com',
+      applicantPhone: '+56934567890',
     ),
   ];
 

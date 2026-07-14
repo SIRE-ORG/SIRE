@@ -29,6 +29,13 @@ class _ReceivedReservationsScreenState
     }
   }
 
+  /// `true` cuando el dato viene real del backend (no es null, vacío ni el
+  /// guion de "sin dato" usado en las tarjetas/detalle).
+  static bool _hasValue(String? v) =>
+      v != null && v.trim().isNotEmpty && v.trim() != '-';
+
+  static String _digitsOnly(String v) => v.replaceAll(RegExp(r'[^0-9]'), '');
+
   void _showDetailPanel(BuildContext context, Map<String, String> data) {
     showGeneralDialog(
       context: context,
@@ -116,9 +123,9 @@ class _ReceivedReservationsScreenState
                   ),
                 ),
                 const SizedBox(height: 16),
-                _infoTile('Nombre', data['name'] ?? ''),
-                _infoTile('Correo', 'carlosperez@mail.com'),
-                _infoTile('Teléfono', '+56912345678'),
+                _infoTile('Nombre', data['name'] ?? '-'),
+                _infoTile('Correo', data['email'] ?? '-'),
+                _infoTile('Teléfono', data['phone'] ?? '-'),
                 const SizedBox(height: 32),
                 const Text(
                   'SLOT RESERVADO',
@@ -137,10 +144,9 @@ class _ReceivedReservationsScreenState
                   children: [
                     Expanded(
                       child: OutlinedButton.icon(
-                        onPressed: () {
-                          final email = data['email'] ?? 'contacto@sire.cl';
-                          _launchUrl('mailto:$email');
-                        },
+                        onPressed: _hasValue(data['email'])
+                            ? () => _launchUrl('mailto:${data['email']}')
+                            : null,
                         icon: const Icon(
                           Icons.email_outlined,
                           color: Color(0xFF1E70CD),
@@ -162,8 +168,11 @@ class _ReceivedReservationsScreenState
                     const SizedBox(width: 16),
                     Expanded(
                       child: OutlinedButton.icon(
-                        onPressed: () =>
-                            _launchUrl('https://wa.me/56912345678'),
+                        onPressed: _hasValue(data['phone'])
+                            ? () => _launchUrl(
+                                'https://wa.me/${_digitsOnly(data['phone']!)}',
+                              )
+                            : null,
                         icon: const Icon(
                           Icons.phone,
                           color: Color(0xFF2E7D32),
@@ -356,13 +365,44 @@ class _ReceivedReservationsScreenState
     ),
   );
 
+  Widget _loadingState() => const Center(child: CircularProgressIndicator());
+
+  Widget _errorState() => Center(
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const Icon(Icons.error_outline, size: 48, color: Color(0xFF94A3B8)),
+        const SizedBox(height: 12),
+        const Text(
+          'No se pudieron cargar las reservas recibidas',
+          style: TextStyle(color: Color(0xFF64748B), fontSize: 16),
+        ),
+        const SizedBox(height: 16),
+        OutlinedButton.icon(
+          onPressed: () => ref.invalidate(receivedReservationsNotifierProvider),
+          icon: const Icon(Icons.refresh),
+          label: const Text('Reintentar'),
+        ),
+      ],
+    ),
+  );
+
+  Widget _emptyState() => Center(
+    child: Padding(
+      padding: const EdgeInsets.symmetric(vertical: 32),
+      child: Text(
+        _showPendientes
+            ? 'No tienes reservas pendientes'
+            : 'No tienes historial de reservas',
+        style: const TextStyle(color: Colors.grey),
+      ),
+    ),
+  );
+
   @override
   Widget build(BuildContext context) {
     final isPublisher = ref.watch(isPublisherProvider);
-    final receivedAsync = ref.watch(receivedReservationsProvider);
-
-    // Use real data when available; fall back to mock when error or loading
-    final realData = receivedAsync.valueOrNull;
+    final receivedAsync = ref.watch(receivedReservationsNotifierProvider);
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -379,21 +419,28 @@ class _ReceivedReservationsScreenState
                     children: [
                       _buildHeader(isWeb: true),
                       Expanded(
-                        child: SingleChildScrollView(
-                          padding: const EdgeInsets.all(32),
-                          child: Wrap(
-                            spacing: 24,
-                            runSpacing: 24,
-                            children:
-                                (_showPendientes
-                                        ? _buildPendientesList(true, realData)
-                                        : _buildHistorialList(true, realData))
+                        child: receivedAsync.when(
+                          loading: _loadingState,
+                          error: (_, _) => _errorState(),
+                          data: (list) {
+                            final items = _showPendientes
+                                ? _buildPendientesList(true, list)
+                                : _buildHistorialList(true, list);
+                            if (items.isEmpty) return _emptyState();
+                            return SingleChildScrollView(
+                              padding: const EdgeInsets.all(32),
+                              child: Wrap(
+                                spacing: 24,
+                                runSpacing: 24,
+                                children: items
                                     .map(
                                       (widget) =>
                                           SizedBox(width: 400, child: widget),
                                     )
                                     .toList(),
-                          ),
+                              ),
+                            );
+                          },
                         ),
                       ),
                     ],
@@ -410,14 +457,19 @@ class _ReceivedReservationsScreenState
             children: [
               _buildHeader(isWeb: false),
               Expanded(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children:
-                        (_showPendientes
-                                ? _buildPendientesList(false, realData)
-                                : _buildHistorialList(false, realData))
+                child: receivedAsync.when(
+                  loading: _loadingState,
+                  error: (_, _) => _errorState(),
+                  data: (list) {
+                    final items = _showPendientes
+                        ? _buildPendientesList(false, list)
+                        : _buildHistorialList(false, list);
+                    if (items.isEmpty) return _emptyState();
+                    return SingleChildScrollView(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: items
                             .map(
                               (widget) => Padding(
                                 padding: const EdgeInsets.only(bottom: 12),
@@ -425,7 +477,9 @@ class _ReceivedReservationsScreenState
                               ),
                             )
                             .toList(),
-                  ),
+                      ),
+                    );
+                  },
                 ),
               ),
             ],
@@ -600,58 +654,34 @@ class _ReceivedReservationsScreenState
     ),
   );
 
-  static const _mockPendientes = [
-    {
-      'id': 'mock-recv-001',
-      'name': 'Carlos Pérez',
-      'pub': 'Cancha de futbol sintetica',
-      'date': 'Jue 15 may',
-      'time': '14:00-15:00',
-      'status': 'Pendiente',
-    },
-    {
-      'id': 'mock-recv-002',
-      'name': 'Ana Ruiz',
-      'pub': 'Cancha de futbol sintetica',
-      'date': 'Vie 16 may',
-      'time': '9:00-10:00',
-      'status': 'Pendiente',
-    },
-  ];
+  /// Muestra un guion cuando el backend no trae el dato: cero datos
+  /// inventados en pantalla.
+  static String _orDash(String? v) => (v == null || v.trim().isEmpty) ? '-' : v;
 
-  static const _mockHistorial = [
-    {
-      'id': 'mock-recv-hist-001',
-      'name': 'Pedro Soto',
-      'pub': 'Cancha de futbol sintetica',
-      'date': 'Lun 5 may',
-      'time': '10:00-11:00',
-      'status': 'Completada',
-    },
-  ];
-
-  List<Widget> _buildPendientesList(bool isWeb, List<Reservation>? realData) {
-    final items = realData != null
-        ? realData
-              .where((r) => r.status == ReservationStatus.pending)
-              .map(
-                (r) => {
-                  'id': r.id,
-                  'name': r.applicantName ?? 'Solicitante',
-                  'pub': r.publicationTitle ?? '',
-                  'date': r.date,
-                  'time': '${r.startTime}-${r.endTime}',
-                  'status': 'Pendiente',
-                },
-              )
-              .toList()
-        : _mockPendientes;
+  List<Widget> _buildPendientesList(bool isWeb, List<Reservation> data) {
+    final items = data
+        .where((r) => r.status == ReservationStatus.pending)
+        .map(
+          (r) => {
+            'id': r.id,
+            'name': r.applicantName ?? 'Solicitante',
+            'email': _orDash(r.applicantEmail),
+            'phone': _orDash(r.applicantPhone),
+            'pub': r.publicationTitle ?? '',
+            'date': r.date,
+            'time': '${r.startTime}-${r.endTime}',
+            'status': 'Pendiente',
+          },
+        )
+        .toList();
 
     return items
         .map(
           (item) => _buildReservationCard(
             id: item['id']!,
             name: item['name']!,
+            email: item['email']!,
+            phone: item['phone']!,
             publication: item['pub']!,
             date: item['date']!,
             time: item['time']!,
@@ -664,28 +694,30 @@ class _ReceivedReservationsScreenState
         .toList();
   }
 
-  List<Widget> _buildHistorialList(bool isWeb, List<Reservation>? realData) {
-    final items = realData != null
-        ? realData
-              .where((r) => r.status != ReservationStatus.pending)
-              .map(
-                (r) => {
-                  'id': r.id,
-                  'name': r.applicantName ?? 'Solicitante',
-                  'pub': r.publicationTitle ?? '',
-                  'date': r.date,
-                  'time': '${r.startTime}-${r.endTime}',
-                  'status': _statusLabel(r.status),
-                },
-              )
-              .toList()
-        : _mockHistorial;
+  List<Widget> _buildHistorialList(bool isWeb, List<Reservation> data) {
+    final items = data
+        .where((r) => r.status != ReservationStatus.pending)
+        .map(
+          (r) => {
+            'id': r.id,
+            'name': r.applicantName ?? 'Solicitante',
+            'email': _orDash(r.applicantEmail),
+            'phone': _orDash(r.applicantPhone),
+            'pub': r.publicationTitle ?? '',
+            'date': r.date,
+            'time': '${r.startTime}-${r.endTime}',
+            'status': _statusLabel(r.status),
+          },
+        )
+        .toList();
 
     return items
         .map(
           (item) => _buildReservationCard(
             id: item['id']!,
             name: item['name']!,
+            email: item['email']!,
+            phone: item['phone']!,
             publication: item['pub']!,
             date: item['date']!,
             time: item['time']!,
@@ -744,6 +776,8 @@ class _ReceivedReservationsScreenState
   Widget _buildReservationCard({
     required String id,
     required String name,
+    required String email,
+    required String phone,
     required String publication,
     required String date,
     required String time,
@@ -755,6 +789,8 @@ class _ReceivedReservationsScreenState
     final data = {
       'id': id,
       'name': name,
+      'email': email,
+      'phone': phone,
       'pub': publication,
       'date': date,
       'time': time,

@@ -246,7 +246,7 @@ void main() {
 
   group('getReceivedReservations y getReservationDetail', () {
     test(
-      'getReceivedReservations 200 -> lista de modelos con applicant',
+      'getReceivedReservations 200 -> lista de modelos con solicitante',
       () async {
         adapter.onGet(
           ApiConstants.reservationsReceived,
@@ -254,7 +254,11 @@ void main() {
             'data': [
               {
                 ...reservationJson(id: 'recv-1', status: 'pending'),
-                'applicant': {'name': 'Carlos Pérez', 'email': 'c@mail.com'},
+                'solicitante': {
+                  'name': 'Carlos Pérez',
+                  'email': 'c@mail.com',
+                  'phone': '+56911112222',
+                },
               },
             ],
           }),
@@ -264,6 +268,8 @@ void main() {
         expect(results, hasLength(1));
         expect(results.first.id, 'recv-1');
         expect(results.first.applicantName, 'Carlos Pérez');
+        expect(results.first.applicantEmail, 'c@mail.com');
+        expect(results.first.applicantPhone, '+56911112222');
       },
     );
 

@@ -7,7 +7,7 @@ part of 'feed_provider.dart';
 // **************************************************************************
 
 String _$feedRemoteDatasourceHash() =>
-    r'a8147dd9594b80a72982eba9bfa39bcb8bad8cad';
+    r'6f5ed9d896c2b020f9b0b0097e9eaac1a6a73bb8';
 
 /// See also [feedRemoteDatasource].
 @ProviderFor(feedRemoteDatasource)
@@ -25,7 +25,7 @@ final feedRemoteDatasourceProvider =
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef FeedRemoteDatasourceRef = AutoDisposeProviderRef<FeedRemoteDatasource>;
-String _$geoDatasourceHash() => r'f4708f4d2d8c7078b2fea0488a2990c0952b76ef';
+String _$geoDatasourceHash() => r'e8b2b3306d94a48ebdfde2426320b34daf3e2966';
 
 /// See also [geoDatasource].
 @ProviderFor(geoDatasource)
@@ -59,7 +59,7 @@ final feedRepositoryProvider = AutoDisposeProvider<FeedRepository>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef FeedRepositoryRef = AutoDisposeProviderRef<FeedRepository>;
-String _$feedNotifierHash() => r'1c359be2a20c61d0547e2d970e4f89fbc84c16a3';
+String _$feedNotifierHash() => r'df9246c17e0677fbf6aa9ea806fd6f78b89847b8';
 
 /// See also [FeedNotifier].
 @ProviderFor(FeedNotifier)
