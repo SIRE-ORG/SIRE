@@ -15,6 +15,55 @@ class LocationScreen extends ConsumerStatefulWidget {
 
 class _LocationScreenState extends ConsumerState<LocationScreen> {
   bool _detecting = false;
+  // true mientras se evalúa si corresponde el salto automático (E): la
+  // pantalla no se dibuja hasta saber si hay que mostrarla.
+  bool _checkingAutoSkip = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _maybeAutoSkip();
+  }
+
+  /// E: si el permiso de ubicación ya está concedido (usuario que vuelve a
+  /// pasar por acá, o reinstaló con permisos ya otorgados a nivel de SO) y
+  /// además hay región cacheada o la detección resuelve, se salta esta
+  /// pantalla y se entra directo a /feed sin requerir el tap de "Permitir
+  /// ubicación". Si el permiso no está concedido, o está pero no hay caché
+  /// ni la detección resuelve, se muestra la pantalla normal.
+  Future<void> _maybeAutoSkip() async {
+    try {
+      final hasPermission = await ref
+          .read(geoDatasourceProvider)
+          .hasLocationPermission();
+      if (!hasPermission) return;
+
+      final cachedRegion = await const LocalStorageService().read(
+        StorageKeys.region,
+      );
+      if (cachedRegion != null && cachedRegion.isNotEmpty) {
+        if (mounted) context.go('/feed');
+        return;
+      }
+
+      // Sin caché pero con permiso ya concedido: la detección debería
+      // resolver sin mostrar ningún diálogo nativo (ya está autorizado).
+      final loc = await ref.read(geoDatasourceProvider).getCurrentLocation();
+      const LocalStorageService()
+          .write(StorageKeys.region, loc.region)
+          .ignore();
+      final city = loc.city;
+      if (city != null && city.isNotEmpty) {
+        const LocalStorageService().write(StorageKeys.city, city).ignore();
+      }
+      if (mounted) context.go('/feed');
+    } catch (_) {
+      // No se pudo resolver en automático: se cae a la pantalla normal,
+      // el usuario decide (permitir de nuevo o elegir manualmente).
+    } finally {
+      if (mounted) setState(() => _checkingAutoSkip = false);
+    }
+  }
 
   /// Pide la ubicación real (dispara el permiso nativo vía Geolocator), cachea
   /// la región y entra al feed. Si falla (denegado / sin soporte), avisa y entra
@@ -77,6 +126,13 @@ class _LocationScreenState extends ConsumerState<LocationScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_checkingAutoSkip) {
+      return const Scaffold(
+        backgroundColor: Color(0xFF1E70CD),
+        body: Center(child: CircularProgressIndicator(color: Colors.white)),
+      );
+    }
+
     return Scaffold(
       backgroundColor: const Color(0xFF1E70CD),
       body: LayoutBuilder(

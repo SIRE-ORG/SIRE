@@ -47,4 +47,16 @@ class GeoDatasourceImpl implements GeoDatasource {
       lon: position.longitude,
     );
   }
+
+  @override
+  Future<bool> hasLocationPermission() async {
+    final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) return false;
+
+    // Solo consulta el estado actual, nunca lo solicita: a diferencia de
+    // getCurrentLocation, esto no debe disparar el diálogo nativo.
+    final permission = await Geolocator.checkPermission();
+    return permission == LocationPermission.whileInUse ||
+        permission == LocationPermission.always;
+  }
 }

@@ -71,6 +71,10 @@ class UnusedGeoDatasource implements GeoDatasource {
   @override
   Future<GeoLocation> getCurrentLocation() =>
       throw StateError('GeoDatasource no debía ser invocado en esta prueba');
+
+  @override
+  Future<bool> hasLocationPermission() =>
+      throw StateError('GeoDatasource no debía ser invocado en esta prueba');
 }
 
 /// FeedRemoteDatasource controlable: responde [response] o lanza [error].
