@@ -353,7 +353,7 @@ npx tsc --noEmit
 
 ### Frontend (Flutter)
 
-La suite actual tiene 510 tests en verde y 1 test omitido intencionalmente
+La suite actual tiene 587 tests en verde y 1 test omitido intencionalmente
 (la Costura B de reservas, que solo se activa contra un backend real; ver
 más abajo).
 
@@ -409,15 +409,17 @@ npm test
 npm run coverage
 ```
 
-Los tests cubren los 3 módulos principales:
+Los tests cubren los 5 módulos principales:
 
 | Archivo | Módulo | Tests |
 |---|---|---|
 | `tests/auth.controller.test.ts` | Autenticación y perfiles | 8 |
-| `tests/publication.controller.test.ts` | Publicaciones | 12 |
-| `tests/reservation.controller.test.ts` | Reservas | 25 |
+| `tests/publication.controller.test.ts` | Publicaciones | 14 |
+| `tests/reservation.controller.test.ts` | Reservas | 23 |
+| `tests/user.controller.test.ts` | Perfiles (PUT /users/me) | 7 |
+| `tests/notification.controller.test.ts` | Notificaciones | 9 |
 
-Total: 45 tests, todos en verde.
+Total: 61 tests, todos en verde.
 
 ---
 
