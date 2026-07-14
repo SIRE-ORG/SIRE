@@ -104,7 +104,8 @@ export const getMyReservations = async (request: FastifyRequest, reply: FastifyR
                     select: {
                         title: true,
                         city: true,
-                        imageUrl: true
+                        imageUrl: true,
+                        owner: { select: { name: true } }
                     }
                 }
             },

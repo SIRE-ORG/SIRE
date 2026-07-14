@@ -1,7 +1,7 @@
 name: sire
-description: "Sistema Integral de Reservas Estratégicas"
+description: "SIRE, Sistema Integral de Reservas Estratégicas: agendamiento y reservas geolocalizadas para negocios locales."
 publish_to: 'none'
-version: 0.1.0+1
+version: 1.0.0+2
 
 environment:
   sdk: ^3.11.3
@@ -67,6 +67,14 @@ dev_dependencies:
   # E2E (cadena real contra backend; opt-in con --dart-define)
   integration_test:
     sdk: flutter
+
+  # Generación de íconos de launcher (Android) desde assets/icons
+  flutter_launcher_icons: ^0.14.1
+
+flutter_launcher_icons:
+  android: true
+  ios: false
+  image_path: "assets/icons/logo_sire_src.png"
 
 flutter:
   uses-material-design: true
