@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:sire/core/network/app_exception.dart';
+import 'package:sire/features/auth/data/datasources/auth_supabase_datasource.dart';
 import 'package:sire/features/auth/domain/entities/auth_result.dart';
 import 'package:sire/features/auth/domain/entities/user_profile.dart';
 import 'package:sire/features/auth/domain/repositories/auth_repository.dart';
@@ -19,6 +20,9 @@ class MockAuthRepository extends Mock implements AuthRepository {}
 
 class MockReservationsRepository extends Mock
     implements ReservationsRepository {}
+
+class MockAuthSupabaseDatasource extends Mock
+    implements AuthSupabaseDatasource {}
 
 const _guestProfile = UserProfile(
   id: 'guest-1',
@@ -41,10 +45,15 @@ const _createdReservation = Reservation(
 void main() {
   late MockAuthRepository authRepo;
   late MockReservationsRepository resRepo;
+  late MockAuthSupabaseDatasource supabaseDs;
 
   setUp(() {
     authRepo = MockAuthRepository();
     resRepo = MockReservationsRepository();
+    supabaseDs = MockAuthSupabaseDatasource();
+    // Por defecto ya hay sesión anónima (caso feliz: welcome la creó):
+    // _ensureSession no necesita llamar signInAnonymously.
+    when(() => supabaseDs.getCurrentUserId()).thenReturn('anon-1');
   });
 
   void suppressOverflow(WidgetTester tester) {
@@ -96,6 +105,7 @@ void main() {
         currentProfileProvider.overrideWith((ref) async => profile),
         authRepositoryProvider.overrideWithValue(authRepo),
         reservationsRepositoryProvider.overrideWithValue(resRepo),
+        authSupabaseDatasourceProvider.overrideWithValue(supabaseDs),
       ],
       child: MaterialApp.router(routerConfig: router),
     );
@@ -237,6 +247,112 @@ void main() {
     );
 
     testWidgets(
+      'sin sesión Supabase, crea la sesión anónima antes de registerGuest '
+      '(F-D)',
+      (tester) async {
+        suppressOverflow(tester);
+        // Sin sesión: welcome pudo fallar o nunca ejecutarse (deep-link,
+        // red móvil).
+        when(() => supabaseDs.getCurrentUserId()).thenReturn(null);
+        when(() => authRepo.signInAnonymously()).thenAnswer((_) async {});
+        when(
+          () => authRepo.registerGuest(
+            name: any(named: 'name'),
+            email: any(named: 'email'),
+            phone: any(named: 'phone'),
+          ),
+        ).thenAnswer(
+          (_) async => const AuthResult(
+            userId: 'guest-1',
+            accountStatus: AccountStatus.guest,
+            userCreated: true,
+          ),
+        );
+        when(
+          () => resRepo.createReservation(
+            publicationId: any(named: 'publicationId'),
+            date: any(named: 'date'),
+            startTime: any(named: 'startTime'),
+            endTime: any(named: 'endTime'),
+          ),
+        ).thenAnswer((_) async => _createdReservation);
+
+        await tester.pumpWidget(
+          buildSubject(eligibility: ReservationEligibility.needsGuestForm),
+        );
+        await tester.pumpAndSettle();
+
+        final fields = find.byType(TextField);
+        await tester.enterText(fields.at(0), 'María Torres');
+        await tester.enterText(fields.at(1), 'maria@correo.com');
+        await tester.enterText(fields.at(2), '+56912345678');
+        await tester.pump();
+
+        await tester.ensureVisible(
+          find.widgetWithText(ElevatedButton, 'Confirmar Reserva'),
+        );
+        await tester.tap(
+          find.widgetWithText(ElevatedButton, 'Confirmar Reserva'),
+        );
+        await tester.pumpAndSettle();
+
+        verify(() => authRepo.signInAnonymously()).called(1);
+        verify(
+          () => authRepo.registerGuest(
+            name: 'María Torres',
+            email: 'maria@correo.com',
+            phone: '+56912345678',
+          ),
+        ).called(1);
+        expect(find.text('¡Reserva confirmada!'), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'sin sesión Supabase y falla signInAnonymously: error claro, no '
+      'llama registerGuest',
+      (tester) async {
+        suppressOverflow(tester);
+        when(() => supabaseDs.getCurrentUserId()).thenReturn(null);
+        when(() => authRepo.signInAnonymously()).thenThrow(NetworkException());
+
+        await tester.pumpWidget(
+          buildSubject(eligibility: ReservationEligibility.needsGuestForm),
+        );
+        await tester.pumpAndSettle();
+
+        final fields = find.byType(TextField);
+        await tester.enterText(fields.at(0), 'María Torres');
+        await tester.enterText(fields.at(1), 'maria@correo.com');
+        await tester.enterText(fields.at(2), '+56912345678');
+        await tester.pump();
+
+        await tester.ensureVisible(
+          find.widgetWithText(ElevatedButton, 'Confirmar Reserva'),
+        );
+        await tester.tap(
+          find.widgetWithText(ElevatedButton, 'Confirmar Reserva'),
+        );
+        await tester.pumpAndSettle();
+
+        expect(
+          find.text(
+            'No se pudo iniciar tu sesión. Revisa tu conexión e intenta '
+            'nuevamente.',
+          ),
+          findsOneWidget,
+        );
+        verifyNever(
+          () => authRepo.registerGuest(
+            name: any(named: 'name'),
+            email: any(named: 'email'),
+            phone: any(named: 'phone'),
+          ),
+        );
+      },
+    );
+
+    testWidgets(
       'correo ya registrado (ConflictException) muestra aviso y no crea '
       'la reserva',
       (tester) async {
@@ -283,55 +399,56 @@ void main() {
       },
     );
 
-    testWidgets('fallo de red al crear la reserva muestra SnackBar de sin conexión', (
-      tester,
-    ) async {
-      suppressOverflow(tester);
-      when(
-        () => authRepo.registerGuest(
-          name: any(named: 'name'),
-          email: any(named: 'email'),
-          phone: any(named: 'phone'),
-        ),
-      ).thenAnswer(
-        (_) async => const AuthResult(
-          userId: 'guest-1',
-          accountStatus: AccountStatus.guest,
-          userCreated: true,
-        ),
-      );
-      when(
-        () => resRepo.createReservation(
-          publicationId: any(named: 'publicationId'),
-          date: any(named: 'date'),
-          startTime: any(named: 'startTime'),
-          endTime: any(named: 'endTime'),
-        ),
-      ).thenThrow(NetworkException());
+    testWidgets(
+      'fallo de red al crear la reserva muestra SnackBar de sin conexión',
+      (tester) async {
+        suppressOverflow(tester);
+        when(
+          () => authRepo.registerGuest(
+            name: any(named: 'name'),
+            email: any(named: 'email'),
+            phone: any(named: 'phone'),
+          ),
+        ).thenAnswer(
+          (_) async => const AuthResult(
+            userId: 'guest-1',
+            accountStatus: AccountStatus.guest,
+            userCreated: true,
+          ),
+        );
+        when(
+          () => resRepo.createReservation(
+            publicationId: any(named: 'publicationId'),
+            date: any(named: 'date'),
+            startTime: any(named: 'startTime'),
+            endTime: any(named: 'endTime'),
+          ),
+        ).thenThrow(NetworkException());
 
-      await tester.pumpWidget(
-        buildSubject(eligibility: ReservationEligibility.needsGuestForm),
-      );
-      await tester.pumpAndSettle();
+        await tester.pumpWidget(
+          buildSubject(eligibility: ReservationEligibility.needsGuestForm),
+        );
+        await tester.pumpAndSettle();
 
-      final fields = find.byType(TextField);
-      await tester.enterText(fields.at(0), 'María Torres');
-      await tester.enterText(fields.at(1), 'maria@correo.com');
-      await tester.enterText(fields.at(2), '+56912345678');
-      await tester.pump();
+        final fields = find.byType(TextField);
+        await tester.enterText(fields.at(0), 'María Torres');
+        await tester.enterText(fields.at(1), 'maria@correo.com');
+        await tester.enterText(fields.at(2), '+56912345678');
+        await tester.pump();
 
-      await tester.ensureVisible(
-        find.widgetWithText(ElevatedButton, 'Confirmar Reserva'),
-      );
-      await tester.tap(
-        find.widgetWithText(ElevatedButton, 'Confirmar Reserva'),
-      );
-      await tester.pumpAndSettle();
+        await tester.ensureVisible(
+          find.widgetWithText(ElevatedButton, 'Confirmar Reserva'),
+        );
+        await tester.tap(
+          find.widgetWithText(ElevatedButton, 'Confirmar Reserva'),
+        );
+        await tester.pumpAndSettle();
 
-      // NetworkException tiene mensaje propio (encargo H6): "sin conexión",
-      // no el genérico.
-      expect(find.textContaining('Sin conexión'), findsOneWidget);
-    });
+        // NetworkException tiene mensaje propio (encargo H6): "sin conexión",
+        // no el genérico.
+        expect(find.textContaining('Sin conexión'), findsOneWidget);
+      },
+    );
 
     testWidgets(
       'fecha del slot no parseable (no ISO) muestra error controlado y no '

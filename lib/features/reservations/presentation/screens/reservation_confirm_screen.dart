@@ -116,6 +116,29 @@ class _ReservationConfirmScreenState
   /// visible sin depender del transporte.
   Object _unwrap(Object e) => e is DioException ? (e.error ?? e) : e;
 
+  /// F-D: garantiza una sesión anónima de Supabase antes de `registerGuest`.
+  /// El guard del router ya no exige sesión para llegar hasta acá (welcome
+  /// pudo fallar o no ejecutarse en red móvil), pero `registerGuest` sí la
+  /// necesita: el backend asocia el invitado al id del usuario anónimo
+  /// (x-user-id). Devuelve `true` si al terminar hay sesión disponible.
+  Future<bool> _ensureSession() async {
+    final hasSession =
+        ref.read(authSupabaseDatasourceProvider).getCurrentUserId() != null;
+    if (hasSession) return true;
+
+    await ref.read(authNotifierProvider.notifier).startAnonymousSession();
+    if (!mounted) return false;
+
+    if (ref.read(authNotifierProvider).hasError) {
+      _snackError(
+        'No se pudo iniciar tu sesión. Revisa tu conexión e intenta '
+        'nuevamente.',
+      );
+      return false;
+    }
+    return true;
+  }
+
   Future<void> _handleConfirm(
     ReservationEligibility elig,
     String? profileEmail,
@@ -137,6 +160,12 @@ class _ReservationConfirmScreenState
     setState(() => _loading = true);
     try {
       if (elig == ReservationEligibility.needsGuestForm) {
+        // F-D: si welcome no llegó a crear la sesión anónima (falló o
+        // nunca se ejecutó, p. ej. reserva iniciada tras deep-link en red
+        // móvil), registerGuest fallaría igual porque necesita el id del
+        // usuario anónimo (x-user-id). Se crea acá antes de continuar.
+        if (!await _ensureSession()) return;
+
         try {
           await ref
               .read(authNotifierProvider.notifier)
@@ -473,11 +502,7 @@ class _ReservationConfirmScreenState
         if (needsForm) ...[
           Row(
             children: const [
-              Icon(
-                Icons.person_add_alt_1,
-                color: Color(0xFF1E70CD),
-                size: 20,
-              ),
+              Icon(Icons.person_add_alt_1, color: Color(0xFF1E70CD), size: 20),
               SizedBox(width: 8),
               Expanded(
                 child: Text(

@@ -12,6 +12,8 @@ import 'package:sire/core/router/app_router.dart';
 import 'package:sire/features/auth/domain/entities/user_profile.dart';
 import 'package:sire/features/auth/presentation/providers/auth_provider.dart';
 import 'package:sire/features/reservations/data/datasources/reservations_remote_datasource_mock_impl.dart';
+import 'package:sire/features/reservations/domain/entities/reservation_eligibility.dart';
+import 'package:sire/features/reservations/presentation/providers/reservation_eligibility_provider.dart';
 import 'package:sire/features/reservations/presentation/providers/reservations_provider.dart';
 
 void main() {
@@ -20,6 +22,7 @@ void main() {
       '/location',
       '/feed',
       '/publication/:id',
+      '/publication/:id/confirm',
       '/login',
       '/register',
       '/verify-otp',
@@ -57,7 +60,7 @@ void main() {
     // `/profile` está acá (y no en "requiere perfil"): un anónimo sin perfil
     // no se redirige en seco a /login, ve un empty-state invitándolo a crear
     // cuenta.
-    const sessionPaths = ['/publication/:id/confirm', '/profile'];
+    const sessionPaths = ['/profile'];
 
     for (final path in sessionPaths) {
       test('$path: sin sesión (status null) -> /login', () {
@@ -209,5 +212,38 @@ void main() {
       expect(find.text('Mis Reservas'), findsWidgets);
       expect(find.text('Bienvenido a SIRE'), findsNothing);
     });
+
+    testWidgets(
+      'sin sesión, /publication/:id/confirm no redirige a /login (F-D)',
+      (tester) async {
+        suppressOverflow(tester);
+        late GoRouter router;
+
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              authStatusProvider.overrideWith((ref) async => null),
+              reservationEligibilityProvider.overrideWith(
+                (ref) async => ReservationEligibility.needsGuestForm,
+              ),
+            ],
+            child: Consumer(
+              builder: (context, ref, _) {
+                router = ref.watch(appRouterProvider);
+                return MaterialApp.router(routerConfig: router);
+              },
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        router.go('/publication/pub-1/confirm');
+        await tester.pumpAndSettle();
+
+        // No lo manda a Welcome/Login: el formulario de invitado se ve.
+        expect(find.text('Bienvenido a SIRE'), findsNothing);
+        expect(find.text('Confirmar Reserva'), findsWidgets);
+      },
+    );
   });
 }
