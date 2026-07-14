@@ -46,26 +46,6 @@ final reservationsRepositoryProvider =
 // ignore: unused_element
 typedef ReservationsRepositoryRef =
     AutoDisposeProviderRef<ReservationsRepository>;
-String _$receivedReservationsHash() =>
-    r'a1d78aa071c36020a66e0f65f5cfa6be395657f9';
-
-/// See also [receivedReservations].
-@ProviderFor(receivedReservations)
-final receivedReservationsProvider =
-    AutoDisposeFutureProvider<List<Reservation>>.internal(
-      receivedReservations,
-      name: r'receivedReservationsProvider',
-      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-          ? null
-          : _$receivedReservationsHash,
-      dependencies: null,
-      allTransitiveDependencies: null,
-    );
-
-@Deprecated('Will be removed in 3.0. Use Ref instead')
-// ignore: unused_element
-typedef ReceivedReservationsRef =
-    AutoDisposeFutureProviderRef<List<Reservation>>;
 String _$reservationDetailHash() => r'5d9bd8057717e9480a891c22ea0f4a2a95d5e397';
 
 /// Copied from Dart SDK

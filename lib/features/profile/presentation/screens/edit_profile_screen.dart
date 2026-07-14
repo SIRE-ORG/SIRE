@@ -41,9 +41,9 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     super.dispose();
   }
 
-  Future<void> _pickImage() async {
+  Future<void> _pickImage(ImageSource source) async {
     final picked = await ImagePicker().pickImage(
-      source: ImageSource.gallery,
+      source: source,
       imageQuality: 80,
       maxWidth: 512,
     );
@@ -54,6 +54,50 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
       _avatarBytes = bytes;
       _avatarExtension = ext.isEmpty ? 'jpg' : ext;
     });
+  }
+
+  /// H: bottom sheet con las dos fuentes de foto (cámara / galería) en vez
+  /// de abrir la galería directo. image_picker gestiona el permiso de
+  /// cámara en runtime en Android moderno.
+  Future<void> _showPhotoSourceSheet() async {
+    final source = await showModalBottomSheet<ImageSource>(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Padding(
+              padding: EdgeInsets.all(16),
+              child: Text(
+                'Foto de perfil',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+            ),
+            ListTile(
+              leading: const Icon(
+                Icons.photo_camera_outlined,
+                color: Color(0xFF1E70CD),
+              ),
+              title: const Text('Tomar foto'),
+              onTap: () => Navigator.of(ctx).pop(ImageSource.camera),
+            ),
+            ListTile(
+              leading: const Icon(
+                Icons.photo_library_outlined,
+                color: Color(0xFF1E70CD),
+              ),
+              title: const Text('Elegir de galería'),
+              onTap: () => Navigator.of(ctx).pop(ImageSource.gallery),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (source == null) return;
+    await _pickImage(source);
   }
 
   Future<void> _handleSave(String userId) async {
@@ -441,7 +485,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   Widget _buildPhotoEditor({String? existingAvatarUrl}) {
     return Center(
       child: GestureDetector(
-        onTap: _pickImage,
+        onTap: _showPhotoSourceSheet,
         child: Stack(
           children: [
             Container(

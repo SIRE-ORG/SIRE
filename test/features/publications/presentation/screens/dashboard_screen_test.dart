@@ -142,4 +142,22 @@ void main() {
       expect(find.text('2'), findsOneWidget);
     },
   );
+
+  // C: dashboard se navega con context.go (reemplaza el stack), así que sin
+  // esta guarda el back físico de Android no tenía ruta previa que hacer
+  // pop y cerraba la app en su lugar.
+  testWidgets('back físico (Android) navega a /feed en vez de cerrar la app', (
+    tester,
+  ) async {
+    setup(tester);
+    await tester.pumpWidget(buildSubject());
+    await tester.pumpAndSettle();
+
+    expect(find.text('Feed'), findsNothing);
+
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+
+    expect(find.text('Feed'), findsOneWidget);
+  });
 }

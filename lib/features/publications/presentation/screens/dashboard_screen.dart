@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/providers/role_provider.dart';
+import '../../../../core/widgets/tab_back_scope.dart';
 import '../../../notifications/presentation/widgets/notification_bell.dart';
 import '../../domain/entities/publication.dart';
 import '../../domain/entities/publication_summary_item.dart';
@@ -37,113 +38,115 @@ class DashboardScreen extends ConsumerWidget {
         ? received.where((r) => r.status == ReservationStatus.completed).length
         : null;
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final isWeb = constraints.maxWidth >= 800;
+    return TabBackToFeed(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final isWeb = constraints.maxWidth >= 800;
 
-        if (isWeb) {
-          return Scaffold(
-            backgroundColor: const Color(0xFFF5F5F5),
-            body: Row(
-              children: [
-                _buildSidebar(context, isPublisher),
-                Expanded(
-                  child: Center(
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 1000),
-                      child: SingleChildScrollView(
-                        padding: const EdgeInsets.all(40.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'Mi Panel',
-                              style: TextStyle(
-                                color: Color(0xFF1E293B),
-                                fontSize: 28,
-                                fontWeight: FontWeight.w900,
+          if (isWeb) {
+            return Scaffold(
+              backgroundColor: const Color(0xFFF5F5F5),
+              body: Row(
+                children: [
+                  _buildSidebar(context, isPublisher),
+                  Expanded(
+                    child: Center(
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 1000),
+                        child: SingleChildScrollView(
+                          padding: const EdgeInsets.all(40.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Mi Panel',
+                                style: TextStyle(
+                                  color: Color(0xFF1E293B),
+                                  fontSize: 28,
+                                  fontWeight: FontWeight.w900,
+                                ),
                               ),
-                            ),
-                            const SizedBox(height: 32),
-                            _buildTopStats(
-                              activeCount,
-                              pendingCount,
-                              completedCount,
-                            ),
-                            const SizedBox(height: 48),
-                            _buildSectionHeader(
-                              'Mis publicaciones',
-                              () => context.push('/my-publications'),
-                            ),
-                            const SizedBox(height: 16),
-                            _buildMyPublicationsList(pubs),
-                            const SizedBox(height: 48),
-                            _buildSectionHeader(
-                              'Reservas recibidas',
-                              () => context.push('/received-reservations'),
-                            ),
-                            const SizedBox(height: 16),
-                            _buildReceivedReservationsList(
-                              received,
-                              isWeb: true,
-                            ),
-                          ],
+                              const SizedBox(height: 32),
+                              _buildTopStats(
+                                activeCount,
+                                pendingCount,
+                                completedCount,
+                              ),
+                              const SizedBox(height: 48),
+                              _buildSectionHeader(
+                                'Mis publicaciones',
+                                () => context.push('/my-publications'),
+                              ),
+                              const SizedBox(height: 16),
+                              _buildMyPublicationsList(pubs),
+                              const SizedBox(height: 48),
+                              _buildSectionHeader(
+                                'Reservas recibidas',
+                                () => context.push('/received-reservations'),
+                              ),
+                              const SizedBox(height: 16),
+                              _buildReceivedReservationsList(
+                                received,
+                                isWeb: true,
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ),
                   ),
-                ),
-              ],
-            ),
-          );
-        } else {
-          return Scaffold(
-            backgroundColor: const Color(0xFFF5F5F5),
-            appBar: AppBar(
-              backgroundColor: const Color(0xFF1E70CD),
-              elevation: 0,
-              title: const Text(
-                'Mi Panel',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 20,
-                ),
-              ),
-              centerTitle: false,
-              actions: const [NotificationBell()],
-            ),
-            body: SingleChildScrollView(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildTopStatsMobile(
-                    activeCount,
-                    pendingCount,
-                    completedCount,
-                  ),
-                  const SizedBox(height: 32),
-                  _buildSectionHeader(
-                    'Mis publicaciones',
-                    () => context.push('/my-publications'),
-                  ),
-                  const SizedBox(height: 16),
-                  _buildMyPublicationsList(pubs),
-                  const SizedBox(height: 32),
-                  _buildSectionHeader(
-                    'Reservas recibidas',
-                    () => context.push('/received-reservations'),
-                  ),
-                  const SizedBox(height: 16),
-                  _buildReceivedReservationsList(received, isWeb: false),
                 ],
               ),
-            ),
-            bottomNavigationBar: _buildBottomNav(context, isPublisher),
-          );
-        }
-      },
+            );
+          } else {
+            return Scaffold(
+              backgroundColor: const Color(0xFFF5F5F5),
+              appBar: AppBar(
+                backgroundColor: const Color(0xFF1E70CD),
+                elevation: 0,
+                title: const Text(
+                  'Mi Panel',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 20,
+                  ),
+                ),
+                centerTitle: false,
+                actions: const [NotificationBell()],
+              ),
+              body: SingleChildScrollView(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildTopStatsMobile(
+                      activeCount,
+                      pendingCount,
+                      completedCount,
+                    ),
+                    const SizedBox(height: 32),
+                    _buildSectionHeader(
+                      'Mis publicaciones',
+                      () => context.push('/my-publications'),
+                    ),
+                    const SizedBox(height: 16),
+                    _buildMyPublicationsList(pubs),
+                    const SizedBox(height: 32),
+                    _buildSectionHeader(
+                      'Reservas recibidas',
+                      () => context.push('/received-reservations'),
+                    ),
+                    const SizedBox(height: 16),
+                    _buildReceivedReservationsList(received, isWeb: false),
+                  ],
+                ),
+              ),
+              bottomNavigationBar: _buildBottomNav(context, isPublisher),
+            );
+          }
+        },
+      ),
     );
   }
 

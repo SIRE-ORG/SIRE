@@ -5,7 +5,11 @@ import 'package:go_router/go_router.dart';
 import 'package:sire/features/reservations/presentation/screens/received_reservation_detail_screen.dart';
 
 void main() {
-  Widget buildSubject({required String status}) {
+  Widget buildSubject({
+    required String status,
+    String? applicantEmail = 'carlosperez@mail.com',
+    String? applicantPhone = '+56912345678',
+  }) {
     final mockRouter = GoRouter(
       initialLocation: '/received-detail',
       routes: [
@@ -14,6 +18,8 @@ void main() {
           builder: (_, _) => ReceivedReservationDetailScreen(
             id: 'mock-recv-001',
             applicantName: 'Carlos Pérez',
+            applicantEmail: applicantEmail,
+            applicantPhone: applicantPhone,
             publication: 'Cancha de fútbol sintética',
             date: 'Jue 15 may',
             time: '14:00-15:00',
@@ -65,12 +71,44 @@ void main() {
     expect(find.text('Cancha de fútbol sintética'), findsWidgets);
     expect(find.text('Jue 15 may'), findsOneWidget);
     expect(find.text('14:00-15:00'), findsOneWidget);
+    expect(find.text('carlosperez@mail.com'), findsOneWidget);
+    expect(find.text('+56912345678'), findsOneWidget);
 
     addTearDown(() {
       tester.view.resetPhysicalSize();
       FlutterError.onError = originalOnError;
     });
   });
+
+  testWidgets(
+    'ReceivedReservationDetailScreen sin correo/teléfono muestra guion, no datos inventados',
+    (WidgetTester tester) async {
+      final originalOnError = FlutterError.onError;
+      FlutterError.onError = (FlutterErrorDetails details) {
+        if (details.exceptionAsString().contains('overflowed')) return;
+        originalOnError?.call(details);
+      };
+      tester.view.physicalSize = const Size(1080, 2400);
+
+      await tester.pumpWidget(
+        buildSubject(
+          status: 'pendiente',
+          applicantEmail: null,
+          applicantPhone: null,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('carlosperez@mail.com'), findsNothing);
+      expect(find.text('+56912345678'), findsNothing);
+      expect(find.text('-'), findsWidgets);
+
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        FlutterError.onError = originalOnError;
+      });
+    },
+  );
 
   testWidgets(
     'ReceivedReservationDetailScreen pendiente muestra botones de acción',

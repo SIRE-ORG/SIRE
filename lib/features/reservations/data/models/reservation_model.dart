@@ -12,8 +12,10 @@ class ReservationModel {
     this.publicationTitle,
     this.publicationCity,
     this.publicationImageUrl,
+    this.publicationOwnerName,
     this.applicantName,
     this.applicantEmail,
+    this.applicantPhone,
   });
 
   final String id;
@@ -26,16 +28,22 @@ class ReservationModel {
   final String? publicationTitle;
   final String? publicationCity;
   final String? publicationImageUrl;
+  final String? publicationOwnerName;
   final String? applicantName;
   final String? applicantEmail;
+  final String? applicantPhone;
 
   factory ReservationModel.fromJson(Map<String, dynamic> json) {
     // publication solo se incluye en GET /mine; en create/update está ausente.
     final pub =
         (json['publication'] as Map?)?.cast<String, dynamic>() ?? const {};
-    // applicant se incluye en GET /received
+    // El backend incluye al solicitante bajo la clave 'solicitante' en
+    // GET /received (select: name, email, phone). Se acepta 'applicant'
+    // como alias defensivo por si el payload cambia de nombre.
     final applicant =
-        (json['applicant'] as Map?)?.cast<String, dynamic>() ?? const {};
+        (json['solicitante'] as Map?)?.cast<String, dynamic>() ??
+        (json['applicant'] as Map?)?.cast<String, dynamic>() ??
+        const {};
     return ReservationModel(
       id: json['id'] as String,
       publicationId: json['publicationId'] as String,
@@ -47,8 +55,16 @@ class ReservationModel {
       publicationTitle: pub['title'] as String?,
       publicationCity: pub['city'] as String?,
       publicationImageUrl: pub['imageUrl'] as String?,
-      applicantName: applicant['name'] as String? ?? json['applicantName'] as String?,
-      applicantEmail: applicant['email'] as String? ?? json['applicantEmail'] as String?,
+      // El backend aún no incluye el dueño en GET /mine (solo
+      // title/city/imageUrl); se lee de forma defensiva para el día que lo
+      // agregue, sin inventar el dato mientras tanto.
+      publicationOwnerName: pub['ownerName'] as String?,
+      applicantName:
+          applicant['name'] as String? ?? json['applicantName'] as String?,
+      applicantEmail:
+          applicant['email'] as String? ?? json['applicantEmail'] as String?,
+      applicantPhone:
+          applicant['phone'] as String? ?? json['applicantPhone'] as String?,
     );
   }
 
@@ -63,7 +79,9 @@ class ReservationModel {
     publicationTitle: publicationTitle,
     publicationCity: publicationCity,
     publicationImageUrl: publicationImageUrl,
+    publicationOwnerName: publicationOwnerName,
     applicantName: applicantName,
     applicantEmail: applicantEmail,
+    applicantPhone: applicantPhone,
   );
 }

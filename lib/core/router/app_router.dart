@@ -36,12 +36,19 @@ part 'app_router.g.dart';
 // resuelta, para que los path params no rompan la comparación.
 // ---------------------------------------------------------------------------
 
-/// No requieren ningún tipo de sesión.
+/// No requieren ningún tipo de sesión. `/publication/:id/confirm` está acá
+/// (y no en `_requiresSessionPaths`) a propósito: en red móvil el
+/// `signInAnonymously` de welcome puede fallar o tardar, y el usuario llega
+/// a confirmar sin sesión. Antes el guard lo mandaba a /login, rompiendo el
+/// diseño de 3 fases (ANON -> GUEST -> ACTIVE); ahora la propia pantalla de
+/// confirmación crea la sesión anónima si hace falta antes de registrar al
+/// invitado (ver `_ensureSession` en reservation_confirm_screen.dart).
 const _publicPaths = {
   '/',
   '/location',
   '/feed',
   '/publication/:id',
+  '/publication/:id/confirm',
   '/login',
   '/register',
   '/verify-otp',
@@ -49,11 +56,10 @@ const _publicPaths = {
   '/forgot-password',
 };
 
-/// Requieren sesión (una sesión anónima de Supabase basta) - confirmar una
-/// reserva puede hacerlo un anónimo, que completa el form de invitado ahí
-/// mismo. `/profile` también: un anónimo sin perfil ve un empty-state
-/// invitándolo a crear cuenta en vez de un redirect en seco a /login.
-const _requiresSessionPaths = {'/publication/:id/confirm', '/profile'};
+/// Requieren sesión (una sesión anónima de Supabase basta). `/profile`: un
+/// anónimo sin perfil ve un empty-state invitándolo a crear cuenta en vez
+/// de un redirect en seco a /login.
+const _requiresSessionPaths = {'/profile'};
 
 /// Requieren `AccountStatus.active` (lado publicador: gestión de
 /// publicaciones y de las reservas que recibe).
@@ -220,6 +226,8 @@ GoRouter appRouter(Ref ref) {
         builder: (context, state) => ReceivedReservationDetailScreen(
           id: state.uri.queryParameters['id'] ?? '',
           applicantName: state.uri.queryParameters['name'] ?? '',
+          applicantEmail: state.uri.queryParameters['email'],
+          applicantPhone: state.uri.queryParameters['phone'],
           publication: state.uri.queryParameters['pub'] ?? '',
           date: state.uri.queryParameters['date'] ?? '',
           time: state.uri.queryParameters['time'] ?? '',

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -327,4 +328,95 @@ void main() {
       expect(notifier.regionCalls, ['Región del Maule']);
     },
   );
+
+  group('C: doble back para salir', () {
+    testWidgets('primer back no cierra la app: muestra el SnackBar de aviso', (
+      WidgetTester tester,
+    ) async {
+      final originalOnError = FlutterError.onError;
+      FlutterError.onError = (FlutterErrorDetails details) {
+        if (details.exceptionAsString().contains('overflowed')) return;
+        originalOnError?.call(details);
+      };
+      tester.view.physicalSize = const Size(1080, 2400);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+        FlutterError.onError = originalOnError;
+      });
+
+      var exitCalled = false;
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SystemChannels.platform,
+        (call) async {
+          if (call.method == 'SystemNavigator.pop') exitCalled = true;
+          return null;
+        },
+      );
+      addTearDown(() {
+        tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+          SystemChannels.platform,
+          null,
+        );
+      });
+
+      await tester.pumpWidget(_buildSubject());
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      await tester.binding.handlePopRoute();
+      await tester.pump();
+
+      expect(find.text('Presiona atrás de nuevo para salir'), findsOneWidget);
+      expect(exitCalled, isFalse);
+      // Sigue en el feed: el primer back no navega a ningún lado.
+      expect(find.text('Explorar'), findsWidgets);
+    });
+
+    testWidgets('segundo back dentro de la ventana cierra la app', (
+      WidgetTester tester,
+    ) async {
+      final originalOnError = FlutterError.onError;
+      FlutterError.onError = (FlutterErrorDetails details) {
+        if (details.exceptionAsString().contains('overflowed')) return;
+        originalOnError?.call(details);
+      };
+      tester.view.physicalSize = const Size(1080, 2400);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+        FlutterError.onError = originalOnError;
+      });
+
+      var exitCalled = false;
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SystemChannels.platform,
+        (call) async {
+          if (call.method == 'SystemNavigator.pop') exitCalled = true;
+          return null;
+        },
+      );
+      addTearDown(() {
+        tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+          SystemChannels.platform,
+          null,
+        );
+      });
+
+      await tester.pumpWidget(_buildSubject());
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      await tester.binding.handlePopRoute();
+      await tester.pump();
+      expect(exitCalled, isFalse);
+
+      await tester.binding.handlePopRoute();
+      await tester.pump();
+
+      expect(exitCalled, isTrue);
+    });
+  });
 }

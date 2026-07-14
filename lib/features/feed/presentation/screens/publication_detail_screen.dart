@@ -376,6 +376,15 @@ class _PublicationDetailScreenState
     );
   }
 
+  /// region/city de la publicación (el ícono de ubicación mostraba antes
+  /// `ownerName` por error: bug de mapeos cruzados con
+  /// reservation_detail_screen).
+  String _locationLabel(Publication pub) {
+    final city = pub.city;
+    if (city != null && city.trim().isNotEmpty) return city;
+    return pub.region;
+  }
+
   Widget _buildBlueBanner(Publication pub, {required bool isWeb}) {
     final categoryLabel = _pubCategoryLabel(pub.category);
     return Container(
@@ -423,6 +432,26 @@ class _PublicationDetailScreenState
                   children: [
                     Icon(
                       Icons.location_on,
+                      color: Colors.white.withValues(alpha: 0.8),
+                      size: 14,
+                    ),
+                    const SizedBox(width: 4),
+                    Expanded(
+                      child: Text(
+                        _locationLabel(pub),
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.8),
+                          fontSize: isWeb ? 14 : 12,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    Icon(
+                      Icons.storefront_outlined,
                       color: Colors.white.withValues(alpha: 0.8),
                       size: 14,
                     ),

@@ -29,6 +29,9 @@ class _StubGeoDatasource implements GeoDatasource {
 
   @override
   Future<GeoLocation> getCurrentLocation() async => location;
+
+  @override
+  Future<bool> hasLocationPermission() async => true;
 }
 
 void main() {

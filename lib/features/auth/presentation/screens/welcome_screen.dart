@@ -15,23 +15,38 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
   bool _cargando = false;
 
   Future<void> _comenzar() async {
+    // Con la operación ya en vuelo, un segundo tap no vuelve a disparar
+    // signInAnonymously ni a re-entrar en este flujo.
+    if (_cargando) return;
     setState(() => _cargando = true);
     try {
-      await ref.read(authNotifierProvider.notifier).startAnonymousSession();
-      if (!mounted) return;
-
-      if (ref.read(authNotifierProvider).hasError) {
-        // El feed es público: si la sesión anónima falla, se avisa pero se
-        // navega igual (no bloquea la exploración).
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('No se pudo iniciar sesión; puedes seguir igual'),
-          ),
-        );
-      }
-      context.push('/location');
+      // En red móvil signInAnonymously puede fallar o demorar mucho; un
+      // timeout corto evita que el usuario quede varado en "Comenzando..."
+      // sin poder avanzar. Ninguna pantalla del primer tramo del flujo
+      // (/location, /publication/:id/confirm) exige sesión, así que
+      // navegar sin ella es seguro.
+      await ref
+          .read(authNotifierProvider.notifier)
+          .startAnonymousSession()
+          .timeout(const Duration(seconds: 6), onTimeout: () {});
     } finally {
-      if (mounted) setState(() => _cargando = false);
+      // La navegación va en el `finally`, no encadenada tras el await: así
+      // se ejecuta siempre que la pantalla siga montada, sea cual sea el
+      // desenlace de la sesión anónima (éxito, error u timeout) en vez de
+      // depender de que el flujo feliz llegue intacto hasta el final.
+      if (mounted) {
+        if (ref.read(authNotifierProvider).hasError) {
+          // El feed es público: si la sesión anónima falla, se avisa pero se
+          // navega igual (no bloquea la exploración).
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('No se pudo iniciar sesión; puedes seguir igual'),
+            ),
+          );
+        }
+        setState(() => _cargando = false);
+        context.push('/location');
+      }
     }
   }
 
@@ -164,9 +179,7 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
         const SizedBox(height: 40),
         CustomButton(
           text: _cargando ? 'Comenzando...' : 'Comenzar',
-          onPressed: () {
-            if (!_cargando) _comenzar();
-          },
+          onPressed: _comenzar,
         ),
         const SizedBox(height: 20),
         Row(

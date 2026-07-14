@@ -8,6 +8,8 @@ import '../providers/reservations_provider.dart';
 class ReceivedReservationDetailScreen extends ConsumerStatefulWidget {
   final String id;
   final String applicantName;
+  final String? applicantEmail;
+  final String? applicantPhone;
   final String publication;
   final String date;
   final String time;
@@ -17,6 +19,8 @@ class ReceivedReservationDetailScreen extends ConsumerStatefulWidget {
     super.key,
     required this.id,
     required this.applicantName,
+    this.applicantEmail,
+    this.applicantPhone,
     required this.publication,
     required this.date,
     required this.time,
@@ -61,6 +65,19 @@ class _ReceivedReservationDetailScreenState
       if (mounted) _showSnackBar('No se pudo abrir la aplicación');
     }
   }
+
+  /// `true` cuando el dato viene real del backend (no es null ni vacío).
+  static bool _hasValue(String? v) => v != null && v.trim().isNotEmpty;
+
+  static String _digitsOnly(String v) => v.replaceAll(RegExp(r'[^0-9]'), '');
+
+  /// Muestra un guion cuando el backend no trae el dato: cero datos
+  /// inventados en pantalla.
+  String get _displayEmail =>
+      _hasValue(widget.applicantEmail) ? widget.applicantEmail! : '-';
+
+  String get _displayPhone =>
+      _hasValue(widget.applicantPhone) ? widget.applicantPhone! : '-';
 
   @override
   Widget build(BuildContext context) {
@@ -122,14 +139,16 @@ class _ReceivedReservationDetailScreenState
                             ),
                           ),
                           const SizedBox(height: 20),
-                          _buildField('Nombre', widget.applicantName),
-                          const SizedBox(height: 16),
                           _buildField(
-                            'Correo',
-                            '${widget.applicantName.toLowerCase().replaceAll(' ', '').replaceAll('é', 'e')}@mail.com',
+                            'Nombre',
+                            widget.applicantName.isNotEmpty
+                                ? widget.applicantName
+                                : '-',
                           ),
                           const SizedBox(height: 16),
-                          _buildField('Teléfono', '+56912345678'),
+                          _buildField('Correo', _displayEmail),
+                          const SizedBox(height: 16),
+                          _buildField('Teléfono', _displayPhone),
                         ],
                       ),
                     ),
@@ -190,10 +209,11 @@ class _ReceivedReservationDetailScreenState
                       children: [
                         Expanded(
                           child: OutlinedButton.icon(
-                            onPressed: () {
-                              final email = '${widget.applicantName.toLowerCase().replaceAll(' ', '').replaceAll('é', 'e')}@mail.com';
-                              _launchUrl('mailto:$email');
-                            },
+                            onPressed: _hasValue(widget.applicantEmail)
+                                ? () => _launchUrl(
+                                    'mailto:${widget.applicantEmail}',
+                                  )
+                                : null,
                             icon: const Icon(
                               Icons.email_outlined,
                               color: Color(0xFF1E70CD),
@@ -215,7 +235,11 @@ class _ReceivedReservationDetailScreenState
                         const SizedBox(width: 16),
                         Expanded(
                           child: OutlinedButton.icon(
-                            onPressed: () => _launchUrl('https://wa.me/56912345678'),
+                            onPressed: _hasValue(widget.applicantPhone)
+                                ? () => _launchUrl(
+                                    'https://wa.me/${_digitsOnly(widget.applicantPhone!)}',
+                                  )
+                                : null,
                             icon: const Icon(
                               Icons.phone,
                               color: Color(0xFF2E7D32),

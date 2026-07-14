@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/providers/role_provider.dart';
+import '../../../../core/widgets/tab_back_scope.dart';
 import '../../domain/entities/reservation.dart';
 import '../providers/reservations_provider.dart';
 
@@ -158,12 +159,15 @@ class _MyReservationsScreenState extends ConsumerState<MyReservationsScreen> {
                               try {
                                 await ref
                                     .read(
-                                      reservationActionNotifierProvider.notifier,
+                                      reservationActionNotifierProvider
+                                          .notifier,
                                     )
                                     .cancel(id: data['id'] ?? '');
                               } catch (_) {
                                 if (mounted) {
-                                  ScaffoldMessenger.of(this.context).showSnackBar(
+                                  ScaffoldMessenger.of(
+                                    this.context,
+                                  ).showSnackBar(
                                     const SnackBar(
                                       content: Text(
                                         'No se pudo cancelar la reserva',
@@ -302,7 +306,10 @@ class _MyReservationsScreenState extends ConsumerState<MyReservationsScreen> {
             onTap: () => _handleReservationTap(context, isWeb, {
               'id': r.id,
               'title': r.publicationTitle ?? 'Reserva',
-              'publisher': r.publicationCity ?? '',
+              // Autor real de la publicación (dueño), nunca la ciudad: B
+              // corrige el cruce ubicación/autor. Sin dato del backend
+              // (GET /mine aún no lo incluye) se muestra un guion.
+              'publisher': r.publicationOwnerName ?? '-',
               'date': r.date,
               'time': '${r.startTime} - ${r.endTime}',
               'status': 'Pendiente',
@@ -352,7 +359,10 @@ class _MyReservationsScreenState extends ConsumerState<MyReservationsScreen> {
         onTap: () => _handleReservationTap(context, isWeb, {
           'id': r.id,
           'title': r.publicationTitle ?? 'Reserva',
-          'publisher': r.publicationCity ?? '',
+          // Autor real de la publicación (dueño), nunca la ciudad: B
+          // corrige el cruce ubicación/autor. Sin dato del backend
+          // (GET /mine aún no lo incluye) se muestra un guion.
+          'publisher': r.publicationOwnerName ?? '-',
           'date': r.date,
           'time': '${r.startTime} - ${r.endTime}',
           'status': label,
@@ -366,102 +376,108 @@ class _MyReservationsScreenState extends ConsumerState<MyReservationsScreen> {
     final isPublisher = ref.watch(isPublisherProvider);
     final reservationsAsync = ref.watch(myReservationsNotifierProvider);
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final isWeb = constraints.maxWidth >= 800;
+    return TabBackToFeed(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final isWeb = constraints.maxWidth >= 800;
 
-        if (isWeb) {
-          return Scaffold(
-            backgroundColor: const Color(0xFFF5F5F5),
-            body: Row(
-              children: [
-                _buildSidebar(context, isPublisher),
-                Expanded(
-                  child: Column(
-                    children: [
-                      _buildHeader(isWeb: true),
-                      Expanded(
-                        child: reservationsAsync.when(
-                          loading: () =>
-                              const Center(child: CircularProgressIndicator()),
-                          error: (_, _) => _errorState(),
-                          data: (list) => list.isEmpty
-                              ? _emptyState()
-                              : SingleChildScrollView(
-                                  padding: const EdgeInsets.all(32),
-                                  child: Wrap(
-                                    spacing: 24,
-                                    runSpacing: 24,
-                                    children:
-                                        (_showActivas
-                                                ? _reservationsToActivas(
-                                                    list,
-                                                    isWeb,
-                                                  )
-                                                : _reservationsToHistorial(
-                                                    list,
-                                                    isWeb,
-                                                  ))
-                                            .map(
-                                              (w) => SizedBox(
-                                                width: 400,
-                                                child: w,
-                                              ),
-                                            )
-                                            .toList(),
-                                  ),
-                                ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          );
-        } else {
-          return Scaffold(
-            backgroundColor: const Color(0xFFF5F5F5),
-            body: Column(
-              children: [
-                _buildHeader(isWeb: false),
-                Expanded(
-                  child: reservationsAsync.when(
-                    loading: () =>
-                        const Center(child: CircularProgressIndicator()),
-                    error: (_, _) => _errorState(),
-                    data: (list) => list.isEmpty
-                        ? _emptyState()
-                        : SingleChildScrollView(
-                            padding: const EdgeInsets.all(16),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children:
-                                  (_showActivas
-                                          ? _reservationsToActivas(list, isWeb)
-                                          : _reservationsToHistorial(
-                                              list,
-                                              isWeb,
-                                            ))
-                                      .map(
-                                        (w) => Padding(
-                                          padding: const EdgeInsets.only(
-                                            bottom: 12,
-                                          ),
-                                          child: w,
-                                        ),
-                                      )
-                                      .toList(),
+          if (isWeb) {
+            return Scaffold(
+              backgroundColor: const Color(0xFFF5F5F5),
+              body: Row(
+                children: [
+                  _buildSidebar(context, isPublisher),
+                  Expanded(
+                    child: Column(
+                      children: [
+                        _buildHeader(isWeb: true),
+                        Expanded(
+                          child: reservationsAsync.when(
+                            loading: () => const Center(
+                              child: CircularProgressIndicator(),
                             ),
+                            error: (_, _) => _errorState(),
+                            data: (list) => list.isEmpty
+                                ? _emptyState()
+                                : SingleChildScrollView(
+                                    padding: const EdgeInsets.all(32),
+                                    child: Wrap(
+                                      spacing: 24,
+                                      runSpacing: 24,
+                                      children:
+                                          (_showActivas
+                                                  ? _reservationsToActivas(
+                                                      list,
+                                                      isWeb,
+                                                    )
+                                                  : _reservationsToHistorial(
+                                                      list,
+                                                      isWeb,
+                                                    ))
+                                              .map(
+                                                (w) => SizedBox(
+                                                  width: 400,
+                                                  child: w,
+                                                ),
+                                              )
+                                              .toList(),
+                                    ),
+                                  ),
                           ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              ],
-            ),
-            bottomNavigationBar: _buildBottomNav(context, isPublisher),
-          );
-        }
-      },
+                ],
+              ),
+            );
+          } else {
+            return Scaffold(
+              backgroundColor: const Color(0xFFF5F5F5),
+              body: Column(
+                children: [
+                  _buildHeader(isWeb: false),
+                  Expanded(
+                    child: reservationsAsync.when(
+                      loading: () =>
+                          const Center(child: CircularProgressIndicator()),
+                      error: (_, _) => _errorState(),
+                      data: (list) => list.isEmpty
+                          ? _emptyState()
+                          : SingleChildScrollView(
+                              padding: const EdgeInsets.all(16),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children:
+                                    (_showActivas
+                                            ? _reservationsToActivas(
+                                                list,
+                                                isWeb,
+                                              )
+                                            : _reservationsToHistorial(
+                                                list,
+                                                isWeb,
+                                              ))
+                                        .map(
+                                          (w) => Padding(
+                                            padding: const EdgeInsets.only(
+                                              bottom: 12,
+                                            ),
+                                            child: w,
+                                          ),
+                                        )
+                                        .toList(),
+                              ),
+                            ),
+                    ),
+                  ),
+                ],
+              ),
+              bottomNavigationBar: _buildBottomNav(context, isPublisher),
+            );
+          }
+        },
+      ),
     );
   }
 
