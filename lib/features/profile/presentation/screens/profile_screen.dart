@@ -33,16 +33,21 @@ class ProfileScreen extends ConsumerWidget {
     final email = profile.email;
 
     final avatarUrl = profile.avatarUrl;
-    final pubCount =
-        ref.watch(myPublicationsNotifierProvider).value?.length ?? 0;
-    final myRes = ref.watch(myReservationsNotifierProvider).value ?? [];
-    final received =
-        ref.watch(receivedReservationsNotifierProvider).value ?? [];
-    final totalReservations = myRes.length;
-    final completedCount = myRes
-        .where((r) => r.status == ReservationStatus.completed)
-        .length;
-    final receivedCount = received.length;
+    final pubsAsync = ref.watch(myPublicationsNotifierProvider);
+    final myResAsync = ref.watch(myReservationsNotifierProvider);
+    final receivedAsync = ref.watch(receivedReservationsNotifierProvider);
+    final myRes = myResAsync.value ?? [];
+    final received = receivedAsync.value ?? [];
+
+    // hasValue (no .value directo) distingue "todavía sin cargar" de "cero
+    // real": antes se colapsaba con `?? 0` y el panel mostraba estadísticas
+    // en cero al entrar hasta que otra pantalla disparaba el mismo fetch.
+    final pubCount = pubsAsync.hasValue ? pubsAsync.value!.length : null;
+    final totalReservations = myResAsync.hasValue ? myRes.length : null;
+    final completedCount = myResAsync.hasValue
+        ? myRes.where((r) => r.status == ReservationStatus.completed).length
+        : null;
+    final receivedCount = receivedAsync.hasValue ? received.length : null;
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -356,10 +361,10 @@ class ProfileScreen extends ConsumerWidget {
     required String email,
     required AccountStatus? status,
     String? avatarUrl,
-    required int pubCount,
-    required int receivedCount,
-    required int totalReservations,
-    required int completedCount,
+    required int? pubCount,
+    required int? receivedCount,
+    required int? totalReservations,
+    required int? completedCount,
   }) {
     return Container(
       width: double.infinity,
@@ -464,10 +469,10 @@ class ProfileScreen extends ConsumerWidget {
     required String email,
     required AccountStatus? status,
     String? avatarUrl,
-    required int pubCount,
-    required int receivedCount,
-    required int totalReservations,
-    required int completedCount,
+    required int? pubCount,
+    required int? receivedCount,
+    required int? totalReservations,
+    required int? completedCount,
   }) {
     return Container(
       padding: const EdgeInsets.all(32),
@@ -728,33 +733,29 @@ class ProfileScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildSolicitanteStatsWeb(int total, int completed) => Row(
+  Widget _buildSolicitanteStatsWeb(int? total, int? completed) => Row(
     children: [
       Expanded(
-        child: _WebStatCard('$total', 'Reservas Totales', Icons.calendar_today),
+        child: _WebStatCard(total, 'Reservas Totales', Icons.calendar_today),
       ),
       const SizedBox(width: 16),
       Expanded(
         child: _WebStatCard(
-          '$completed',
+          completed,
           'Completadas',
           Icons.check_circle_outline,
         ),
       ),
     ],
   );
-  Widget _buildPublisherStatsWeb(int pubs, int received) => Row(
+  Widget _buildPublisherStatsWeb(int? pubs, int? received) => Row(
     children: [
       Expanded(
-        child: _WebStatCard('$pubs', 'Publicaciones', Icons.corporate_fare),
+        child: _WebStatCard(pubs, 'Publicaciones', Icons.corporate_fare),
       ),
       const SizedBox(width: 16),
       Expanded(
-        child: _WebStatCard(
-          '$received',
-          'Reservas Recibidas',
-          Icons.receipt_long,
-        ),
+        child: _WebStatCard(received, 'Reservas Recibidas', Icons.receipt_long),
       ),
     ],
   );
@@ -882,27 +883,38 @@ class ProfileScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildSolicitanteStatsMobile(int total, int completed) => Row(
+  Widget _buildSolicitanteStatsMobile(int? total, int? completed) => Row(
     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
     children: [
-      _buildStatItem('$total', 'Reservas'),
-      _buildStatItem('$completed', 'Completadas'),
+      _buildStatItem(total, 'Reservas'),
+      _buildStatItem(completed, 'Completadas'),
     ],
   );
-  Widget _buildPublisherStatsMobile(int pubs) => Row(
+  Widget _buildPublisherStatsMobile(int? pubs) => Row(
     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-    children: [_buildStatItem('$pubs', 'Publicaciones')],
+    children: [_buildStatItem(pubs, 'Publicaciones')],
   );
-  Widget _buildStatItem(String value, String label) => Column(
+  // value == null: dato todavía sin cargar (ver comentario en el build()
+  // sobre hasValue); se muestra un loading en vez de un "0" falso.
+  Widget _buildStatItem(int? value, String label) => Column(
     children: [
-      Text(
-        value,
-        style: const TextStyle(
-          fontSize: 24,
-          fontWeight: FontWeight.bold,
-          color: Colors.white,
-        ),
-      ),
+      value == null
+          ? const SizedBox(
+              width: 18,
+              height: 18,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: Colors.white,
+              ),
+            )
+          : Text(
+              '$value',
+              style: const TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
       const SizedBox(height: 4),
       Text(label, style: const TextStyle(color: Colors.white70, fontSize: 14)),
     ],
@@ -1052,7 +1064,10 @@ class ProfileScreen extends ConsumerWidget {
 }
 
 class _WebStatCard extends StatelessWidget {
-  final String value, label;
+  // value == null: dato todavía sin cargar (ver comentario en el build()
+  // sobre hasValue); se muestra un loading en vez de un "0" falso.
+  final int? value;
+  final String label;
   final IconData icon;
   const _WebStatCard(this.value, this.label, this.icon);
   @override
@@ -1079,16 +1094,22 @@ class _WebStatCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  value,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.w900,
-                    color: Color(0xFF1E293B),
-                  ),
-                ),
+                value == null
+                    ? const SizedBox(
+                        width: 22,
+                        height: 22,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : Text(
+                        '$value',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.w900,
+                          color: Color(0xFF1E293B),
+                        ),
+                      ),
                 Text(
                   label,
                   maxLines: 1,

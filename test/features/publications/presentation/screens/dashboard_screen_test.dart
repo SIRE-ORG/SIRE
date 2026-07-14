@@ -103,4 +103,43 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('SIRE'), findsOneWidget);
   });
+
+  // S3-1 (regresión): al entrar directo al dashboard, las stats mostraban
+  // "0 publicaciones activas" hasta que otra pantalla (my_publications)
+  // disparara el fetch del mismo provider y dejara el valor en caché.
+  testWidgets(
+    'muestra el conteo real de las stats al entrar, sin visitar el listado '
+    'antes',
+    (tester) async {
+      setup(tester);
+      await tester.pumpWidget(buildSubject());
+      await tester.pumpAndSettle();
+
+      // Datos del mock: 2 publicaciones propias (1 activa), 3 reservas
+      // recibidas (2 pendientes, 1 completada). "1" aparece en Publicaciones
+      // Activas y en Completadas; "2" solo en Pendientes por revisar.
+      expect(find.text('1'), findsNWidgets(2));
+      expect(find.text('2'), findsOneWidget);
+      expect(find.text('0'), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'mientras carga muestra loading en las stats y nunca un 0 falso',
+    (tester) async {
+      setup(tester);
+      await tester.pumpWidget(buildSubject());
+
+      // Primer frame: los providers aún están en AsyncLoading (el fetch del
+      // mock resuelve en el siguiente ciclo). Antes del fix acá se veía "0".
+      expect(find.text('0'), findsNothing);
+      expect(find.byType(CircularProgressIndicator), findsNWidgets(3));
+
+      // Al resolver el fetch, los spinners dan paso a los conteos reales.
+      await tester.pumpAndSettle();
+      expect(find.byType(CircularProgressIndicator), findsNothing);
+      expect(find.text('1'), findsNWidgets(2));
+      expect(find.text('2'), findsOneWidget);
+    },
+  );
 }

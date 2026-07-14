@@ -21,11 +21,21 @@ class DashboardScreen extends ConsumerWidget {
     final pubs = pubsAsync.value ?? [];
     final received = receivedAsync.value ?? [];
 
-    final activeCount = pubs.where((p) => p.isActive).length;
-    final pendingCount =
-        received.where((r) => r.status == ReservationStatus.pending).length;
-    final completedCount =
-        received.where((r) => r.status == ReservationStatus.completed).length;
+    // hasValue (no .value directo) distingue "todavía sin cargar" (loading
+    // inicial, sin dato previo) de "ya cargó, cero real": antes esto se
+    // colapsaba con `?? []`, así que el dashboard mostraba "0 publicaciones
+    // activas" en cada entrada hasta que otra pantalla (my_publications, que
+    // sí distinguía loading) disparaba el mismo fetch y dejaba el valor en
+    // caché del provider.
+    final activeCount = pubsAsync.hasValue
+        ? pubs.where((p) => p.isActive).length
+        : null;
+    final pendingCount = receivedAsync.hasValue
+        ? received.where((r) => r.status == ReservationStatus.pending).length
+        : null;
+    final completedCount = receivedAsync.hasValue
+        ? received.where((r) => r.status == ReservationStatus.completed).length
+        : null;
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -55,7 +65,11 @@ class DashboardScreen extends ConsumerWidget {
                               ),
                             ),
                             const SizedBox(height: 32),
-                            _buildTopStats(activeCount, pendingCount, completedCount),
+                            _buildTopStats(
+                              activeCount,
+                              pendingCount,
+                              completedCount,
+                            ),
                             const SizedBox(height: 48),
                             _buildSectionHeader(
                               'Mis publicaciones',
@@ -69,7 +83,10 @@ class DashboardScreen extends ConsumerWidget {
                               () => context.push('/received-reservations'),
                             ),
                             const SizedBox(height: 16),
-                            _buildReceivedReservationsList(received, isWeb: true),
+                            _buildReceivedReservationsList(
+                              received,
+                              isWeb: true,
+                            ),
                           ],
                         ),
                       ),
@@ -101,7 +118,11 @@ class DashboardScreen extends ConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildTopStatsMobile(activeCount, pendingCount, completedCount),
+                  _buildTopStatsMobile(
+                    activeCount,
+                    pendingCount,
+                    completedCount,
+                  ),
                   const SizedBox(height: 32),
                   _buildSectionHeader(
                     'Mis publicaciones',
@@ -197,12 +218,12 @@ class DashboardScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildTopStats(int active, int pending, int completed) {
+  Widget _buildTopStats(int? active, int? pending, int? completed) {
     return Row(
       children: [
         Expanded(
           child: _buildStatCard(
-            '$active',
+            active,
             'Publicaciones\nActivas',
             const Color(0xFFE3F2FD),
             const Color(0xFF1E70CD),
@@ -211,7 +232,7 @@ class DashboardScreen extends ConsumerWidget {
         const SizedBox(width: 24),
         Expanded(
           child: _buildStatCard(
-            '$pending',
+            pending,
             'Pendientes\npor revisar',
             const Color(0xFFFFF3E0),
             const Color(0xFFE65100),
@@ -220,7 +241,7 @@ class DashboardScreen extends ConsumerWidget {
         const SizedBox(width: 24),
         Expanded(
           child: _buildStatCard(
-            '$completed',
+            completed,
             'Completadas',
             const Color(0xFFE8F5E9),
             const Color(0xFF2E7D32),
@@ -230,14 +251,14 @@ class DashboardScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildTopStatsMobile(int active, int pending, int completed) {
+  Widget _buildTopStatsMobile(int? active, int? pending, int? completed) {
     return Column(
       children: [
         Row(
           children: [
             Expanded(
               child: _buildStatCard(
-                '$active',
+                active,
                 'Publicaciones\nActivas',
                 const Color(0xFFE3F2FD),
                 const Color(0xFF1E70CD),
@@ -246,7 +267,7 @@ class DashboardScreen extends ConsumerWidget {
             const SizedBox(width: 16),
             Expanded(
               child: _buildStatCard(
-                '$pending',
+                pending,
                 'Pendientes\npor revisar',
                 const Color(0xFFFFF3E0),
                 const Color(0xFFE65100),
@@ -259,7 +280,7 @@ class DashboardScreen extends ConsumerWidget {
           children: [
             Expanded(
               child: _buildStatCard(
-                '$completed',
+                completed,
                 'Completadas',
                 const Color(0xFFE8F5E9),
                 const Color(0xFF2E7D32),
@@ -272,7 +293,7 @@ class DashboardScreen extends ConsumerWidget {
   }
 
   Widget _buildStatCard(
-    String value,
+    int? value,
     String label,
     Color bgColor,
     Color textColor,
@@ -286,14 +307,31 @@ class DashboardScreen extends ConsumerWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Text(
-            value,
-            style: TextStyle(
-              color: textColor,
-              fontSize: 32,
-              fontWeight: FontWeight.w900,
-            ),
-          ),
+          // value == null: todavía no llegó el dato real (primer fetch en
+          // vuelo). Antes acá se mostraba "0" indistinguible de un cero
+          // real; ahora se muestra un loading explícito.
+          value == null
+              ? SizedBox(
+                  height: 32,
+                  child: Center(
+                    child: SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: textColor,
+                      ),
+                    ),
+                  ),
+                )
+              : Text(
+                  '$value',
+                  style: TextStyle(
+                    color: textColor,
+                    fontSize: 32,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
           const SizedBox(height: 8),
           Text(
             label,
@@ -422,8 +460,9 @@ class DashboardScreen extends ConsumerWidget {
     List<Reservation> reservations, {
     required bool isWeb,
   }) {
-    final pending =
-        reservations.where((r) => r.status == ReservationStatus.pending).toList();
+    final pending = reservations
+        .where((r) => r.status == ReservationStatus.pending)
+        .toList();
     if (pending.isEmpty) {
       return const Padding(
         padding: EdgeInsets.symmetric(vertical: 16),
@@ -545,11 +584,7 @@ String _catLabel(PublicationCategory cat) => switch (cat) {
 };
 
 (String, Color, Color) _statusInfo(ReservationStatus s) => switch (s) {
-  ReservationStatus.pending => (
-    'Nueva',
-    Color(0xFFE3F2FD),
-    Color(0xFF1E70CD),
-  ),
+  ReservationStatus.pending => ('Nueva', Color(0xFFE3F2FD), Color(0xFF1E70CD)),
   ReservationStatus.completed => (
     'Completada',
     Color(0xFFE8F5E9),
@@ -565,9 +600,5 @@ String _catLabel(PublicationCategory cat) => switch (cat) {
     Color(0xFFFFEBEE),
     Color(0xFFC62828),
   ),
-  ReservationStatus.failed => (
-    'Fallida',
-    Color(0xFFFFEBEE),
-    Color(0xFFC62828),
-  ),
+  ReservationStatus.failed => ('Fallida', Color(0xFFFFEBEE), Color(0xFFC62828)),
 };
