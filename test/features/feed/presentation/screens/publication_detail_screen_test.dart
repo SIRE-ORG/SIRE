@@ -111,6 +111,9 @@ void main() {
     await pumpScreen(tester);
 
     expect(find.text('Cancha de fútbol El Estadio'), findsOneWidget);
+    // Ubicación (ícono de pin) y autor (ícono de tienda) son campos
+    // distintos: antes el pin mostraba por error el nombre del publicador.
+    expect(find.text('Temuco'), findsOneWidget);
     expect(find.text('Pedro González'), findsOneWidget);
 
     addTearDown(() {

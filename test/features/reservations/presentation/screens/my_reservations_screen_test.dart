@@ -32,6 +32,19 @@ const _completed = Reservation(
   publicationTitle: 'Consultorio de kinesiología',
 );
 
+const _pendingConAutor = Reservation(
+  id: '3',
+  publicationId: 'pub-3',
+  date: 'Hoy',
+  startTime: '09:00',
+  endTime: '10:00',
+  status: ReservationStatus.pending,
+  createdAt: '2026-01-01',
+  publicationTitle: 'Cancha techada',
+  publicationCity: 'Temuco',
+  publicationOwnerName: 'Club Deportivo Temuco',
+);
+
 void main() {
   setUpAll(() {
     registerFallbackValue(ReservationStatus.pending);
@@ -187,26 +200,87 @@ void main() {
     });
   });
 
-  testWidgets('MyReservationsScreen sin pendientes muestra Sin reservas activas', (
-    WidgetTester tester,
-  ) async {
-    final originalOnError = FlutterError.onError;
-    FlutterError.onError = (FlutterErrorDetails details) {
-      if (details.exceptionAsString().contains('overflowed')) return;
-      originalOnError?.call(details);
-    };
-    tester.view.physicalSize = const Size(390, 844);
+  testWidgets(
+    'MyReservationsScreen sin pendientes muestra Sin reservas activas',
+    (WidgetTester tester) async {
+      final originalOnError = FlutterError.onError;
+      FlutterError.onError = (FlutterErrorDetails details) {
+        if (details.exceptionAsString().contains('overflowed')) return;
+        originalOnError?.call(details);
+      };
+      tester.view.physicalSize = const Size(390, 844);
 
-    await tester.pumpWidget(buildSubject(seed: [_completed]));
-    await tester.pumpAndSettle();
+      await tester.pumpWidget(buildSubject(seed: [_completed]));
+      await tester.pumpAndSettle();
 
-    expect(find.text('Sin reservas activas'), findsOneWidget);
+      expect(find.text('Sin reservas activas'), findsOneWidget);
 
-    addTearDown(() {
-      tester.view.resetPhysicalSize();
-      FlutterError.onError = originalOnError;
-    });
-  });
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        FlutterError.onError = originalOnError;
+      });
+    },
+  );
+
+  testWidgets(
+    'MyReservationsScreen detalle web muestra el autor real (dueño), no la '
+    'ciudad (B)',
+    (WidgetTester tester) async {
+      final originalOnError = FlutterError.onError;
+      FlutterError.onError = (FlutterErrorDetails details) {
+        if (details.exceptionAsString().contains('overflowed')) return;
+        originalOnError?.call(details);
+      };
+      tester.view.physicalSize = const Size(1280, 800);
+      tester.view.devicePixelRatio = 1.0;
+
+      await tester.pumpWidget(buildSubject(seed: [_pendingConAutor]));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Cancha techada').first);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Club Deportivo Temuco'), findsOneWidget);
+      // La ciudad ('Temuco') no debe aparecer bajo el campo Publicador: ese
+      // era el cruce del bug (ubicación mostrada como autor).
+      expect(find.text('Temuco'), findsNothing);
+
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+        FlutterError.onError = originalOnError;
+      });
+    },
+  );
+
+  testWidgets(
+    'MyReservationsScreen detalle web sin autor del backend muestra guion, '
+    'no la ciudad',
+    (WidgetTester tester) async {
+      final originalOnError = FlutterError.onError;
+      FlutterError.onError = (FlutterErrorDetails details) {
+        if (details.exceptionAsString().contains('overflowed')) return;
+        originalOnError?.call(details);
+      };
+      tester.view.physicalSize = const Size(1280, 800);
+      tester.view.devicePixelRatio = 1.0;
+
+      await tester.pumpWidget(buildSubject(seed: [_pending]));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Cancha de fútbol sintética').first);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Publicador'), findsOneWidget);
+      expect(find.text('-'), findsWidgets);
+
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+        FlutterError.onError = originalOnError;
+      });
+    },
+  );
 
   testWidgets('MyReservationsScreen toca tarjeta de reserva activa', (
     WidgetTester tester,

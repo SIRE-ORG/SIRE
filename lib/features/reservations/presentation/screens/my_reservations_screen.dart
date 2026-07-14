@@ -158,12 +158,15 @@ class _MyReservationsScreenState extends ConsumerState<MyReservationsScreen> {
                               try {
                                 await ref
                                     .read(
-                                      reservationActionNotifierProvider.notifier,
+                                      reservationActionNotifierProvider
+                                          .notifier,
                                     )
                                     .cancel(id: data['id'] ?? '');
                               } catch (_) {
                                 if (mounted) {
-                                  ScaffoldMessenger.of(this.context).showSnackBar(
+                                  ScaffoldMessenger.of(
+                                    this.context,
+                                  ).showSnackBar(
                                     const SnackBar(
                                       content: Text(
                                         'No se pudo cancelar la reserva',
@@ -302,7 +305,10 @@ class _MyReservationsScreenState extends ConsumerState<MyReservationsScreen> {
             onTap: () => _handleReservationTap(context, isWeb, {
               'id': r.id,
               'title': r.publicationTitle ?? 'Reserva',
-              'publisher': r.publicationCity ?? '',
+              // Autor real de la publicación (dueño), nunca la ciudad: B
+              // corrige el cruce ubicación/autor. Sin dato del backend
+              // (GET /mine aún no lo incluye) se muestra un guion.
+              'publisher': r.publicationOwnerName ?? '-',
               'date': r.date,
               'time': '${r.startTime} - ${r.endTime}',
               'status': 'Pendiente',
@@ -352,7 +358,10 @@ class _MyReservationsScreenState extends ConsumerState<MyReservationsScreen> {
         onTap: () => _handleReservationTap(context, isWeb, {
           'id': r.id,
           'title': r.publicationTitle ?? 'Reserva',
-          'publisher': r.publicationCity ?? '',
+          // Autor real de la publicación (dueño), nunca la ciudad: B
+          // corrige el cruce ubicación/autor. Sin dato del backend
+          // (GET /mine aún no lo incluye) se muestra un guion.
+          'publisher': r.publicationOwnerName ?? '-',
           'date': r.date,
           'time': '${r.startTime} - ${r.endTime}',
           'status': label,

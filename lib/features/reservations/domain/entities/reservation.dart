@@ -22,6 +22,7 @@ class Reservation extends Equatable {
     this.publicationTitle,
     this.publicationCity,
     this.publicationImageUrl,
+    this.publicationOwnerName,
     this.applicantName,
     this.applicantEmail,
     this.applicantPhone,
@@ -37,6 +38,12 @@ class Reservation extends Equatable {
   final String? publicationTitle;
   final String? publicationCity;
   final String? publicationImageUrl;
+
+  /// Nombre del dueño/publicador de la publicación reservada (autor). El
+  /// backend hoy no lo incluye en GET /mine (solo title/city/imageUrl); se
+  /// deja preparado para cuando lo agregue. Mientras tanto queda `null` y
+  /// la UI muestra un guion en vez de inventar el dato.
+  final String? publicationOwnerName;
   final String? applicantName;
   final String? applicantEmail;
   final String? applicantPhone;
@@ -53,6 +60,7 @@ class Reservation extends Equatable {
     publicationTitle,
     publicationCity,
     publicationImageUrl,
+    publicationOwnerName,
     applicantName,
     applicantEmail,
     applicantPhone,

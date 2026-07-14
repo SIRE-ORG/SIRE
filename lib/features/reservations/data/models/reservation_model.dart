@@ -12,6 +12,7 @@ class ReservationModel {
     this.publicationTitle,
     this.publicationCity,
     this.publicationImageUrl,
+    this.publicationOwnerName,
     this.applicantName,
     this.applicantEmail,
     this.applicantPhone,
@@ -27,6 +28,7 @@ class ReservationModel {
   final String? publicationTitle;
   final String? publicationCity;
   final String? publicationImageUrl;
+  final String? publicationOwnerName;
   final String? applicantName;
   final String? applicantEmail;
   final String? applicantPhone;
@@ -53,6 +55,10 @@ class ReservationModel {
       publicationTitle: pub['title'] as String?,
       publicationCity: pub['city'] as String?,
       publicationImageUrl: pub['imageUrl'] as String?,
+      // El backend aún no incluye el dueño en GET /mine (solo
+      // title/city/imageUrl); se lee de forma defensiva para el día que lo
+      // agregue, sin inventar el dato mientras tanto.
+      publicationOwnerName: pub['ownerName'] as String?,
       applicantName:
           applicant['name'] as String? ?? json['applicantName'] as String?,
       applicantEmail:
@@ -73,6 +79,7 @@ class ReservationModel {
     publicationTitle: publicationTitle,
     publicationCity: publicationCity,
     publicationImageUrl: publicationImageUrl,
+    publicationOwnerName: publicationOwnerName,
     applicantName: applicantName,
     applicantEmail: applicantEmail,
     applicantPhone: applicantPhone,
