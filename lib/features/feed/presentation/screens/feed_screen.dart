@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/chile_regions.dart';
 import '../../../../core/providers/role_provider.dart';
+import '../../../../core/widgets/tab_back_scope.dart';
 import '../../../notifications/presentation/screens/notifications_screen.dart';
 import '../../../notifications/presentation/widgets/notification_bell.dart';
 import '../../../publications/domain/entities/publication.dart';
@@ -178,64 +179,66 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
     final isPublisher = ref.watch(isPublisherProvider);
     final feedAsync = ref.watch(feedNotifierProvider);
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final isWeb = constraints.maxWidth >= 800;
+    return DoubleBackToExit(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final isWeb = constraints.maxWidth >= 800;
 
-        if (isWeb) {
-          return Scaffold(
-            backgroundColor: const Color(0xFFF5F5F5),
-            body: Row(
-              children: [
-                _buildSidebar(context, isPublisher),
-                Expanded(
-                  child: Column(
-                    children: [
-                      _buildHeader(context, isWeb: true),
-                      _buildCategories(),
-                      Expanded(
-                        child: feedAsync.when(
-                          loading: () => const Center(
-                            child: CircularProgressIndicator(
-                              color: Color(0xFF1E70CD),
+          if (isWeb) {
+            return Scaffold(
+              backgroundColor: const Color(0xFFF5F5F5),
+              body: Row(
+                children: [
+                  _buildSidebar(context, isPublisher),
+                  Expanded(
+                    child: Column(
+                      children: [
+                        _buildHeader(context, isWeb: true),
+                        _buildCategories(),
+                        Expanded(
+                          child: feedAsync.when(
+                            loading: () => const Center(
+                              child: CircularProgressIndicator(
+                                color: Color(0xFF1E70CD),
+                              ),
                             ),
+                            error: (e, _) => _buildError(context),
+                            data: (feed) =>
+                                _buildGrid(context, _filterLocally(feed.items)),
                           ),
-                          error: (e, _) => _buildError(context),
-                          data: (feed) =>
-                              _buildGrid(context, _filterLocally(feed.items)),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            );
+          } else {
+            return Scaffold(
+              backgroundColor: const Color(0xFFF5F5F5),
+              body: Column(
+                children: [
+                  _buildHeader(context, isWeb: false),
+                  _buildCategories(),
+                  Expanded(
+                    child: feedAsync.when(
+                      loading: () => const Center(
+                        child: CircularProgressIndicator(
+                          color: Color(0xFF1E70CD),
                         ),
                       ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          );
-        } else {
-          return Scaffold(
-            backgroundColor: const Color(0xFFF5F5F5),
-            body: Column(
-              children: [
-                _buildHeader(context, isWeb: false),
-                _buildCategories(),
-                Expanded(
-                  child: feedAsync.when(
-                    loading: () => const Center(
-                      child: CircularProgressIndicator(
-                        color: Color(0xFF1E70CD),
-                      ),
+                      error: (e, _) => _buildError(context),
+                      data: (feed) =>
+                          _buildList(context, _filterLocally(feed.items)),
                     ),
-                    error: (e, _) => _buildError(context),
-                    data: (feed) =>
-                        _buildList(context, _filterLocally(feed.items)),
                   ),
-                ),
-              ],
-            ),
-            bottomNavigationBar: _buildBottomNav(context, isPublisher),
-          );
-        }
-      },
+                ],
+              ),
+              bottomNavigationBar: _buildBottomNav(context, isPublisher),
+            );
+          }
+        },
+      ),
     );
   }
 

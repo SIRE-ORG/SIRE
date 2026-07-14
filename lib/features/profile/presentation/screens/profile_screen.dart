@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../../../core/providers/role_provider.dart';
+import '../../../../core/widgets/tab_back_scope.dart';
 import '../../../auth/domain/entities/user_profile.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../publications/presentation/providers/my_publications_provider.dart';
@@ -23,7 +24,7 @@ class ProfileScreen extends ConsumerWidget {
     // guard de /profile en app_router.dart ya permite entrar acá con una
     // sesión anónima (antes redirigía en seco a /login).
     if (profile == null) {
-      return _buildEmptyState(context);
+      return TabBackToFeed(child: _buildEmptyState(context));
     }
 
     // authStatusProvider distingue "anónimo" (sesión sin perfil) de
@@ -49,110 +50,112 @@ class ProfileScreen extends ConsumerWidget {
         : null;
     final receivedCount = receivedAsync.hasValue ? received.length : null;
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final isWeb = constraints.maxWidth >= 800;
+    return TabBackToFeed(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final isWeb = constraints.maxWidth >= 800;
 
-        if (isWeb) {
-          return Scaffold(
-            backgroundColor: const Color(0xFFF5F5F5),
-            body: Row(
-              children: [
-                _buildSidebar(context, isPublisher),
-                Expanded(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.all(48.0),
-                    child: Center(
-                      child: ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 1100),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'Mi Perfil',
-                              style: TextStyle(
-                                color: Color(0xFF1E293B),
-                                fontSize: 28,
-                                fontWeight: FontWeight.w900,
+          if (isWeb) {
+            return Scaffold(
+              backgroundColor: const Color(0xFFF5F5F5),
+              body: Row(
+                children: [
+                  _buildSidebar(context, isPublisher),
+                  Expanded(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.all(48.0),
+                      child: Center(
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 1100),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Mi Perfil',
+                                style: TextStyle(
+                                  color: Color(0xFF1E293B),
+                                  fontSize: 28,
+                                  fontWeight: FontWeight.w900,
+                                ),
                               ),
-                            ),
-                            const SizedBox(height: 40),
-                            Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Expanded(
-                                  flex: 3,
-                                  child: _buildMainInfoCard(
-                                    context,
-                                    ref,
-                                    isPublisher,
-                                    nombre: nombre,
-                                    email: email,
-                                    status: status,
-                                    isWeb: true,
-                                    avatarUrl: avatarUrl,
-                                    pubCount: pubCount,
-                                    receivedCount: receivedCount,
-                                    totalReservations: totalReservations,
-                                    completedCount: completedCount,
+                              const SizedBox(height: 40),
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Expanded(
+                                    flex: 3,
+                                    child: _buildMainInfoCard(
+                                      context,
+                                      ref,
+                                      isPublisher,
+                                      nombre: nombre,
+                                      email: email,
+                                      status: status,
+                                      isWeb: true,
+                                      avatarUrl: avatarUrl,
+                                      pubCount: pubCount,
+                                      receivedCount: receivedCount,
+                                      totalReservations: totalReservations,
+                                      completedCount: completedCount,
+                                    ),
                                   ),
-                                ),
-                                const SizedBox(width: 32),
-                                Expanded(
-                                  flex: 2,
-                                  child: _buildActionsCard(
-                                    context,
-                                    ref,
-                                    isPublisher,
+                                  const SizedBox(width: 32),
+                                  Expanded(
+                                    flex: 2,
+                                    child: _buildActionsCard(
+                                      context,
+                                      ref,
+                                      isPublisher,
+                                    ),
                                   ),
-                                ),
-                              ],
-                            ),
-                          ],
+                                ],
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ),
                   ),
-                ),
-              ],
-            ),
-          );
-        } else {
-          return Scaffold(
-            backgroundColor: const Color(0xFFF5F5F5),
-            body: Column(
-              children: [
-                _buildHeader(
-                  context,
-                  isPublisher,
-                  isWeb: false,
-                  nombre: nombre,
-                  email: email,
-                  status: status,
-                  avatarUrl: avatarUrl,
-                  pubCount: pubCount,
-                  receivedCount: receivedCount,
-                  totalReservations: totalReservations,
-                  completedCount: completedCount,
-                ),
-                Expanded(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.all(24),
-                    child: Column(
-                      children: [
-                        _buildModeSelector(ref, isPublisher),
-                        const SizedBox(height: 32),
-                        _buildMenuMobile(context, ref, isPublisher),
-                      ],
+                ],
+              ),
+            );
+          } else {
+            return Scaffold(
+              backgroundColor: const Color(0xFFF5F5F5),
+              body: Column(
+                children: [
+                  _buildHeader(
+                    context,
+                    isPublisher,
+                    isWeb: false,
+                    nombre: nombre,
+                    email: email,
+                    status: status,
+                    avatarUrl: avatarUrl,
+                    pubCount: pubCount,
+                    receivedCount: receivedCount,
+                    totalReservations: totalReservations,
+                    completedCount: completedCount,
+                  ),
+                  Expanded(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.all(24),
+                      child: Column(
+                        children: [
+                          _buildModeSelector(ref, isPublisher),
+                          const SizedBox(height: 32),
+                          _buildMenuMobile(context, ref, isPublisher),
+                        ],
+                      ),
                     ),
                   ),
-                ),
-              ],
-            ),
-            bottomNavigationBar: _buildBottomNav(context, isPublisher),
-          );
-        }
-      },
+                ],
+              ),
+              bottomNavigationBar: _buildBottomNav(context, isPublisher),
+            );
+          }
+        },
+      ),
     );
   }
 
