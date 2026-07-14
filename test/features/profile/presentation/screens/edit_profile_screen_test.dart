@@ -439,4 +439,32 @@ void main() {
       },
     );
   });
+
+  group('H: foto desde cámara o galería', () {
+    testWidgets(
+      'tocar el avatar ofrece Tomar foto y Elegir de galería (no abre la '
+      'galería directo)',
+      (WidgetTester tester) async {
+        final originalOnError = FlutterError.onError;
+        FlutterError.onError = (FlutterErrorDetails details) {
+          if (details.exceptionAsString().contains('overflowed')) return;
+          originalOnError?.call(details);
+        };
+        tester.view.physicalSize = const Size(1080, 2400);
+        addTearDown(() {
+          tester.view.resetPhysicalSize();
+          FlutterError.onError = originalOnError;
+        });
+
+        await tester.pumpWidget(buildSubject());
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.byIcon(Icons.camera_alt_outlined));
+        await tester.pumpAndSettle();
+
+        expect(find.text('Tomar foto'), findsOneWidget);
+        expect(find.text('Elegir de galería'), findsOneWidget);
+      },
+    );
+  });
 }
