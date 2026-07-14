@@ -44,7 +44,14 @@ class ProfileScreen extends ConsumerWidget {
     // real": antes se colapsaba con `?? 0` y el panel mostraba estadísticas
     // en cero al entrar hasta que otra pantalla disparaba el mismo fetch.
     final pubCount = pubsAsync.hasValue ? pubsAsync.value!.length : null;
-    final totalReservations = myResAsync.hasValue ? myRes.length : null;
+    // G: "activas" solo cuenta reservas en curso (pending); antes sumaba
+    // TODAS las reservas (incluidas completadas/canceladas/rechazadas/
+    // fallidas), así que una reserva ya completada seguía contando acá
+    // ademas de en "Completadas" (1 completada mostraba 1 "hecha" en vez
+    // de 0).
+    final activeReservationsCount = myResAsync.hasValue
+        ? myRes.where((r) => r.status == ReservationStatus.pending).length
+        : null;
     final completedCount = myResAsync.hasValue
         ? myRes.where((r) => r.status == ReservationStatus.completed).length
         : null;
@@ -95,7 +102,8 @@ class ProfileScreen extends ConsumerWidget {
                                       avatarUrl: avatarUrl,
                                       pubCount: pubCount,
                                       receivedCount: receivedCount,
-                                      totalReservations: totalReservations,
+                                      totalReservations:
+                                          activeReservationsCount,
                                       completedCount: completedCount,
                                     ),
                                   ),
@@ -134,7 +142,7 @@ class ProfileScreen extends ConsumerWidget {
                     avatarUrl: avatarUrl,
                     pubCount: pubCount,
                     receivedCount: receivedCount,
-                    totalReservations: totalReservations,
+                    totalReservations: activeReservationsCount,
                     completedCount: completedCount,
                   ),
                   Expanded(
@@ -738,9 +746,7 @@ class ProfileScreen extends ConsumerWidget {
 
   Widget _buildSolicitanteStatsWeb(int? total, int? completed) => Row(
     children: [
-      Expanded(
-        child: _WebStatCard(total, 'Reservas Totales', Icons.calendar_today),
-      ),
+      Expanded(child: _WebStatCard(total, 'Activas', Icons.calendar_today)),
       const SizedBox(width: 16),
       Expanded(
         child: _WebStatCard(
@@ -889,7 +895,7 @@ class ProfileScreen extends ConsumerWidget {
   Widget _buildSolicitanteStatsMobile(int? total, int? completed) => Row(
     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
     children: [
-      _buildStatItem(total, 'Reservas'),
+      _buildStatItem(total, 'Activas'),
       _buildStatItem(completed, 'Completadas'),
     ],
   );

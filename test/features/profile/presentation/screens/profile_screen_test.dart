@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:mocktail/mocktail.dart';
 import 'package:sire/features/auth/domain/entities/user_profile.dart';
 import 'package:sire/features/auth/presentation/providers/auth_provider.dart';
 import 'package:sire/features/profile/presentation/screens/profile_screen.dart';
@@ -9,6 +10,8 @@ import 'package:sire/core/providers/role_provider.dart';
 import 'package:sire/features/publications/data/datasources/publications_remote_datasource_mock_impl.dart';
 import 'package:sire/features/publications/presentation/providers/my_publications_provider.dart';
 import 'package:sire/features/reservations/data/datasources/reservations_remote_datasource_mock_impl.dart';
+import 'package:sire/features/reservations/domain/entities/reservation.dart';
+import 'package:sire/features/reservations/domain/repositories/reservations_repository.dart';
 import 'package:sire/features/reservations/presentation/providers/reservations_provider.dart';
 
 const _kProfile = UserProfile(
@@ -19,11 +22,15 @@ const _kProfile = UserProfile(
   emailVerified: true,
 );
 
+class _MockReservationsRepository extends Mock
+    implements ReservationsRepository {}
+
 void main() {
   Widget buildSubject({
     bool isPublisher = false,
     bool withProfile = true,
     bool anon = false,
+    ReservationsRepository? reservationsRepo,
   }) {
     final mockRouter = GoRouter(
       initialLocation: '/profile',
@@ -72,6 +79,8 @@ void main() {
         reservationsRemoteDatasourceProvider.overrideWithValue(
           ReservationsRemoteDatasourceMockImpl(),
         ),
+        if (reservationsRepo != null)
+          reservationsRepositoryProvider.overrideWithValue(reservationsRepo),
       ],
       child: MaterialApp.router(routerConfig: mockRouter),
     );
@@ -221,5 +230,70 @@ void main() {
 
     expect(find.text('Cuenta activa'), findsOneWidget);
     expect(find.text('Invitado'), findsNothing);
+  });
+
+  group('G: estadística "Activas" excluye completadas', () {
+    const completada = Reservation(
+      id: 'r1',
+      publicationId: 'pub-1',
+      date: '2026-01-01',
+      startTime: '10:00',
+      endTime: '11:00',
+      status: ReservationStatus.completed,
+      createdAt: '2026-01-01',
+    );
+
+    testWidgets(
+      '1 reserva completada y ninguna pendiente -> Activas muestra 0',
+      (tester) async {
+        setup(tester, size: const Size(390, 2400));
+
+        final repo = _MockReservationsRepository();
+        when(
+          () => repo.getMyReservations(),
+        ).thenAnswer((_) async => [completada]);
+        // ProfileScreen también observa el lado publicador (recibidas).
+        when(() => repo.getReceivedReservations()).thenAnswer((_) async => []);
+
+        await tester.pumpWidget(buildSubject(reservationsRepo: repo));
+        await tester.pumpAndSettle();
+
+        expect(find.text('Activas'), findsOneWidget);
+        expect(find.text('Completadas'), findsOneWidget);
+        // Ambos contadores están en la misma fila: "0" (Activas) y "1"
+        // (Completadas) deben coexistir, no "1" en ambos.
+        expect(find.text('0'), findsOneWidget);
+        expect(find.text('1'), findsOneWidget);
+      },
+    );
+
+    testWidgets('reserva pendiente cuenta como activa, la completada no', (
+      tester,
+    ) async {
+      setup(tester, size: const Size(390, 2400));
+
+      const pendiente = Reservation(
+        id: 'r2',
+        publicationId: 'pub-2',
+        date: '2026-01-02',
+        startTime: '09:00',
+        endTime: '10:00',
+        status: ReservationStatus.pending,
+        createdAt: '2026-01-01',
+      );
+      final repo = _MockReservationsRepository();
+      when(
+        () => repo.getMyReservations(),
+      ).thenAnswer((_) async => [pendiente, completada]);
+      when(() => repo.getReceivedReservations()).thenAnswer((_) async => []);
+
+      await tester.pumpWidget(buildSubject(reservationsRepo: repo));
+      await tester.pumpAndSettle();
+
+      // 1 activa (la pendiente) y 1 completada: ninguno de los dos
+      // contadores duplica a la otra.
+      expect(find.text('1'), findsNWidgets(2));
+      expect(find.text('2'), findsNothing);
+    });
   });
 }
