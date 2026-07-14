@@ -20,7 +20,7 @@ class FeedRepositoryImpl implements FeedRepository {
 
   @override
   Future<FeedPage> getFeed({
-    required String region,
+    required String? region,
     String? city,
     FeedOrder order = FeedOrder.recent,
     PublicationCategory? category,

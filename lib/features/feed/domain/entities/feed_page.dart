@@ -12,7 +12,7 @@ class FeedPage extends Equatable {
     required this.limit,
     required this.total,
     required this.hasMore,
-    required this.currentRegion,
+    this.currentRegion,
     this.currentCity,
     this.currentCategory,
     required this.currentOrder,
@@ -23,7 +23,10 @@ class FeedPage extends Equatable {
   final int limit;
   final int total;
   final bool hasMore;
-  final String currentRegion;
+
+  /// Región activa del filtro; null significa "Todas las regiones" (la
+  /// petición al backend viaja sin parámetro de región).
+  final String? currentRegion;
   final String? currentCity;
   final PublicationCategory? currentCategory;
   final FeedOrder currentOrder;

@@ -11,7 +11,7 @@ class FeedRemoteDatasourceImpl implements FeedRemoteDatasource {
 
   @override
   Future<FeedResponseModel> getFeed({
-    required String region,
+    required String? region,
     String? city,
     String? order,
     String? category,
@@ -21,7 +21,7 @@ class FeedRemoteDatasourceImpl implements FeedRemoteDatasource {
     final response = await dio.get(
       ApiConstants.feed,
       queryParameters: {
-        'region': region,
+        'region': ?region,
         'city': ?city,
         'order': ?order,
         'category': ?category,

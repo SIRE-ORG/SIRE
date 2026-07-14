@@ -62,12 +62,24 @@ class FeedNotifier extends _$FeedNotifier {
     await future;
   }
 
-  Future<void> setRegionManually(String region) async {
+  /// Cambia el filtro de región del feed. `region == null` significa
+  /// "Todas las regiones": la petición viaja sin parámetro de región. Solo
+  /// una región concreta se persiste como caché (la cacheada/detectada sigue
+  /// siendo el default inicial de [build]); "Todas" es un filtro de sesión,
+  /// no un nuevo default. Se preservan la categoría y el orden activos; la
+  /// ciudad se descarta porque pertenece a la región anterior.
+  Future<void> setRegionManually(String? region) async {
+    final current = state.value;
     state = const AsyncLoading();
-    await const LocalStorageService().write(StorageKeys.region, region);
+    if (region != null && region.isNotEmpty) {
+      await const LocalStorageService().write(StorageKeys.region, region);
+    }
     state = await AsyncValue.guard(
-      () =>
-          GetFeedUseCase(ref.read(feedRepositoryProvider)).call(region: region),
+      () => GetFeedUseCase(ref.read(feedRepositoryProvider)).call(
+        region: region,
+        order: current?.currentOrder ?? FeedOrder.recent,
+        category: current?.currentCategory,
+      ),
     );
   }
 

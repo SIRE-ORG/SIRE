@@ -7,8 +7,9 @@ class GetFeedUseCase {
 
   final FeedRepository _repository;
 
+  /// [region] null: sin filtro de región ("Todas las regiones").
   Future<FeedPage> call({
-    required String region,
+    required String? region,
     String? city,
     FeedOrder order = FeedOrder.recent,
     PublicationCategory? category,
