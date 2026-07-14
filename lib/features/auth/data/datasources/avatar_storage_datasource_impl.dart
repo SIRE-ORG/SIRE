@@ -16,9 +16,16 @@ class AvatarStorageDatasourceImpl implements AvatarStorageDatasource {
     required String extension,
   }) async {
     final path = '$userId.$extension';
-    await _client.storage
-        .from(_bucket)
-        .uploadBinary(path, bytes, fileOptions: FileOptions(upsert: true));
-    return _client.storage.from(_bucket).getPublicUrl(path);
+    try {
+      await _client.storage
+          .from(_bucket)
+          .uploadBinary(path, bytes, fileOptions: FileOptions(upsert: true));
+      return _client.storage.from(_bucket).getPublicUrl(path);
+    } on StorageException catch (e) {
+      // El bucket de avatars todavía no está operativo en Supabase (config
+      // externa pendiente): se tipa el fallo para que la UI lo distinga del
+      // fallo del PUT /users/me en vez de mostrar el error genérico.
+      throw AvatarUploadException(message: e.message);
+    }
   }
 }

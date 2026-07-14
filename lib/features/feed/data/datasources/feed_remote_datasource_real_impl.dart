@@ -20,7 +20,7 @@ class FeedRemoteDatasourceRealImpl implements FeedRemoteDatasource {
 
   @override
   Future<FeedResponseModel> getFeed({
-    required String region,
+    required String? region,
     String? city,
     String? order,
     String? category,
@@ -29,11 +29,12 @@ class FeedRemoteDatasourceRealImpl implements FeedRemoteDatasource {
   }) async {
     var items = await _fetch(region);
     // Si filtrar por región no devuelve nada (los strings de región del
-    // dispositivo/Nominatim no calzan con los del backend, o la región viene
-    // vacía), se reintenta SIN filtro para no dejar el feed vacío. El filtrado
-    // fino por región queda pendiente del normalizador.
-    if (items.isEmpty && region.isNotEmpty) {
-      items = await _fetch('');
+    // dispositivo/Nominatim no calzan con los del backend), se reintenta SIN
+    // filtro para no dejar el feed vacío. El filtrado fino por región queda
+    // pendiente del normalizador. Con region null ("Todas las regiones") la
+    // primera petición ya va sin filtro, así que no hay reintento posible.
+    if (items.isEmpty && region != null && region.isNotEmpty) {
+      items = await _fetch(null);
     }
 
     return FeedResponseModel(
@@ -45,10 +46,12 @@ class FeedRemoteDatasourceRealImpl implements FeedRemoteDatasource {
     );
   }
 
-  Future<List<PublicationSummaryModel>> _fetch(String region) async {
+  Future<List<PublicationSummaryModel>> _fetch(String? region) async {
     final response = await dio.get(
       ApiConstants.publicationsFeedLive,
-      queryParameters: {if (region.isNotEmpty) 'region': region},
+      queryParameters: {
+        if (region != null && region.isNotEmpty) 'region': region,
+      },
     );
     final raw =
         ((response.data as Map<String, dynamic>)['data'] as List?) ?? [];

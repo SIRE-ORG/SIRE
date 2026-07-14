@@ -75,7 +75,7 @@ class FeedRemoteDatasourceMockImpl implements FeedRemoteDatasource {
 
   @override
   Future<FeedResponseModel> getFeed({
-    required String region,
+    required String? region,
     String? city,
     String? order,
     String? category,

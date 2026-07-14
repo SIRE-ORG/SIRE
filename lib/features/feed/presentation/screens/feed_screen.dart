@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/constants/chile_regions.dart';
 import '../../../../core/providers/role_provider.dart';
 import '../../../notifications/presentation/screens/notifications_screen.dart';
 import '../../../notifications/presentation/widgets/notification_bell.dart';
@@ -63,6 +64,57 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
     final cat = _categoryEnum(_selectedCategory);
     if (cat == null) return items;
     return items.where((p) => p.category == cat).toList();
+  }
+
+  /// Etiqueta visible del filtro de región. No es una región real de
+  /// [chileRegions], así que sirve de sentinel en el bottom sheet para
+  /// distinguir "Todas" (pop con esta etiqueta) de "cerró sin elegir"
+  /// (pop con null).
+  static const _allRegionsLabel = 'Todas las regiones';
+
+  /// Etiqueta del filtro de región activo para el header: la región del
+  /// estado del feed, "Todas las regiones" cuando el filtro es null (o la
+  /// región cacheada llegó vacía) y un placeholder mientras carga el primer
+  /// fetch.
+  String _regionLabel() {
+    final feedAsync = ref.watch(feedNotifierProvider);
+    if (!feedAsync.hasValue) return 'Detectando región…';
+    final region = feedAsync.value!.currentRegion;
+    return (region == null || region.isEmpty) ? _allRegionsLabel : region;
+  }
+
+  /// Selector del filtro de región: "Todas las regiones" primero y luego
+  /// las 16 regiones canónicas. "Todas" dispara la query sin parámetro de
+  /// región (region null en el notifier).
+  Future<void> _pickRegion() async {
+    final selected = await showModalBottomSheet<String>(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: ListView(
+          shrinkWrap: true,
+          children: [
+            const Padding(
+              padding: EdgeInsets.all(16),
+              child: Text(
+                'Filtrar por región',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.public),
+              title: const Text(_allRegionsLabel),
+              onTap: () => Navigator.of(ctx).pop(_allRegionsLabel),
+            ),
+            for (final r in chileRegions)
+              ListTile(title: Text(r), onTap: () => Navigator.of(ctx).pop(r)),
+          ],
+        ),
+      ),
+    );
+    if (selected == null) return;
+    await ref
+        .read(feedNotifierProvider.notifier)
+        .setRegionManually(selected == _allRegionsLabel ? null : selected);
   }
 
   void _handleNotificationsClick(BuildContext context, bool isWeb) {
@@ -313,19 +365,34 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
             ],
           ),
           const SizedBox(height: 12),
-          Row(
-            children: [
-              Icon(
-                Icons.location_on,
-                color: isWeb ? Colors.grey : Colors.white,
-                size: 16,
-              ),
-              const SizedBox(width: 8),
-              Text(
-                'Temuco, La Araucanía',
-                style: TextStyle(color: isWeb ? Colors.grey : Colors.white),
-              ),
-            ],
+          // Filtro de región: muestra la región activa (o "Todas las
+          // regiones") y abre el selector al tocarlo.
+          GestureDetector(
+            onTap: _pickRegion,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.location_on,
+                  color: isWeb ? Colors.grey : Colors.white,
+                  size: 16,
+                ),
+                const SizedBox(width: 8),
+                Flexible(
+                  child: Text(
+                    _regionLabel(),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(color: isWeb ? Colors.grey : Colors.white),
+                  ),
+                ),
+                Icon(
+                  Icons.arrow_drop_down,
+                  color: isWeb ? Colors.grey : Colors.white,
+                  size: 20,
+                ),
+              ],
+            ),
           ),
           const SizedBox(height: 24),
           Container(

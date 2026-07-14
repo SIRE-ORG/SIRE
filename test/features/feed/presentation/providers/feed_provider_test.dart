@@ -4,6 +4,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sire/core/network/api_flags.dart';
 import 'package:sire/core/network/app_exception.dart';
+import 'package:sire/core/storage/local_storage_service.dart';
 import 'package:sire/features/feed/data/datasources/feed_remote_datasource.dart';
 import 'package:sire/features/feed/data/datasources/feed_remote_datasource_real_impl.dart';
 import 'package:sire/features/feed/data/models/feed_response_model.dart';
@@ -109,5 +110,74 @@ void main() {
         isA<FeedRemoteDatasourceRealImpl>(),
       );
     });
+  });
+
+  // S3-2: filtro de región con opción "Todas las regiones" (region null).
+  group('filtro de región (S3-2)', () {
+    RecordingFeedRemoteDatasource recordingDatasource() =>
+        RecordingFeedRemoteDatasource(
+          response: const FeedResponseModel(
+            items: [],
+            page: 1,
+            limit: 20,
+            total: 0,
+            hasMore: false,
+          ),
+        );
+
+    test('el default inicial sigue siendo la región cacheada', () async {
+      final datasource = recordingDatasource();
+      final container = containerCon(datasource);
+      final sub = container.listen(feedNotifierProvider, (_, _) {});
+      addTearDown(sub.close);
+
+      final page = await container.read(feedNotifierProvider.future);
+
+      expect(datasource.regionCalls, ['Araucania']);
+      expect(page.currentRegion, 'Araucania');
+    });
+
+    test('seleccionar "Todas las regiones" (null) dispara el fetch sin región '
+        'y no pisa la región cacheada', () async {
+      final datasource = recordingDatasource();
+      final container = containerCon(datasource);
+      final sub = container.listen(feedNotifierProvider, (_, _) {});
+      addTearDown(sub.close);
+      await container.read(feedNotifierProvider.future);
+
+      await container
+          .read(feedNotifierProvider.notifier)
+          .setRegionManually(null);
+
+      expect(datasource.regionCalls.last, isNull);
+      expect(container.read(feedNotifierProvider).value?.currentRegion, isNull);
+      // "Todas" es un filtro de sesión: la cacheada sigue siendo el
+      // default inicial para la próxima carga.
+      const storage = LocalStorageService();
+      expect(await storage.read(StorageKeys.region), 'Araucania');
+    });
+
+    test(
+      'seleccionar una región concreta manda esa región y la persiste',
+      () async {
+        final datasource = recordingDatasource();
+        final container = containerCon(datasource);
+        final sub = container.listen(feedNotifierProvider, (_, _) {});
+        addTearDown(sub.close);
+        await container.read(feedNotifierProvider.future);
+
+        await container
+            .read(feedNotifierProvider.notifier)
+            .setRegionManually('Región del Maule');
+
+        expect(datasource.regionCalls.last, 'Región del Maule');
+        expect(
+          container.read(feedNotifierProvider).value?.currentRegion,
+          'Región del Maule',
+        );
+        const storage = LocalStorageService();
+        expect(await storage.read(StorageKeys.region), 'Región del Maule');
+      },
+    );
   });
 }

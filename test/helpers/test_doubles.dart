@@ -82,7 +82,7 @@ class StubFeedRemoteDatasource implements FeedRemoteDatasource {
 
   @override
   Future<FeedResponseModel> getFeed({
-    required String region,
+    required String? region,
     String? city,
     String? order,
     String? category,
@@ -91,6 +91,31 @@ class StubFeedRemoteDatasource implements FeedRemoteDatasource {
   }) async {
     if (error != null) throw error!;
     return response!;
+  }
+}
+
+/// FeedRemoteDatasource que registra el `region` de cada llamada (incluido
+/// null = "Todas las regiones") y responde siempre [response].
+class RecordingFeedRemoteDatasource implements FeedRemoteDatasource {
+  RecordingFeedRemoteDatasource({required this.response});
+
+  final FeedResponseModel response;
+
+  /// Región recibida en cada llamada, en orden. `null` significa que la
+  /// petición fue sin filtro de región.
+  final List<String?> regionCalls = [];
+
+  @override
+  Future<FeedResponseModel> getFeed({
+    required String? region,
+    String? city,
+    String? order,
+    String? category,
+    int page = 1,
+    int limit = 20,
+  }) async {
+    regionCalls.add(region);
+    return response;
   }
 }
 

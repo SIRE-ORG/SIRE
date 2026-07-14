@@ -39,6 +39,10 @@ class _FakeFeedNotifier extends FeedNotifier {
   PublicationCategory? lastCategory;
   var setCategoryCallCount = 0;
 
+  /// Región recibida en cada llamada a [setRegionManually]; null significa
+  /// "Todas las regiones" (la petición va sin filtro de región).
+  final regionCalls = <String?>[];
+
   @override
   Future<FeedPage> build() async => const FeedPage(
     items: _items,
@@ -56,6 +60,11 @@ class _FakeFeedNotifier extends FeedNotifier {
   Future<void> setCategory(PublicationCategory? category) async {
     lastCategory = category;
     setCategoryCallCount++;
+  }
+
+  @override
+  Future<void> setRegionManually(String? region) async {
+    regionCalls.add(region);
   }
 }
 
@@ -242,6 +251,80 @@ void main() {
         tester.view.resetDevicePixelRatio();
         FlutterError.onError = originalOnError;
       });
+    },
+  );
+
+  // S3-2: selector de región del feed con opción "Todas las regiones".
+  testWidgets(
+    'FeedScreen: el selector de región ofrece Todas las regiones primero y '
+    'al elegirla manda region null',
+    (WidgetTester tester) async {
+      final originalOnError = FlutterError.onError;
+      FlutterError.onError = (FlutterErrorDetails details) {
+        if (details.exceptionAsString().contains('overflowed')) return;
+        originalOnError?.call(details);
+      };
+      tester.view.physicalSize = const Size(390, 2400);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+        FlutterError.onError = originalOnError;
+      });
+
+      final notifier = _FakeFeedNotifier();
+      await tester.pumpWidget(_buildSubject(notifier: notifier));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      // El header muestra la región activa del estado del feed.
+      expect(find.text('Araucanía'), findsOneWidget);
+
+      await tester.tap(find.text('Araucanía'));
+      await tester.pumpAndSettle();
+
+      // "Todas las regiones" encabeza el selector, seguida de las 16
+      // regiones canónicas.
+      expect(find.text('Todas las regiones'), findsOneWidget);
+      expect(find.text('Región Metropolitana'), findsOneWidget);
+      expect(find.text('Región de La Araucanía'), findsOneWidget);
+
+      await tester.tap(find.text('Todas las regiones'));
+      await tester.pumpAndSettle();
+
+      expect(notifier.regionCalls, [null]);
+    },
+  );
+
+  testWidgets(
+    'FeedScreen: elegir una región concreta en el selector la manda a '
+    'setRegionManually',
+    (WidgetTester tester) async {
+      final originalOnError = FlutterError.onError;
+      FlutterError.onError = (FlutterErrorDetails details) {
+        if (details.exceptionAsString().contains('overflowed')) return;
+        originalOnError?.call(details);
+      };
+      tester.view.physicalSize = const Size(390, 2400);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+        FlutterError.onError = originalOnError;
+      });
+
+      final notifier = _FakeFeedNotifier();
+      await tester.pumpWidget(_buildSubject(notifier: notifier));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      await tester.tap(find.text('Araucanía'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Región del Maule'));
+      await tester.pumpAndSettle();
+
+      expect(notifier.regionCalls, ['Región del Maule']);
     },
   );
 }

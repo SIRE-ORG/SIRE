@@ -409,5 +409,34 @@ void main() {
         expect(find.text('Perfil actualizado'), findsNothing);
       },
     );
+
+    // S3-3: el upload del avatar ocurre ANTES del PUT (UpdateProfileUseCase)
+    // y su fallo llega a la pantalla como AvatarUploadException (el rethrow
+    // de ProfileNotifier propaga la excepción tal cual, venga del upload o
+    // del PUT). Que el use case lanza esa excepción cuando el storage falla
+    // lo cubre update_profile_usecase_test.dart; acá se cubre el mapeo de la
+    // pantalla al SnackBar específico.
+    testWidgets(
+      'fallo de subida del avatar (AvatarUploadException) -> SnackBar '
+      'específico de la foto, no el genérico de guardado',
+      (tester) async {
+        await pumpAndSave(
+          tester,
+          _StubAuthRepository(
+            error: AvatarUploadException(message: 'Bucket not found'),
+          ),
+        );
+
+        expect(
+          find.text(
+            'No pudimos subir la foto (almacenamiento en configuración). '
+            'Puedes guardar los demás cambios quitando la imagen.',
+          ),
+          findsOneWidget,
+        );
+        expect(find.text('No se pudo guardar el perfil'), findsNothing);
+        expect(find.text('Perfil actualizado'), findsNothing);
+      },
+    );
   });
 }

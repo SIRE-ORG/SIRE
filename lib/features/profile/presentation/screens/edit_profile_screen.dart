@@ -10,6 +10,7 @@ import '../../../../core/network/app_exception.dart';
 import '../../../../core/providers/role_provider.dart';
 import '../../../../core/widgets/custom_button.dart';
 import '../../../../core/widgets/custom_text_field.dart';
+import '../../../auth/data/datasources/avatar_storage_datasource.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 
 class EditProfileScreen extends ConsumerStatefulWidget {
@@ -101,6 +102,13 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   String _errorMessage(Object error) {
     final err = _unwrap(error);
     switch (err) {
+      case AvatarUploadException():
+        // El upload del avatar ocurre ANTES del PUT /users/me
+        // (UpdateProfileUseCase) y hoy falla por configuración pendiente de
+        // los buckets en Supabase: distinguirlo evita el mensaje genérico
+        // "No se pudo guardar el perfil", que apuntaba al lado equivocado.
+        return 'No pudimos subir la foto (almacenamiento en configuración). '
+            'Puedes guardar los demás cambios quitando la imagen.';
       case NotFoundException():
       case ServerException(code: 'ENDPOINT_NOT_AVAILABLE'):
         // Cubre tanto "el backend viejo de Render todavía no tiene el
