@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../core/network/app_exception.dart';
@@ -93,6 +94,13 @@ class AuthRepositoryImpl implements AuthRepository {
       // se trata como "sin perfil", no como error. authStatusProvider deriva
       // AccountStatus.anon a partir de esto.
       return null;
+    } on DioException catch (e) {
+      // El ErrorInterceptor de DioClient NO lanza la AppException tipada:
+      // la envuelve en DioException.error. Sin este unwrap, el 404 de un
+      // anónimo sin perfil subía como error y rompía la elegibilidad de
+      // reserva (formulario de invitado jamás se mostraba).
+      if (e.error is NotFoundException) return null;
+      rethrow;
     }
   }
 

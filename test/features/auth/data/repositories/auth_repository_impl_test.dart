@@ -3,6 +3,7 @@
 // dominio. Se mockean los colaboradores con mocktail; no toca red ni storage
 // real.
 
+import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:sire/core/network/app_exception.dart';
@@ -267,6 +268,24 @@ void main() {
       when(
         () => remote.getProfile(),
       ).thenThrow(NotFoundException(code: 'PROFILE_NOT_FOUND'));
+
+      final p = await repo.getProfile();
+
+      expect(p, isNull);
+    });
+
+    test('getProfile con 404 envuelto en DioException (como lo entrega el '
+        'ErrorInterceptor real) -> null, no rompe la elegibilidad', () async {
+      // Regresion del bug de release: el interceptor de DioClient NO lanza la
+      // AppException tipada, la envuelve en DioException.error; el catch del
+      // repo no la atrapaba y el anon nunca veia el formulario de invitado.
+      when(() => supa.getCurrentUserId()).thenReturn('anon-2');
+      when(() => remote.getProfile()).thenThrow(
+        DioException(
+          requestOptions: RequestOptions(path: '/auth/me'),
+          error: NotFoundException(code: 'PROFILE_NOT_FOUND'),
+        ),
+      );
 
       final p = await repo.getProfile();
 
